@@ -1,0 +1,15 @@
+# Game data and anything derived from it: never commit (see README, Licensing)
+local/
+*.dxbc
+*.asm
+*.unity3d
+
+# Build output
+build/
+bin/
+obj/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,83 @@
+using System;
+using System.Collections.Generic;
+
+namespace LightGreen.Core
+{
+    /// <summary>
+    /// One visual feature. <see cref="Apply"/> runs every frame while LightGreen is on. <see cref="Restore"/> puts
+    /// the game back exactly as it was; it must be safe to call at any time and any number of times, including
+    /// when the feature never applied anything.
+    /// </summary>
+    internal interface IFeature
+    {
+        /// <summary>The name the log uses for it.</summary>
+        string Name { get; }
+
+        void Apply();
+
+        void Restore();
+    }
+
+    /// <summary>
+    /// Runs the features. A feature that throws is restored and switched off until the game restarts, and the
+    /// rest carry on, so one effect broken by a game update can't take the others (or the game) down with it.
+    /// </summary>
+    internal sealed class FeatureHost
+    {
+        private readonly List<IFeature> _features = new List<IFeature>();
+        private readonly HashSet<IFeature> _failed = new HashSet<IFeature>();
+        private bool _applied;
+
+        internal int Count => _features.Count;
+
+        internal void Add(IFeature feature) => _features.Add(feature);
+
+        /// <summary>Each working feature, once a frame while LightGreen is on.</summary>
+        internal void Apply()
+        {
+            _applied = true;
+            foreach (IFeature feature in _features)
+            {
+                if (_failed.Contains(feature)) continue;
+                try
+                {
+                    feature.Apply();
+                }
+                catch (Exception e)
+                {
+                    _failed.Add(feature);
+                    Plugin.Log.LogError($"[FAILED] {feature.Name}: {e}\n{feature.Name} is off until the game restarts; " +
+                                        "the rest of LightGreen carries on.");
+                    Restore(feature);
+                }
+            }
+        }
+
+        /// <summary>The game's own look back (LightGreen off, or the ToggleKey comparison). Only does work once.</summary>
+        internal void Restore()
+        {
+            if (!_applied) return;
+            _applied = false;
+            foreach (IFeature feature in _features) Restore(feature);
+        }
+
+        /// <summary>Every feature back, whatever state it's in (shutdown).</summary>
+        internal void RestoreAll()
+        {
+            _applied = false;
+            foreach (IFeature feature in _features) Restore(feature);
+        }
+
+        private static void Restore(IFeature feature)
+        {
+            try
+            {
+                feature.Restore();
+            }
+            catch (Exception e)
+            {
+                Plugin.Log.LogError($"{feature.Name} couldn't put the game back as it was: {e.Message}");
+            }
+        }
+    }
+}
