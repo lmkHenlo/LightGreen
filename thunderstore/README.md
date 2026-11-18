@@ -22,7 +22,7 @@ LightGreen changes how the game looks for you, using the game's own shaders and 
 
 - [Install](#install)
 - [Usage](#usage)
-- [Known issues](#known-issues)
+- [Notes](#notes)
 - [Compatibility](#compatibility)
 - [Maintainers](#maintainers)
 - [Contributing](#contributing)
@@ -83,7 +83,7 @@ Rain = 1
 
 The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first start. It's reloaded when you save it.
 
-## Known issues
+## Notes
 
 - **Lights need the game's Dynamic Lighting setting** (Settings > Graphics), which is on by default. With it off, explosions, lightning and City lampposts give no light; everything else still works.
 - **Frame rate.** Ambient occlusion and the sharper shadows cost some frames per second. If yours drops, try `Quality.AmbientOcclusionQuality = Low`, `Quality.SunShadowResolution = 2048`, or turning effects down.
