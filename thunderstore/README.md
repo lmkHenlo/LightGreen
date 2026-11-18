@@ -86,7 +86,6 @@ The colours for each biome and time of day are in `BepInEx/config/LightGreen.pre
 ## Known issues
 
 - **Lights need the game's Dynamic Lighting setting** (Settings > Graphics), which is on by default. With it off, explosions, lightning and City lampposts give no light; everything else still works.
-- **Ambient occlusion shows slightly jagged edges** where surfaces meet, such as beam joints and between leaf clumps. Set `Effects.AmbientOcclusion` to 0 if it bothers you, or `Quality.AmbientOcclusionQuality` to `High` to make it finer.
 - **Frame rate.** Ambient occlusion and the sharper shadows cost some frames per second. If yours drops, try `Quality.AmbientOcclusionQuality = Low`, `Quality.SunShadowResolution = 2048`, or turning effects down.
 - **The time of day is only yours:** other players see the hole as the game has it.
 - **Rain is off by default.** It's only a look, and could be mistaken for the Thunderstorm item.
@@ -96,8 +95,6 @@ The colours for each biome and time of day are in `BepInEx/config/LightGreen.pre
 ## Compatibility
 
 - Tested alongside SliderSens.
-- **MaxFOVSlider** also uses **F8** by default. Change one of them (`Keys.ToggleKey` here, or `Debug.ToggleKey` in MaxFOVSlider) so one key doesn't switch both.
-- VR (SBGVR): not yet tested. LightGreen turns its lens effects and ambient occlusion off while a headset is in use.
 - Client-side only: it changes how the game looks for you, and sends nothing over the network.
 
 ## Maintainers

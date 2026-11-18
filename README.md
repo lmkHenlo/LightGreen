@@ -7,8 +7,6 @@ Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded 
 
 LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, and optional rain. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
 
-The source folder is called `next` because it sits beside the earlier, unreleased version of LightGreen (`master`), which it replaces; the project, plugin and Thunderstore package are all called LightGreen.
-
 ## Table of Contents
 
 - [Background](#background)
@@ -16,10 +14,8 @@ The source folder is called `next` because it sits beside the earlier, unrelease
 - [Usage](#usage)
 - [Known issues](#known-issues)
 - [Building from source](#building-from-source)
-- [Releasing](#releasing)
 - [Files](#files)
 - [Redistribution](#redistribution)
-- [API](#api)
 - [Maintainers](#maintainers)
 - [Contributing](#contributing)
 - [License](#license)
@@ -108,11 +104,6 @@ The colours for each biome and time of day are in `BepInEx/config/LightGreen.pre
 ## Known issues
 
 - **Lights need the game's Dynamic Lighting setting** (Settings > Graphics), which is on by default. With it off, effect lights, lightning and City lampposts give no light; everything else still works.
-- **Ambient occlusion shows slightly jagged edges** where surfaces meet or overlap (beam joints, between leaf clumps). It is worked out per pixel and laid over the anti-aliased image, because the game's toon shader has no variant that reads it while drawing. `Quality.AmbientOcclusionQuality = High` makes the steps finer; `Effects.AmbientOcclusion = 0` turns it off.
-- **F8 clashes with MaxFOVSlider,** which uses F8 by default too. Change `Keys.ToggleKey` here or `Debug.ToggleKey` there.
-- **VR (SBGVR) is not yet tested.** LightGreen turns its lens effects and ambient occlusion off and halves the ice glints while a headset is in use.
-- **Settings the earlier, unreleased LightGreen had** stay in `com.lightgreen.cfg`, unused; deleting the file gives a clean one. Settings this version has removed (`Effects.FilmGrain`, `Effects.Snowfall`, `Quality.AmbientOcclusionIgnoresGrass`) are taken out of the file automatically.
-- **Don't install the earlier LightGreen alongside this one:** both use the id `com.lightgreen`, and BepInEx loads only one.
 
 ## Building from source
 
@@ -127,13 +118,6 @@ This writes `build/plugins/LightGreen.dll` and, with `-InstallTo`, copies it int
 Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGreen-<version>.zip`: `manifest.json`, `README.md` and `icon.png` from `thunderstore/`, `CHANGELOG.md`, `LightGreen.dll` and `LICENSE`. It stops if `thunderstore/manifest.json` and `Plugin.cs` give different versions.
 
 `plugin/LightGreen.csproj` is for editors.
-
-## Releasing
-
-1. Set the version in `plugin/src/Plugin.cs` (`Version`), `plugin/src/AssemblyInfo.cs`, `plugin/LightGreen.csproj` and `thunderstore/manifest.json`, and the "Version …, tested on …" line in `thunderstore/README.md`.
-2. In `CHANGELOG.md`, rename `[Unreleased]` to the new version and the release date (`## [x.y.z] - YYYY-MM-DD`) and start a new, empty `[Unreleased]` section above it.
-3. Commit, and tag the commit `vx.y.z`.
-4. `pwsh ./build.ps1 -BepInExCore "<profile>\BepInEx\core" -Package`, then upload `build/lmkHenlo-LightGreen-<version>.zip` to Thunderstore (Super Battle Golf community).
 
 ## Files
 
@@ -160,17 +144,6 @@ LightGreen is meant to be redistributed, so the repository and every release con
 
 - **Ships:** LightGreen's C# code, built into `LightGreen.dll`, and its documentation and icon.
 - **Never committed or shipped:** game files, decompiled or disassembled game code, Asset Store code. Anything taken from the game for reference goes in `local/`, which git ignores.
-
-## API
-
-LightGreen is a plugin, not a library. Other BepInEx plugins can refer to it by its GUID:
-
-```csharp
-[BepInDependency(LightGreen.Plugin.Guid, BepInDependency.DependencyFlags.SoftDependency)] // "com.lightgreen"
-public class MyPlugin : BaseUnityPlugin { }
-```
-
-- `LightGreen.Plugin.Guid`, `Name` and `Version` are public constants. There is no other public API.
 
 ## Maintainers
 
