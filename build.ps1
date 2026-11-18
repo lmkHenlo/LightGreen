@@ -11,7 +11,7 @@
     pwsh ./build.ps1 -BepInExCore "$env:APPDATA\r2modmanPlus-local\SuperBattleGolf\profiles\Default\BepInEx\core" `
                      -InstallTo   "$env:APPDATA\r2modmanPlus-local\SuperBattleGolf\profiles\Default\BepInEx\plugins"
     pwsh ./build.ps1 -BepInExCore "<...>\BepInEx\core" -Package
-      (writes build/lmkHenlo-LightGreen-<version>.zip: manifest.json, README.md, icon.png, LightGreen.dll, LICENSE)
+      (writes build/lmkHenlo-LightGreen-<version>.zip: manifest.json, README.md, icon.png, CHANGELOG.md, LightGreen.dll, LICENSE)
 #>
 param(
     # Kept for the familiar command line: plugin is the only project.
@@ -91,6 +91,7 @@ if ($Package) {
     if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
     New-Item -ItemType Directory -Path $staging | Out-Null
     Copy-Item (Join-Path $store 'manifest.json'), (Join-Path $store 'README.md'), (Join-Path $store 'icon.png') $staging
+    Copy-Item (Join-Path $PSScriptRoot 'CHANGELOG.md') $staging
     Copy-Item $out $staging
     Copy-Item (Join-Path $PSScriptRoot 'LICENSE') $staging
 

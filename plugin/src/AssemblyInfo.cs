@@ -1,7 +1,7 @@
 using System.Reflection;
 
 [assembly: AssemblyTitle("LightGreen")]
-[assembly: AssemblyDescription("Lighting, atmosphere and visual effects for Super Battle Golf.")]
+[assembly: AssemblyDescription("Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.")]
 [assembly: AssemblyProduct("LightGreen")]
 [assembly: AssemblyCompany("lmkHenlo")]
 [assembly: AssemblyCopyright("Copyright (c) 2026 lmkHenlo")]
