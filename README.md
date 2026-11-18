@@ -30,6 +30,10 @@ and complete.
 
 ## Install
 
+From Thunderstore: install `LightGreen` with r2modman or another Thunderstore mod manager (it brings BepInEx 5 with it).
+
+From source:
+
 1. BepInEx 5 (x64) for Super Battle Golf, for example through r2modman.
 2. Build (below) with `-InstallTo` pointing at the profile's `BepInEx/plugins` folder, or copy `build/plugins/LightGreen.dll`
    into `BepInEx/plugins/LightGreen/`.
@@ -73,7 +77,18 @@ PowerShell 7, the game, and BepInEx 5's `core` folder:
 pwsh ./build.ps1 -Project plugin -BepInExCore "$env:APPDATA\r2modmanPlus-local\SuperBattleGolf\profiles\Default\BepInEx\core" -InstallTo "$env:APPDATA\r2modmanPlus-local\SuperBattleGolf\profiles\Default\BepInEx\plugins"
 ```
 
+Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGreen-<version>.zip` (`manifest.json`,
+`README.md` and `icon.png` from `thunderstore/`, `LightGreen.dll`, `LICENSE`). It stops if `thunderstore/manifest.json`
+and `Plugin.cs` don't give the same version.
+
 `plugin/LightGreen.csproj` is for editors; the build script doesn't need the .NET SDK.
+
+## Releasing
+
+1. Set the version in `plugin/src/Plugin.cs` (`Version`), `plugin/src/AssemblyInfo.cs`, `plugin/LightGreen.csproj` and
+   `thunderstore/manifest.json`, and the "Version …, tested on …" line in `thunderstore/README.md`.
+2. `pwsh ./build.ps1 -BepInExCore "<profile>\BepInEx\core" -Package`.
+3. Upload `build/lmkHenlo-LightGreen-<version>.zip` to Thunderstore (Super Battle Golf community).
 
 ## Repository layout
 
@@ -94,6 +109,7 @@ pwsh ./build.ps1 -Project plugin -BepInExCore "$env:APPDATA\r2modmanPlus-local\S
 - `plugin/src/Core/GameWind.cs`: the game's wind, which rain drifts with.
 - `plugin/src/Core/ToonEmissive.cs`: which toon materials can be switched to glow (City windows, balls).
 - `plugin/src/Vr.cs`: whether a headset is in use.
+- `thunderstore/`: the Thunderstore page (`README.md`), `manifest.json` and `icon.png`.
 - `docs/testing.md`: the checks for each step.
 
 ## Licensing

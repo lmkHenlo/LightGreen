@@ -1,0 +1,10 @@
+{
+  "name": "LightGreen",
+  "author": "lmkHenlo",
+  "version_number": "0.1.0",
+  "website_url": "",
+  "description": "Lighting, atmosphere and weather for Super Battle Golf that keep its bright cel-shaded look. Client-side: only you need it.",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2305"
+  ]
+}
