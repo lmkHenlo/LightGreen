@@ -121,22 +121,37 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 
 ## Files
 
-- `plugin/src/Plugin.cs`: entry point, settings reload, the F8 and F9 keys.
-- `plugin/src/Settings.cs`: the settings, and the removed ones taken out of the file.
-- `plugin/src/Core/Features.cs`: the feature interface and host. A feature that throws is put back and switched off until the game restarts; the rest carry on.
-- `plugin/src/Core/PatchModule.cs`: one Harmony patch class per feature, so a hook a game update breaks turns off only that feature.
-- `plugin/src/Core/GameEvents.cs`, `Biome.cs`: which biome the hole is, and the game's events LightGreen follows.
-- `plugin/src/Core/MaterialEdits.cs`: material changes that can be undone exactly.
-- `plugin/src/Core/GameFlashes.cs`: the game's Explosion flashes option, which makes LightGreen's flashes gentler.
-- `plugin/src/Core/GameWind.cs`: the game's wind, which rain drifts with.
-- `plugin/src/Core/ToonEmissive.cs`: which toon materials can be switched to glow (City windows, balls).
-- `plugin/src/Presets/`: the per-biome and per-time presets and their file.
-- `plugin/src/Systems/`: one file per feature: `EnvironmentController` (time of day), `VolumeLayer` (post-processing), `MaterialTuner` (shadow tint, water, ice), `SunShadows`, `AmbientOcclusion` with `GrassFreeDepth`, `GrassToggle`, `EffectLights`, `LightningLights`, `CityNight`, `BallGlow`, `LightPool` (hands the lights out), `Rain` with `ParticleLayer`, and `Footprints`.
-- `plugin/src/Vr.cs`: whether a headset is in use.
-- `thunderstore/`: the Thunderstore page (`README.md`), `manifest.json` and `icon.png`.
-- `docs/testing.md`: the checks and results for each phase.
-- `CHANGELOG.md`: the changes in each release.
-- `build.ps1`: builds, installs and packages the plugin.
+| File | What it does |
+|---|---|
+| `build.ps1` | Builds, installs and packages the plugin. |
+| `CHANGELOG.md` | The changes in each release. |
+| `docs/testing.md` | The checks and results for each phase. |
+| `thunderstore/` | The Thunderstore page (`README.md`), `manifest.json` and `icon.png`. |
+| `plugin/LightGreen.csproj` | Project file for editors; the build script doesn't need it. |
+| `plugin/src/Plugin.cs` | Entry point: settings reload and the F8 and F9 keys. |
+| `plugin/src/Settings.cs` | The settings, and removed ones taken out of the file. |
+| `plugin/src/Vr.cs` | Whether a headset is in use. |
+| `plugin/src/Core/Features.cs` | The feature interface and host. A feature that throws is put back and switched off until the game restarts; the rest carry on. |
+| `plugin/src/Core/PatchModule.cs` | One Harmony patch class per feature, so a hook a game update breaks turns off only that feature. |
+| `plugin/src/Core/GameEvents.cs`, `Biome.cs` | Which biome the hole is, and the game's events LightGreen follows. |
+| `plugin/src/Core/MaterialEdits.cs` | Material changes that can be undone exactly. |
+| `plugin/src/Core/GameFlashes.cs` | The game's Explosion flashes option, which makes LightGreen's flashes gentler. |
+| `plugin/src/Core/GameWind.cs` | The game's wind, which rain drifts with. |
+| `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
+| `plugin/src/Presets/` | The per-biome and per-time presets and their file. |
+| `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
+| `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom. |
+| `plugin/src/Systems/MaterialTuner.cs` | Shadow tint, water and ice. |
+| `plugin/src/Systems/SunShadows.cs` | Sharper, longer sun shadows. |
+| `plugin/src/Systems/AmbientOcclusion.cs`, `GrassFreeDepth.cs` | Ambient occlusion, worked out without the grass blades. |
+| `plugin/src/Systems/GrassToggle.cs` | Hides the grass blades. |
+| `plugin/src/Systems/EffectLights.cs` | Light from explosions, muzzle flashes and trails. |
+| `plugin/src/Systems/LightningLights.cs` | Light from lightning strikes. |
+| `plugin/src/Systems/CityNight.cs` | City windows, vehicle lights and lampposts at night. |
+| `plugin/src/Systems/BallGlow.cs` | Glowing balls at night. |
+| `plugin/src/Systems/LightPool.cs` | Hands the lights out each frame. |
+| `plugin/src/Systems/Rain.cs`, `ParticleLayer.cs` | Rain and its particles. |
+| `plugin/src/Systems/Footprints.cs` | Longer-lasting footprints in snow. |
 
 ## Redistribution
 
