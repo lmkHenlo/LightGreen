@@ -23,7 +23,6 @@ LightGreen changes how the game looks for you, using the game's own shaders and 
 - [Install](#install)
 - [Usage](#usage)
 - [Notes](#notes)
-- [Compatibility](#compatibility)
 - [Maintainers](#maintainers)
 - [Contributing](#contributing)
 - [License](#license)
@@ -91,11 +90,6 @@ The colours for each biome and time of day are in `BepInEx/config/LightGreen.pre
 - **Rain is off by default.** It's only a look, and could be mistaken for the Thunderstorm item.
 - **Removing the mod** is safe: nothing it changes is saved, and the game looks as it did the next time it starts.
 - **After a game update,** a part of LightGreen that no longer fits the game switches itself off and puts the game back as it was, and the rest keeps working. `BepInEx/LogOutput.log` shows `[FAILED]` with the part's name.
-
-## Compatibility
-
-- Tested alongside SliderSens.
-- Client-side only: it changes how the game looks for you, and sends nothing over the network.
 
 ## Maintainers
 
