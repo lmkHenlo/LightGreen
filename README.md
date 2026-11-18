@@ -22,9 +22,9 @@ LightGreen adds a time of day you can change (F9), colour grading and distance h
 
 ## Background
 
-Super Battle Golf is drawn with Unity's Universal Render Pipeline (URP) and its own cel-shaded (toon) shaders. LightGreen was first built around rebuilt copies of those shaders in a Unity asset bundle, which had to be rebuilt whenever the game moved to a new Unity version. This version was started again from scratch with one rule: **no shader bundle**. Everything is done with the game's own shaders and materials, URP's built-in post-processing and lights, and the game's own systems (its HTrace ambient occlusion, its wind, its effects), so there is nothing to build in Unity.
+Super Battle Golf is drawn with Unity's Universal Render Pipeline (URP) and its own cel-shaded (toon) shaders.
 
-It was built and tested in three phases, recorded in [docs/testing.md](docs/testing.md):
+LightGreen was built and tested in three phases, recorded in [docs/testing.md](docs/testing.md):
 
 1. **World look:** time of day, colour grading, distance haze, lens flare, tilt-shift for the hole overview, photo depth of field, vignette, chromatic aberration, shadow tint, water and ice tuning, sharper sun shadows.
 2. **Light:** ambient occlusion, a grass switch, effect lights, ball glow, lightning, City at night.
