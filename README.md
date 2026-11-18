@@ -15,7 +15,6 @@ LightGreen adds a time of day you can change (F9), colour grading and distance h
 - [Known issues](#known-issues)
 - [Building from source](#building-from-source)
 - [Files](#files)
-- [Redistribution](#redistribution)
 - [Maintainers](#maintainers)
 - [Contributing](#contributing)
 - [License](#license)
@@ -152,13 +151,6 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Systems/LightPool.cs` | Hands the lights out each frame. |
 | `plugin/src/Systems/Rain.cs`, `ParticleLayer.cs` | Rain and its particles. |
 | `plugin/src/Systems/Footprints.cs` | Longer-lasting footprints in snow. |
-
-## Redistribution
-
-LightGreen is meant to be redistributed, so the repository and every release contain only LightGreen's own work:
-
-- **Ships:** LightGreen's C# code, built into `LightGreen.dll`, and its documentation and icon.
-- **Never committed or shipped:** game files, decompiled or disassembled game code, Asset Store code. Anything taken from the game for reference goes in `local/`, which git ignores.
 
 ## Maintainers
 
