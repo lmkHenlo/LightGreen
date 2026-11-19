@@ -316,3 +316,24 @@ and the `BepInEx/config/LightGreen.filters` folder are made on first start.
 | F10 | Graphics quality | Change the game's graphics quality with a filter on | The filter stays and looks the same |
 
 Put `Filters.Filter` back to `None` (or your favourite) afterwards.
+
+**F1, first run (2026-11-19): failed.** `Photo filters: 0 in LightGreen.filters.json`: every F11 chose None. Both
+`LightGreen.filters.json` and `LightGreen.presets.json` were 20 bytes, `{"version": N}` only. Unity's JsonUtility only
+serializes types from the game's own scripts, so with LightGreen's classes it silently wrote (and read) nothing but
+the top-level number. The presets file has been like this since 0.1.0: the built-in presets were always used, and
+editing the file did nothing.
+
+**Fix:** LightGreen's own JSON (`Core/Json.cs`) for both files: public fields by reflection, colours as `[r, g, b]`,
+missing fields keep their defaults, `//` comments and trailing commas allowed, errors give the line and column (or the
+field, e.g. `filters[0].saturation`). A file holding only the version number is replaced with the full one on the next
+start (the presets one kept as `.v6.bak`). Checked outside the game: presets and filters round-trip field for field and
+write identically twice; the 20-byte file is recognised; partial files keep defaults; six kinds of broken file are
+rejected with where and why.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| J1 | Files rewritten | Start the game once | Log: `Wrote the full presets to … The old file is at …v6.bak.` and `Wrote the built-in photo filters to … (the file had only a version number).`, then `Photo filters: 13 in LightGreen.filters.json, …`; both files now list everything |
+| J2 | Presets edit | At Noon, set `Noon`'s `sunIntensity` to 2 in `LightGreen.presets.json` and save; then back to 1.05 | `Presets reloaded.` and the sunlit sides brighten, then return |
+| J3 | Broken presets | Delete a comma in `LightGreen.presets.json` and save; then put it back | `Couldn't reload the presets (line …, column …: …); keeping the previous ones.`; the look doesn't change; fixed, it reloads |
+
+Then rerun F1–F10.

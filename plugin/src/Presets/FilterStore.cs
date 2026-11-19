@@ -39,6 +39,7 @@ namespace LightGreen.Presets
         private static readonly List<string> _names = new List<string>();
         private static readonly Dictionary<string, FilterEntry> _entries = new Dictionary<string, FilterEntry>(StringComparer.OrdinalIgnoreCase);
         private static FilterFile _file = DefaultFilters.Create();
+        private static bool _fileWasEmpty;
         private static DateTime _loadedWriteTime;
         private static string _folderFingerprint = "";
         private static float _nextCheck;
@@ -61,15 +62,22 @@ namespace LightGreen.Presets
             {
                 if (!File.Exists(FilePath))
                 {
-                    File.WriteAllText(FilePath, JsonUtility.ToJson(DefaultFilters.Create(), true));
+                    File.WriteAllText(FilePath, Json.Serialize(DefaultFilters.Create()));
                     _log.LogInfo($"Wrote the built-in photo filters to {FilePath}. Edit it while the game runs to change them.");
                 }
                 ReadFile();
+                if (_fileWasEmpty)
+                {
+                    // A test build wrote this file with JsonUtility, which saved only "version".
+                    File.WriteAllText(FilePath, Json.Serialize(DefaultFilters.Create()));
+                    ReadFile();
+                    _log.LogInfo($"Wrote the built-in photo filters to {FilePath} (the file had only a version number).");
+                }
                 if (_file.version < DefaultFilters.Version)
                 {
                     string backup = FilePath + $".v{_file.version}.bak";
                     File.Copy(FilePath, backup, true);
-                    File.WriteAllText(FilePath, JsonUtility.ToJson(DefaultFilters.Create(), true));
+                    File.WriteAllText(FilePath, Json.Serialize(DefaultFilters.Create()));
                     ReadFile();
                     _log.LogInfo($"Updated the photo filters to LightGreen's new built-in ones (version {DefaultFilters.Version}). " +
                                  $"Your previous file is at {backup}.");
@@ -121,8 +129,9 @@ namespace LightGreen.Presets
         private static void ReadFile()
         {
             _loadedWriteTime = File.GetLastWriteTimeUtc(FilePath);
-            FilterFile loaded = JsonUtility.FromJson<FilterFile>(File.ReadAllText(FilePath));
-            if (loaded == null) throw new InvalidDataException("the file is empty or not JSON");
+            object tree = Json.Parse(File.ReadAllText(FilePath));
+            var loaded = (FilterFile)Json.FromTree(typeof(FilterFile), tree, "");
+            _fileWasEmpty = !Json.HasKey(tree, "filters");
             loaded.filters = loaded.filters ?? Array.Empty<PhotoFilterPreset>();
             _file = loaded;
         }

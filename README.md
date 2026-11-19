@@ -174,6 +174,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Core/GameWind.cs` | The game's wind, which rain drifts with. |
 | `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
 | `plugin/src/Core/LutBuilder.cs`, `CubeLut.cs` | A photo filter's colours as a lookup table, and the `.cube` file reader. |
+| `plugin/src/Core/Json.cs` | Reads and writes the presets and filters files. |
 | `plugin/src/Presets/` | The per-biome and per-time presets, the photo filters, and their files. |
 | `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
 | `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom, the photo filter. |

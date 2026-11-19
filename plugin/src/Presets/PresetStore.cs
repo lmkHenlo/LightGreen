@@ -18,6 +18,7 @@ namespace LightGreen.Presets
         internal static string FilePath => Path.Combine(Paths.ConfigPath, "LightGreen.presets.json");
 
         private static PresetFile _file = DefaultPresets.Create();
+        private static bool _fileWasEmpty;
         private static DateTime _loadedWriteTime;
         private static float _nextCheck;
         private static ManualLogSource _log;
@@ -32,17 +33,20 @@ namespace LightGreen.Presets
             {
                 if (!File.Exists(FilePath))
                 {
-                    File.WriteAllText(FilePath, JsonUtility.ToJson(DefaultPresets.Create(), true));
+                    File.WriteAllText(FilePath, Json.Serialize(DefaultPresets.Create()));
                     _log.LogInfo($"Wrote the default presets to {FilePath}. Edit it while the game runs to tune the looks.");
                 }
                 Read();
-                if (_file.version < DefaultPresets.Version)
+                if (_file.version < DefaultPresets.Version || _fileWasEmpty)
                 {
                     string backup = FilePath + $".v{_file.version}.bak";
                     File.Copy(FilePath, backup, true);
-                    File.WriteAllText(FilePath, JsonUtility.ToJson(DefaultPresets.Create(), true));
+                    File.WriteAllText(FilePath, Json.Serialize(DefaultPresets.Create()));
                     Read();
-                    _log.LogInfo($"Updated the presets to LightGreen's new defaults (version {DefaultPresets.Version}). Your previous file is at {backup}.");
+                    _log.LogInfo(_fileWasEmpty
+                        ? $"Wrote the full presets to {FilePath}: LightGreen 0.1.1 and earlier saved only the version number there. " +
+                          $"The old file is at {backup}."
+                        : $"Updated the presets to LightGreen's new defaults (version {DefaultPresets.Version}). Your previous file is at {backup}.");
                 }
             }
             catch (Exception e)
@@ -74,8 +78,10 @@ namespace LightGreen.Presets
         private static void Read()
         {
             _loadedWriteTime = File.GetLastWriteTimeUtc(FilePath);
-            PresetFile loaded = JsonUtility.FromJson<PresetFile>(File.ReadAllText(FilePath));
-            if (loaded == null) throw new InvalidDataException("the file is empty or not JSON");
+            object tree = Json.Parse(File.ReadAllText(FilePath));
+            var loaded = (PresetFile)Json.FromTree(typeof(PresetFile), tree, "");
+            // LightGreen 0.1.1 and earlier wrote this file with JsonUtility, which saved only "version".
+            _fileWasEmpty = !Json.HasKey(tree, "biomes") && !Json.HasKey(tree, "times");
 
             // Anything the file leaves out keeps LightGreen's default, so an older file keeps working.
             PresetFile defaults = DefaultPresets.Create();

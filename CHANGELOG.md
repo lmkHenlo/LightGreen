@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Photo filters: Mono, Mono Red, Sepia, Faded Film, Vivid, Warm, Cool, Teal & Orange, Cross Process, Duotone, Poster, Toy Camera and Dreamy, on top of the rest of the look. **F11** steps through them (**Shift+F11** goes back) and saves the choice to `Filters.Filter`; `Filters.Strength` fades them. The HUD isn't filtered.
 - Your own `.cube` LUTs as photo filters: put them in `BepInEx/config/LightGreen.filters/`. The built-in filters are in `BepInEx/config/LightGreen.filters.json`, which reloads when saved.
 
+### Fixed
+
+- `LightGreen.presets.json` is written in full, and editing it works. Earlier versions saved only its version number there, so the built-in presets were always used and edits did nothing. On the first start, the old file is kept as `LightGreen.presets.json.v6.bak` and replaced with the full presets.
+
 ## [0.1.1] - 2026-11-18
 
 ### Added
