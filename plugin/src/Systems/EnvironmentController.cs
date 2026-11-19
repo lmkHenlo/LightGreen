@@ -367,9 +367,12 @@ namespace LightGreen.Systems
         private const float AmbientFromSky = 0.5f;
 
         /// <summary>
-        /// Shifts the hole's own ambient light by the change in sky colour, instead of recomputing it from
-        /// the sky: the game's ambient isn't what Unity would compute from its sky (recomputing it washed
+        /// Shifts the hole's own ambient light by the change in the sky's brightness, instead of recomputing it
+        /// from the sky: the game's ambient isn't what Unity would compute from its sky (recomputing it washed
         /// every toon surface pale), so with the sky at stock the ambient stays exactly stock.
+        /// <para>Only the brightness moves, as grey: the fill light keeps the hole's own hue, and the preset's
+        /// ambient tint colours it. Shifting by the colour change made snow under a warm horizon turn
+        /// yellow-green wherever it faced sideways or down (warm horizon minus the hole's blue one = less blue).</para>
         /// </summary>
         private void ApplyAmbient()
         {
@@ -378,21 +381,18 @@ namespace LightGreen.Systems
             if (_skyMaterial == null) return;
 
             // A darker sky lowers the fill light only a little; the preset's intensity and tint do the rest.
-            Color skyDelta = Floor(Delta(_skyMaterial, "_SkyColor"), -0.2f);
-            Color horizonDelta = Floor(Delta(_skyMaterial, "_HorizonColor"), -0.2f);
+            float skyDelta = Mathf.Max(BrightnessDelta(_skyMaterial, "_SkyColor"), -0.2f);
+            float horizonDelta = Mathf.Max(BrightnessDelta(_skyMaterial, "_HorizonColor"), -0.2f);
             float scale = Mathf.Max(0f, Current.ambientIntensity);
             Color tint = Current.ambientTint;
 
-            var key = new Vector4(skyDelta.r + skyDelta.g * 3.1f + skyDelta.b * 7.3f,
-                                  horizonDelta.r + horizonDelta.g * 3.1f + horizonDelta.b * 7.3f, scale,
-                                  tint.r + tint.g * 3.1f + tint.b * 7.3f);
+            var key = new Vector4(skyDelta, horizonDelta, scale, tint.r + tint.g * 3.1f + tint.b * 7.3f);
             bool unchanged = (key - _lastSkyKey).sqrMagnitude < 1e-8f;
             if (unchanged && (!_ambientChanged || Time.unscaledTime < _nextAmbientRefresh)) return;
             _lastSkyKey = key;
             _nextAmbientRefresh = Time.unscaledTime + 2f; // re-assert now and then in case the engine resets it
 
-            bool stock = skyDelta.maxColorComponent < 1e-4f && -MinComponent(skyDelta) < 1e-4f &&
-                         horizonDelta.maxColorComponent < 1e-4f && -MinComponent(horizonDelta) < 1e-4f &&
+            bool stock = Mathf.Abs(skyDelta) < 1e-4f && Mathf.Abs(horizonDelta) < 1e-4f &&
                          Mathf.Approximately(scale, 1f) && tint.r > 0.999f && tint.g > 0.999f && tint.b > 0.999f;
             if (stock)
             {
@@ -403,8 +403,8 @@ namespace LightGreen.Systems
 
             var shift = new SphericalHarmonicsL2();
             shift.Clear();
-            shift.AddAmbientLight(horizonDelta * AmbientFromSky);
-            shift.AddDirectionalLight(Vector3.up, (skyDelta - horizonDelta) * AmbientFromSky, 1f);
+            shift.AddAmbientLight(Grey(horizonDelta * AmbientFromSky));
+            shift.AddDirectionalLight(Vector3.up, Grey((skyDelta - horizonDelta) * AmbientFromSky), 1f);
             // Per colour channel, so a tint (blue at night) colours the fill light.
             SphericalHarmonicsL2 probe = _stockAmbientProbe + shift;
             float r = scale * Mathf.Max(0f, tint.r);
@@ -420,18 +420,17 @@ namespace LightGreen.Systems
             _ambientChanged = true;
         }
 
-        private Color Delta(Material sky, string property)
+        /// <summary>How much brighter one of the sky's colours is than the hole's own (negative: darker).</summary>
+        private float BrightnessDelta(Material sky, string property)
         {
-            if (!sky.HasProperty(property)) return Color.clear;
-            Color d = sky.GetColor(property) - _sky.StockColor(sky, property);
-            d.a = 0f;
-            return d;
+            if (!sky.HasProperty(property)) return 0f;
+            return Brightness(sky.GetColor(property)) - Brightness(_sky.StockColor(sky, property));
         }
 
-        private static Color Floor(Color c, float min) =>
-            new Color(Mathf.Max(c.r, min), Mathf.Max(c.g, min), Mathf.Max(c.b, min), 0f);
+        /// <summary>Perceived brightness (Rec. 709 weights).</summary>
+        private static float Brightness(Color c) => 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
 
-        private static float MinComponent(Color c) => Mathf.Min(c.r, Mathf.Min(c.g, c.b));
+        private static Color Grey(float v) => new Color(v, v, v, 0f);
 
         // ---- Restore -----------------------------------------------------------------------------------
 

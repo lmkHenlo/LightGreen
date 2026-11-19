@@ -222,3 +222,32 @@ limit) or where it starts to look broken, flash too hard or cost too much:
 | X7 | Rain cost | `Rain = 3`, F8 both ways, then `Rain = 2` | Heavier rain; frame rate acceptable next to 2 |
 
 If an effect looks wrong at its most, note the highest value that looks right: its most can come down to that.
+
+## 0.1.1: no yellow snow
+
+**Found (2026-11-18):** on a Snow hole at Dawn, Morning, Golden hour and Sunset, snow and ice turned yellow-green
+where they faced sideways or down (undersides of mounds, the arch, the lower back wall); BlueHour gave the tops a
+deep blue band instead. Sampled at the bottom of one mound: the game's own (107, 143, 165), with LightGreen
+(158–176, 176–179, 120–122): red and green up, blue down a quarter.
+
+**Cause:** the time of day shifted the hole's ambient (fill) light by the change in sky colour: the horizon's
+change from every direction, the sky's from above. The warm presets' horizons (orange, peach, pink) minus the
+Snow holes' cold blue one is "more red and green, less blue", and that was added to every face; only the tops
+got the blue sky change on top of it. Stronger the more of the preset's sky is blended in (Sunset, Dawn, Golden
+hour), nearly none at Noon (light-blue horizon, little blend), none at the hole's own time.
+
+**Fix:** the shift is brightness only: how much brighter or darker the preset's sky and horizon are than the
+hole's, added as grey, in the same shape as before. The fill light keeps the hole's own hue, and each time's
+`ambientTint` still colours it (blue at BlueHour and Night). Sky, sun, moon and fog are unchanged.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| A1 | Snow | The Snow hole from the screenshots, F9 through every time | No yellow or green on undersides, the arch or the back wall at any time; snow and ice stay blue-white |
+| A2 | Hole's own time | The same hole at `HoleDefault`, F8 both ways | The lighting is identical |
+| A3 | Dark times | BlueHour and Night on Snow and Forest | Still dark and blue-tinted; not grey or washed out |
+| A4 | Warm shade | Forest and Desert at Golden hour and Sunset | Lit sides warm; note whether the shade looks right or too cold |
+| A5 | Presets | Edit `LightGreen.presets.json` while playing | `Presets reloaded.` and the change shows; no errors |
+
+If A4's shade looks too cold: give Dawn, Morning, Golden hour and Sunset a gentle warm `ambientTint` (about
+1, 0.94, 0.86 at Golden hour) and raise the presets version from 6 to 7, so existing files are backed up and
+replaced with the new defaults.
