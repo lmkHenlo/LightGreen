@@ -256,3 +256,27 @@ replaced with the new defaults.
 
 **Results (2026-11-18):** A1–A5 pass. A4: the shade at Golden hour and Sunset looks right, so no warm `ambientTint`
 was added and the presets stay at version 6.
+
+## 0.1.1: day and night brightness
+
+`Brightness.Day` (0.5–1.5) and `Brightness.Night` (0.25–1.5), both 1 by default, blended by how dark the scene is
+(the darkness ball glow and City night use, worked out from the sun before this scaling, so a darker day never
+switches night things on). The result multiplies the sun or moon, the fill light, the sky's colours and the fog
+colour together, at every time of day including the hole's own. Lights and glows aren't scaled. Brightening past
+`MaxLightBrightening` (1.5 for now, so never) is done with exposure instead.
+
+**Build:** as before. New settings: `Brightness.Day`, `Brightness.Night`.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| B1 | Brighter day | `Day = 1.5` at Noon on Forest | Lit sides clearly brighter; note whether they stop brightening before 1.5 (that sets `MaxLightBrightening`) |
+| B2 | Darker day | `Day = 0.5` at Noon | A dimmer day; ball glow and City night stay off |
+| B3 | Darker night | `Night = 0.25` at Night on a City hole | Dark surfaces; windows, lampposts and ball glow still bright |
+| B4 | Hole's own night | `Night = 0.5` at `HoleDefault` on a night hole (Snow 13, Causeway) | Darker than the game's own |
+| B5 | No change at 1 | Both 1, F9 through every time, F8 both ways | As before |
+| B6 | Dusk | `Day = 1.5`, `Night = 0.25`, F9 through every time, then `ProgressionMinutes = 2` | Smooth from day to night; no jumps |
+| B7 | Sky and fog | Any of the above, looking at the sky and far terrain | Sky and fog match the ground; nothing glows in the distance |
+| B8 | Clipping | `Day = 1.5` on Snow and Desert | Brighter; snow not blown out to plain white |
+| B9 | Reload and F8 | Change both while playing; F8 | Applies within a second; F8 shows the game's own look |
+
+Put both back to 1 and `ProgressionMinutes` to 0 afterwards.

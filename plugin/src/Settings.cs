@@ -19,6 +19,9 @@ namespace LightGreen
         internal static ConfigEntry<float> ProgressionMinutes;
         internal static ConfigEntry<float> TransitionSeconds;
 
+        internal static ConfigEntry<float> DayBrightness;
+        internal static ConfigEntry<float> NightBrightness;
+
         internal static ConfigEntry<float> ShadowTint;
         internal static ConfigEntry<float> ColorGrading;
         internal static ConfigEntry<float> DistanceHaze;
@@ -67,6 +70,16 @@ namespace LightGreen
                     new AcceptableValueRange<float>(0f, 240f)));
             TransitionSeconds = config.Bind("TimeOfDay", "TransitionSeconds", 3f,
                 new ConfigDescription("How long a change of time of day takes to blend in.", new AcceptableValueRange<float>(0f, 30f)));
+
+            DayBrightness = config.Bind("Brightness", "Day", 1f,
+                new ConfigDescription("How bright daylight is, on every hole and at every time of day: the sun, the fill light, the " +
+                    "sky and the haze together. 1 = as LightGreen and the hole have it. Lights and glows aren't changed.",
+                    new AcceptableValueRange<float>(0.5f, 1.5f)));
+            NightBrightness = config.Bind("Brightness", "Night", 1f,
+                new ConfigDescription("How bright night is (lower = darker), at Night and on holes the game sets at night; dusk falls " +
+                    "between Day and Night. Lit windows, lampposts, glowing balls and explosions keep their brightness, so they " +
+                    "stand out more in a darker night.",
+                    new AcceptableValueRange<float>(0.25f, 1.5f)));
 
             ShadowTint = Effect(config, "ShadowTint", 1f, 4f, "Shadows lean toward the biome's hue (cool in Snow, warm in Desert).");
             ColorGrading = Effect(config, "ColorGrading", 1f, 3f, "Per-biome and time-of-day white balance, saturation and contrast.");

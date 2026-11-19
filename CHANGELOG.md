@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - **F10** switches the rain off and on, coming back as heavy as it last was (or 1), and saves it to `Effects.Rain` (`Keys.RainKey`).
+- `Brightness.Day` and `Brightness.Night` make days and nights brighter or darker on every hole, including at the hole's own time of day. The sun or moon, fill light, sky and haze change together; lit windows, lampposts, glowing balls and explosions keep their brightness.
 
 ### Changed
 

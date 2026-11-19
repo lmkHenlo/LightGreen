@@ -84,15 +84,18 @@ namespace LightGreen.Systems
             float grading = Settings.ColorGrading.Value;
             _color.contrast.Override(Mathf.Clamp(_courseContrast + Mathf.Clamp(biome.contrast + time.contrast, -20f, 20f) * grading, -100f, 100f));
             _color.saturation.Override(Mathf.Clamp(_courseSaturation + Mathf.Clamp(biome.saturation + time.saturation, -25f, 25f) * grading, -100f, 100f));
-            _color.postExposure.Override(_courseExposure + Mathf.Clamp(biome.exposure + time.exposure, -0.5f, 0.5f) * grading);
+            // Plus Brightness.Day or Night's share past what more light can show (0 most of the time).
+            _color.postExposure.Override(_courseExposure + Mathf.Clamp(biome.exposure + time.exposure, -0.5f, 0.5f) * grading + env.ExposureBoost);
             _white.temperature.Override(Mathf.Clamp(_courseTemperature + (biome.temperature + time.temperature) * grading, -100f, 100f));
             _white.tint.Override(Mathf.Clamp(_courseTint + (biome.tint + time.tint) * grading, -100f, 100f));
 
             // Distance haze: the game's own fog, moved where the presets put it and coloured toward the horizon.
-            // In the rain (env.Overcast) the fog closes in and greys, whether or not the haze is on.
+            // In the rain (env.Overcast) the fog closes in and greys, whether or not the haze is on. Its colour follows
+            // Brightness.Day and Night (env.LightScale) like the sky, so distant terrain doesn't glow in a darker scene.
             float haze = Settings.DistanceHaze.Value;
             float overcast = Mathf.Clamp01(env.Overcast);
-            if ((haze > 0f || overcast > 0f) && env.HasScene)
+            float light = env.LightScale;
+            if ((haze > 0f || overcast > 0f || Mathf.Abs(light - 1f) > 1e-3f) && env.HasScene)
             {
                 float start = Mathf.Lerp(env.StockFogStart, env.StockFogStart * biome.fogStart * time.fogDistance, Mathf.Clamp01(haze));
                 float end = Mathf.Lerp(env.StockFogEnd, env.StockFogEnd * biome.fogEnd * time.fogDistance, Mathf.Clamp01(haze));
@@ -102,7 +105,9 @@ namespace LightGreen.Systems
                 start = Mathf.Max(start, 0f);
                 end = Mathf.Max(end, start + 1f);
                 float colorBlend = Mathf.Clamp01((biome.fogColorBlend + time.fogColorBlend) * 0.5f * haze);
-                Color fog = Color.Lerp(env.StockFogColor, env.HorizonColor, colorBlend);
+                Color stockFog = env.StockFogColor;
+                stockFog = new Color(stockFog.r * light, stockFog.g * light, stockFog.b * light, stockFog.a);
+                Color fog = Color.Lerp(stockFog, env.HorizonColor, colorBlend);   // the horizon colour is already scaled
                 float grey = fog.grayscale * 0.85f;
                 fog = Color.Lerp(fog, new Color(grey, grey, grey, fog.a), 0.7f * overcast);
                 _fog.fogColor.Override(fog);

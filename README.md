@@ -89,6 +89,8 @@ AmbientOcclusionQuality = Low
 | `TimeOfDay.Time` | `HoleDefault` | `HoleDefault` keeps each hole's own sun and sky; `Dawn`, `Morning`, `Noon`, `GoldenHour`, `Sunset`, `BlueHour`, `Night` move the sun and recolour the sky, light, haze and water. Only you see it. |
 | `TimeOfDay.ProgressionMinutes` | `0` | Minutes for a full day cycle; 0 keeps the time put. |
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
+| `Brightness.Day` | `1` | How bright daylight is, 0.5–1.5: the sun, fill light, sky and haze together, on every hole and at every time of day. |
+| `Brightness.Night` | `1` | How bright night is, 0.25–1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
 | `Effects.*` | `1` | Strength per effect, 0 off, 1 tuned, 2 double, each up to its own most (below): `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |

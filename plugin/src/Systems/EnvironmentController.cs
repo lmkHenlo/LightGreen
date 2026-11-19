@@ -64,6 +64,10 @@ namespace LightGreen.Systems
         // Ambient refresh.
         private Vector4 _lastSkyKey;
         private float _nextAmbientRefresh;
+        private float _skyBrightnessDelta, _horizonBrightnessDelta;
+
+        // Day and night brightness (Brightness.Day, Brightness.Night).
+        private float _sunScaleApplied = 1f;
 
         internal TimePreset Current { get; private set; } = new TimePreset();
         /// <summary>The scene's sun, once found.</summary>
@@ -77,6 +81,22 @@ namespace LightGreen.Systems
         internal float StockFogStart { get; private set; }
         internal float StockFogEnd { get; private set; } = 600f;
         internal bool HasScene => _captured;
+
+        /// <summary>
+        /// Brightness.Day or Brightness.Night, blended by how dark the scene is: what the scene's brightness is
+        /// multiplied by this frame (1 = as the time of day has it).
+        /// </summary>
+        internal float Brightness { get; private set; } = 1f;
+        /// <summary>The part of <see cref="Brightness"/> done with light: the sun or moon, the fill light, the sky and fog colours.</summary>
+        internal float LightScale { get; private set; } = 1f;
+        /// <summary>The rest, in stops of exposure, for brightening past what lighting can show (0 most of the time).</summary>
+        internal float ExposureBoost { get; private set; }
+
+        /// <summary>
+        /// Brightening done with light, at most. Above this the rest is exposure. Toon surfaces stop getting
+        /// brighter once the light is bright enough, so past here more light would show as nothing.
+        /// </summary>
+        private const float MaxLightBrightening = 1.5f;
 
         /// <summary>
         /// 0 for the time of day's own sky, up to 1 for a fully overcast, rainy sky: the sun (or moon) dims and
@@ -97,17 +117,37 @@ namespace LightGreen.Systems
         {
             get
             {
-                float night = Mathf.Clamp01(Current.night);
-                float dimSun = 1f;
-                if (_sun != null && _sun.isActiveAndEnabled)
-                {
-                    Color c = _sun.color * _sun.intensity;
-                    float brightness = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
-                    dimSun = Mathf.Clamp01((0.55f - brightness) / 0.35f);
-                }
-                return Mathf.Max(night, dimSun);
+                // The sun as the time of day has it, before Brightness.Day and Night: making the day darker
+                // mustn't switch night things on, nor a brighter night switch them off.
+                bool lit = _sun != null && _sun.isActiveAndEnabled;
+                return DarknessOf(lit ? _sun.color : Color.black, lit ? _sun.intensity / _sunScaleApplied : 0f, lit);
             }
         }
+
+        private float DarknessOf(Color sunColor, float sunIntensity, bool hasSun)
+        {
+            float night = Mathf.Clamp01(Current.night);
+            float dimSun = 1f;
+            if (hasSun)
+            {
+                Color c = sunColor * sunIntensity;
+                float brightness = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+                dimSun = Mathf.Clamp01((0.55f - brightness) / 0.35f);
+            }
+            return Mathf.Max(night, dimSun);
+        }
+
+        /// <summary>Works out <see cref="Brightness"/> from how dark the scene is, and splits it into light and exposure.</summary>
+        private void SetBrightness(float darkness)
+        {
+            float day = Mathf.Max(0f, Settings.DayBrightness.Value);
+            float night = Mathf.Max(0f, Settings.NightBrightness.Value);
+            Brightness = Mathf.Lerp(day, night, Mathf.Clamp01(darkness));
+            LightScale = Mathf.Min(Brightness, MaxLightBrightening);
+            ExposureBoost = Brightness > LightScale && LightScale > 0f ? Mathf.Log(Brightness / LightScale, 2f) : 0f;
+        }
+
+        private static bool Unscaled(float scale) => Mathf.Abs(scale - 1f) < 1e-3f;
 
         /// <summary>The time of day being shown, for the on-screen notice.</summary>
         internal string TimeLabel => Settings.ProgressionMinutes.Value > 0f ? $"{Current.name} (day cycle)" : Settings.Time.Value.ToString();
@@ -222,13 +262,16 @@ namespace LightGreen.Systems
             if (_sun == null)
             {
                 SunColor = Color.white;
+                SetBrightness(Mathf.Clamp01(Current.night));   // no sun (yet): the time of day's own night setting
                 return;
             }
 
             float w = Mathf.Clamp01(Current.sunWeight);
             float overcast = Mathf.Clamp01(Overcast);
             float yaw = _stockSunRotation.eulerAngles.y;
-            if (w > 0f || overcast > 0.001f)
+            // How bright the scene is before Brightness.Day and Night, from the sun the time of day gives.
+            SetBrightness(DarknessOf(_stockSunColor, _stockSunIntensity, true));
+            if (w > 0f || overcast > 0.001f || !Unscaled(LightScale))
             {
                 Quaternion rotation = _stockSunRotation;
                 Color sunColor = _stockSunColor;
@@ -274,9 +317,13 @@ namespace LightGreen.Systems
                     sunIntensity *= Mathf.Lerp(1f, OvercastSun, overcast);
                 }
 
+                // Day and night brightness, from how dark this sun leaves the scene.
+                SetBrightness(DarknessOf(sunColor, sunIntensity, true));
+
                 _sun.transform.rotation = rotation;
                 _sun.color = sunColor;
-                _sun.intensity = sunIntensity;
+                _sun.intensity = sunIntensity * LightScale;
+                _sunScaleApplied = LightScale > 0f ? LightScale : 1f;
                 _sunChanged = true;
             }
             else
@@ -295,6 +342,7 @@ namespace LightGreen.Systems
             _sun.transform.rotation = _stockSunRotation;
             _sun.color = _stockSunColor;
             _sun.intensity = _stockSunIntensity;
+            _sunScaleApplied = 1f;
             _sunChanged = false;
         }
 
@@ -303,7 +351,11 @@ namespace LightGreen.Systems
         private void ApplySky()
         {
             Material sky = _skyMaterial;
-            if (sky == null) return;
+            if (sky == null)
+            {
+                _skyBrightnessDelta = _horizonBrightnessDelta = 0f;
+                return;
+            }
 
             float blend = Mathf.Clamp01(Current.skyBlend);
             Blend(sky, "_SkyColor", Current.skyColor, blend);
@@ -326,6 +378,16 @@ namespace LightGreen.Systems
             if (sky.HasProperty("_SunScatterIntensity"))
                 _sky.SetFloat(sky, "_SunScatterIntensity", _sky.StockFloat(sky, "_SunScatterIntensity") * Mathf.Lerp(1f, 0.2f, night));
 
+            // The sky's own change in brightness, for the fill light, before Brightness.Day and Night scale it.
+            _skyBrightnessDelta = BrightnessDelta(sky, "_SkyColor");
+            _horizonBrightnessDelta = BrightnessDelta(sky, "_HorizonColor");
+            if (!Unscaled(LightScale))
+            {
+                Scale(sky, "_SkyColor", LightScale);
+                Scale(sky, "_HorizonColor", LightScale);
+                Scale(sky, "_SunGradientColor", LightScale);
+            }
+
             if (sky.HasProperty("_SunDirection") && _sun != null)
             {
                 Vector4 stock = _sky.StockVector(sky, "_SunDirection");
@@ -334,6 +396,14 @@ namespace LightGreen.Systems
             }
 
             HorizonColor = sky.HasProperty("_HorizonColor") ? sky.GetColor("_HorizonColor") : StockFogColor;
+        }
+
+        /// <summary>Multiplies one of the sky's colours (as set this frame) by the scene's brightness.</summary>
+        private void Scale(Material sky, string property, float scale)
+        {
+            if (!sky.HasProperty(property)) return;
+            Color c = sky.GetColor(property);
+            _sky.SetColor(sky, property, new Color(c.r * scale, c.g * scale, c.b * scale, c.a));
         }
 
         /// <summary>Moves one of the sky's colours (as set this frame) toward grey of the same brightness, a little darker.</summary>
@@ -378,12 +448,12 @@ namespace LightGreen.Systems
         {
             // Until LightGreen changes it, follow the engine's own value (it can finish updating after load).
             if (!_ambientChanged) _stockAmbientProbe = RenderSettings.ambientProbe;
-            if (_skyMaterial == null) return;
 
             // A darker sky lowers the fill light only a little; the preset's intensity and tint do the rest.
-            float skyDelta = Mathf.Max(BrightnessDelta(_skyMaterial, "_SkyColor"), -0.2f);
-            float horizonDelta = Mathf.Max(BrightnessDelta(_skyMaterial, "_HorizonColor"), -0.2f);
-            float scale = Mathf.Max(0f, Current.ambientIntensity);
+            float skyDelta = Mathf.Max(_skyBrightnessDelta, -0.2f);
+            float horizonDelta = Mathf.Max(_horizonBrightnessDelta, -0.2f);
+            // The preset's intensity, and Brightness.Day and Night.
+            float scale = Mathf.Max(0f, Current.ambientIntensity) * LightScale;
             Color tint = Current.ambientTint;
 
             var key = new Vector4(skyDelta, horizonDelta, scale, tint.r + tint.g * 3.1f + tint.b * 7.3f);
@@ -424,11 +494,11 @@ namespace LightGreen.Systems
         private float BrightnessDelta(Material sky, string property)
         {
             if (!sky.HasProperty(property)) return 0f;
-            return Brightness(sky.GetColor(property)) - Brightness(_sky.StockColor(sky, property));
+            return Luminance(sky.GetColor(property)) - Luminance(_sky.StockColor(sky, property));
         }
 
         /// <summary>Perceived brightness (Rec. 709 weights).</summary>
-        private static float Brightness(Color c) => 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+        private static float Luminance(Color c) => 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
 
         private static Color Grey(float v) => new Color(v, v, v, 0f);
 
@@ -437,6 +507,9 @@ namespace LightGreen.Systems
         /// <summary>Puts the hole's sun, sky and ambient light back as the game had them.</summary>
         public void Restore()
         {
+            Brightness = LightScale = 1f;
+            ExposureBoost = 0f;
+            _sunScaleApplied = 1f;
             if (!_captured) return;
             RestoreSun();
             _sky.Restore();
