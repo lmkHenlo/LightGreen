@@ -192,3 +192,8 @@ Nothing happens while F8 has LightGreen switched off.
 | R6 | No hitch | F10 a few times in windowed, borderless and fullscreen | No pause, freeze or lost input after F10 (Windows treats F10 as a menu key) |
 
 Put `RainKey` back to `F10` after R4.
+
+**Results (2026-11-18):** R1–R6 pass. The log shows `… F10 switches the rain.` on load; F10 on (`Rain: on, strength 1
+(RainKey).`, then the rain's own `Rain: on, strength 1.`) and off on Forest and Snow holes; after `Rain = 1.5` was
+saved (`Config reloaded.` once), F10 off and back on at 1.5; F8 off and on leaves the rain as it was; no
+`Config reloaded.` after any F10 press; no warnings or errors.
