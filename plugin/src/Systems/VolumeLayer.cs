@@ -12,14 +12,21 @@ namespace LightGreen.Systems
     /// the game's underwater and under-fog volume (9,000), so those still win. The main volume carries
     /// colour grading, distance haze, lens flare and the optional lens effects; the camera volume
     /// carries depth of field for the overview flyover and photo mode, faded in and out by weight.
-    /// Grading adds to the course's own values instead of replacing them. The lens effects (flare, depth of field,
-    /// vignette, chromatic aberration) are off while VR is running.
+    /// Grading adds to the course's own values instead of replacing them. The photo filter's colour table goes in
+    /// last (Color Lookup, applied after tonemapping), and its vignette, fringes and bloom are mixed with LightGreen's
+    /// own. The lens effects (flare, depth of field, vignette, chromatic aberration, distortion) are off while VR is
+    /// running.
     /// </summary>
     internal sealed class VolumeLayer : IFeature
     {
         private readonly EnvironmentController _env;
+        private readonly PhotoFilter _filter;
 
-        internal VolumeLayer(EnvironmentController env) => _env = env;
+        internal VolumeLayer(EnvironmentController env, PhotoFilter filter)
+        {
+            _env = env;
+            _filter = filter;
+        }
 
         public string Name => "Post-processing";
 
@@ -51,6 +58,8 @@ namespace LightGreen.Systems
         private Vignette _vignette;
         private ChromaticAberration _aberration;
         private Bloom _bloom;
+        private ColorLookup _lookup;
+        private LensDistortion _distortion;
         private DepthOfField _dof;
 
         /// <summary>Fog in the rain, at full overcast: where it starts and ends, times the dry values.</summary>
@@ -127,18 +136,65 @@ namespace LightGreen.Systems
             _flare.intensity.Override(flare);
             _flare.tintColor.Override(Color.Lerp(Color.white, env.SunColor, 0.6f));
 
-            // Optional lens character; off in VR.
+            // Optional lens character; off in VR. A photo filter's own vignette and fringes win where they're stronger.
             float lens = vrComfort ? 0f : 1f;
-            _vignette.intensity.Override(Mathf.Clamp01(_courseVignette + 0.25f * Settings.Vignette.Value * lens));
-            _aberration.intensity.Override(Mathf.Clamp01(0.25f * Settings.ChromaticAberration.Value * lens));
+            PhotoFilterPreset filter = _filter.Active;
+            float strength = filter != null ? _filter.Strength : 0f;
+            float vignette = Mathf.Clamp01(_courseVignette + 0.25f * Settings.Vignette.Value * lens);
+            float filterVignette = filter != null ? Mathf.Clamp01(filter.vignette) * strength * lens : 0f;
+            if (filterVignette > vignette)
+            {
+                _vignette.intensity.Override(filterVignette);
+                _vignette.color.Override(filter.vignetteColor);
+                _vignette.smoothness.Override(Mathf.Clamp(filter.vignetteSmoothness, 0.05f, 1f));
+            }
+            else
+            {
+                _vignette.intensity.Override(vignette);
+                _vignette.color.overrideState = false;
+                _vignette.smoothness.overrideState = false;
+            }
+            float filterAberration = filter != null ? Mathf.Clamp01(filter.aberration) * strength * lens : 0f;
+            _aberration.intensity.Override(Mathf.Max(Mathf.Clamp01(0.25f * Settings.ChromaticAberration.Value * lens), filterAberration));
 
-            // City at night: lit windows and lamps bloom. Elsewhere, and by day, the course's own bloom.
+            // The photo filter's lens distortion (barrel above 0), zoomed in a little so the edges stay filled. Off in VR.
+            float distortion = filter != null ? Mathf.Clamp(filter.distortion, -1f, 1f) * strength * lens : 0f;
+            if (Mathf.Abs(distortion) > 0.001f)
+            {
+                _distortion.intensity.Override(distortion);
+                _distortion.scale.Override(1f + 0.5f * Mathf.Max(0f, distortion));
+                _distortion.active = true;
+            }
+            else
+            {
+                _distortion.active = false;
+            }
+
+            // The photo filter's colours, last. With None, a course's own colour lookup (if any) is left alone.
+            Texture2D lut = _filter.Lut;
+            if (lut != null && strength > 0f)
+            {
+                _lookup.texture.Override(lut);
+                _lookup.contribution.Override(strength);
+                _lookup.active = true;
+            }
+            else
+            {
+                _lookup.active = false;
+            }
+
+            // City at night: lit windows and lamps bloom. Elsewhere, and by day, the course's own bloom. A photo filter's
+            // bloom adds to either, with its own threshold where that's lower.
             float nightBloom = GameEvents.CurrentBiome == Biome.City
                 ? Mathf.Clamp01(env.Darkness * Settings.CityNight.Value) : 0f;
-            if (nightBloom > 0.01f)
+            float filterBloom = filter != null ? Mathf.Clamp01(filter.bloom) * strength : 0f;
+            if (nightBloom > 0.01f || filterBloom > 0.001f)
             {
-                _bloom.threshold.Override(Mathf.Lerp(_courseBloomThreshold, Mathf.Min(_courseBloomThreshold, NightBloomThreshold), nightBloom));
-                _bloom.intensity.Override(Mathf.Max(_courseBloomIntensity, NightBloomIntensity * nightBloom));
+                float threshold = Mathf.Lerp(_courseBloomThreshold, Mathf.Min(_courseBloomThreshold, NightBloomThreshold), nightBloom);
+                float filterThreshold = filter != null && filter.bloomThreshold > 0f ? filter.bloomThreshold : 0.6f;
+                if (filterBloom > 0.001f) threshold = Mathf.Min(threshold, Mathf.Lerp(threshold, filterThreshold, strength));
+                _bloom.threshold.Override(threshold);
+                _bloom.intensity.Override(Mathf.Max(_courseBloomIntensity, NightBloomIntensity * nightBloom) + filterBloom);
             }
             else
             {
@@ -217,6 +273,10 @@ namespace LightGreen.Systems
             _vignette = _mainProfile.Add<Vignette>();
             _aberration = _mainProfile.Add<ChromaticAberration>();
             _bloom = _mainProfile.Add<Bloom>();
+            _lookup = _mainProfile.Add<ColorLookup>();
+            _distortion = _mainProfile.Add<LensDistortion>();
+            _lookup.active = false;
+            _distortion.active = false;
 
             _cameraProfile = ScriptableObject.CreateInstance<VolumeProfile>();
             _cameraProfile.hideFlags = HideFlags.DontSave;

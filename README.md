@@ -5,7 +5,7 @@
 
 Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
 
-LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, and optional rain you switch with F10. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
+LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, optional rain you switch with F10, and photo filters you step through with F11, your own .cube LUTs included. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
 
 ## Table of Contents
 
@@ -66,7 +66,7 @@ To build it yourself, see [Building from source](#building-from-source).
 
 ## Usage
 
-Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, and **F10** to switch the rain off and on.
+Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back).
 
 The settings live in `BepInEx/config/com.lightgreen.cfg`, which is created on first launch; with r2modman you can also edit them under **Config editor**. The file is reloaded within a second of being saved, so changes show while you play. For example, to turn rain on and make ambient occlusion cheaper:
 
@@ -86,11 +86,14 @@ AmbientOcclusionQuality = Low
 | `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while playing, to compare with the game's own look. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Switches the rain off and on, as heavy as it last was (or 1). Saved to `Effects.Rain`. |
+| `Keys.FilterKey` | `F11` | Steps to the next photo filter (with Shift, the previous one). Saved to `Filters.Filter`. |
 | `TimeOfDay.Time` | `HoleDefault` | `HoleDefault` keeps each hole's own sun and sky; `Dawn`, `Morning`, `Noon`, `GoldenHour`, `Sunset`, `BlueHour`, `Night` move the sun and recolour the sky, light, haze and water. Only you see it. |
 | `TimeOfDay.ProgressionMinutes` | `0` | Minutes for a full day cycle; 0 keeps the time put. |
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
 | `Brightness.Day` | `1` | How bright daylight is, 0.5–1.5: the sun, fill light, sky and haze together, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, 0.25–1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
+| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. |
+| `Filters.Strength` | `1` | How much of the photo filter shows, 0–1. |
 | `Effects.*` | `1` | Strength per effect, 0 off, 1 tuned, 2 double, each up to its own most (below): `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
@@ -110,6 +113,28 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 2 | `TiltShift`, `Footprints` |
 
 The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first launch and reloaded when saved.
+
+### Photo filters
+
+A photo filter changes the finished picture's colours like a photo editor, on top of the time of day and biome look. The HUD isn't filtered. None of the filters use film grain.
+
+| Filter | Look |
+|---|---|
+| Mono | Neutral black and white |
+| Mono Red | Black and white through a red filter: darker skies and water, brighter skin, wood and sand |
+| Sepia | Warm brown monochrome |
+| Faded Film | Lifted blacks, softer contrast, slightly warm |
+| Vivid | More contrast and saturation |
+| Warm | Golden, sunlit |
+| Cool | Blue-teal, crisp |
+| Teal & Orange | Teal shadows, warm highlights |
+| Cross Process | Yellow-green highlights, blue shadows |
+| Duotone | Navy to peach |
+| Poster | Fewer colour steps, like a poster or comic |
+| Toy Camera | Saturated cross-process, dark corners, a bulging lens |
+| Dreamy | Pastel and soft, with a glow around bright parts |
+
+The filters are in `BepInEx/config/LightGreen.filters.json`, written on first launch and reloaded when saved: each sets any of a `.cube` file, a channel mixer, warmth and tint, brightness, contrast, saturation, tone curves, split toning, a gradient map, fade and posterize, plus a vignette, lens distortion, colour fringes and bloom. To use your own LUTs, put `.cube` files (3D or 1D, as Lightroom, Photoshop and Resolve export them) in `BepInEx/config/LightGreen.filters/`. Each one becomes a filter named after the file. In VR, filters keep their colours but not their vignette, distortion or fringes.
 
 ## Known issues
 
@@ -138,7 +163,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `docs/testing.md` | The checks and results for each phase. |
 | `thunderstore/` | The Thunderstore page (`README.md`), `manifest.json` and `icon.png`. |
 | `plugin/LightGreen.csproj` | Project file for editors; the build script doesn't need it. |
-| `plugin/src/Plugin.cs` | Entry point: settings reload and the F8, F9 and F10 keys. |
+| `plugin/src/Plugin.cs` | Entry point: settings reload and the F8, F9, F10 and F11 keys. |
 | `plugin/src/Settings.cs` | The settings, and removed ones taken out of the file. |
 | `plugin/src/Vr.cs` | Whether a headset is in use. |
 | `plugin/src/Core/Features.cs` | The feature interface and host. A feature that throws is put back and switched off until the game restarts; the rest carry on. |
@@ -148,9 +173,11 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Core/GameFlashes.cs` | The game's Explosion flashes option, which makes LightGreen's flashes gentler. |
 | `plugin/src/Core/GameWind.cs` | The game's wind, which rain drifts with. |
 | `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
-| `plugin/src/Presets/` | The per-biome and per-time presets and their file. |
+| `plugin/src/Core/LutBuilder.cs`, `CubeLut.cs` | A photo filter's colours as a lookup table, and the `.cube` file reader. |
+| `plugin/src/Presets/` | The per-biome and per-time presets, the photo filters, and their files. |
 | `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
-| `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom. |
+| `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom, the photo filter. |
+| `plugin/src/Systems/PhotoFilter.cs` | The photo filter and its colour table. |
 | `plugin/src/Systems/MaterialTuner.cs` | Shadow tint, water and ice. |
 | `plugin/src/Systems/SunShadows.cs` | Sharper, longer sun shadows. |
 | `plugin/src/Systems/AmbientOcclusion.cs`, `GrassFreeDepth.cs` | Ambient occlusion, worked out without the grass blades. |

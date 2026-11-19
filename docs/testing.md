@@ -283,3 +283,36 @@ Put both back to 1 and `ProgressionMinutes` to 0 afterwards.
 
 **Results (2026-11-18):** B1–B9 pass. B1: lit sides keep brightening up to 1.5, so `MaxLightBrightening` stays 1.5
 and brightening is all done with light (exposure is never used at these ranges).
+
+## Photo filters
+
+A filter's colours are built into a lookup table (the pipeline's grading size, 32³ by default) and handed to URP's
+Color Lookup, which applies it last: after LightGreen's grading and tonemapping, on display-encoded colours. So a
+filter sits on top of the time of day and biome look instead of replacing it, and the HUD (drawn after
+post-processing) isn't touched. Lens extras (vignette, distortion, fringes, bloom) are mixed with LightGreen's own:
+the stronger vignette and fringes win, bloom adds. No film grain. `Filters.Filter`, `Filters.Strength`,
+`Keys.FilterKey` (F11; Shift+F11 back). Files: `LightGreen.filters.json` and the `LightGreen.filters` folder for `.cube` files.
+
+**Checked before the build (outside the game):** an empty filter gives the identity table (largest error 6×10⁻⁸);
+the table read back the way URP samples its strip changes nothing (0 of 255); tone curves pass through their points
+without overshoot; an inverting 17³ `.cube` and a 1D `.cube` read back exactly, also through the strip; five broken
+files are each rejected with a message. Every built-in filter was applied to a game screenshot and a colour chart:
+each looks as named (Teal & Orange was strengthened after this check).
+
+**Build:** as before. New: `Filters.Filter`, `Filters.Strength`, `Keys.FilterKey`; `BepInEx/config/LightGreen.filters.json`
+and the `BepInEx/config/LightGreen.filters` folder are made on first start.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| F1 | Load and cycle | Start; F11 a few times; Shift+F11 | Log: `Photo filters: 13 in LightGreen.filters.json, 0 from .cube files in LightGreen.filters.`, and the load line ends `F11 changes the photo filter.`; each press shows `Filter: <name>` top-left, logs `Photo filter: <name> (FilterKey).` and `Photo filter: <name> (32³ colour table).`, and `Filters.Filter` changes in the config; Shift goes back; after Dreamy comes None |
+| F2 | Each filter | Every built-in on Forest at Noon, Snow, and a City hole at Night | Each looks as in the README table; the HUD is unchanged |
+| F3 | Strength | `Filters.Strength` 0, 0.5, 1 with Sepia | None, half, all of it; no jumps |
+| F4 | On top of the look | A filter on; F9 through every time; another biome | The filter stays; the time of day still shows through it |
+| F5 | Your own LUT | Put a `.cube` file in `LightGreen.filters`; then a broken one (e.g. delete half its lines) | `Photo filters reloaded: 13 in …, 1 from .cube files …`; it joins the F11 cycle under its file name and looks as it does in a photo editor; the broken one: `Skipped the photo filter <file>.cube: <reason>.` |
+| F6 | Editing filters | Change a filter's numbers in the JSON while it's on; then break the JSON (delete a brace) | The change shows within a second; broken: `Couldn't reload the photo filters (…); keeping the previous ones.` |
+| F7 | Lens extras | Toy Camera; Dreamy; then None with `Effects.Vignette = 2` | Toy Camera: dark corners, a bulge with no smeared or black edges, slight fringes; Dreamy: glow around bright parts; None: LightGreen's own vignette still works |
+| F8 | Compare | F8 with a filter on, then F8 again | The game's own look, then the filter back |
+| F9 | Photo mode | Take a photo in the game's photo mode with a filter on | The saved photo has the filter (if not, note it) |
+| F10 | Graphics quality | Change the game's graphics quality with a filter on | The filter stays and looks the same |
+
+Put `Filters.Filter` back to `None` (or your favourite) afterwards.

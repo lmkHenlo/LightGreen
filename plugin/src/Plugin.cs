@@ -21,6 +21,7 @@ namespace LightGreen
     /// Phase 2 (light): ambient occlusion (the game's HTrace AO, grass left out), grass toggle, effect lights, ball
     /// glow, lightning, City night.
     /// Phase 3 (weather): footprints in snow, and rain without the wet look.
+    /// Then: photo filters (colour lookup tables built at runtime, and your own .cube files).
     /// </summary>
     [BepInPlugin(Guid, Name, Version)]
     public class Plugin : BaseUnityPlugin
@@ -44,6 +45,7 @@ namespace LightGreen
         private readonly LightPool _lightPool = new LightPool();
         private MaterialTuner _materials;
         private VolumeLayer _volumes;
+        private readonly PhotoFilter _filter = new PhotoFilter();
         private CityNight _cityNight;
         private Rain _rain;
         private readonly Footprints _footprints = new Footprints();
@@ -62,13 +64,15 @@ namespace LightGreen
             Log = Logger;
             Settings.Bind(Config);
             PresetStore.Load(Log);
+            FilterStore.Load(Log);
             GameEvents.Hook(Log);
             _harmony = new Harmony(Guid);
 
             // The time of day first: the others take its sun, sky and colours.
             _materials = new MaterialTuner(_environment);
-            _volumes = new VolumeLayer(_environment);
+            _volumes = new VolumeLayer(_environment, _filter);
             _features.Add(_environment);
+            _features.Add(_filter);   // before the volumes, which take its colour table
             _features.Add(_volumes);
             _features.Add(_materials);
             _features.Add(_shadows);
@@ -114,6 +118,7 @@ namespace LightGreen
             GameEvents.GraphicsSettingsApplied += _shadows.OnGameApplied;
             PresetStore.Reloaded += _environment.OnPresetsReloaded;
             Settings.Time.SettingChanged += (_, __) => Notify($"Time of day: {Settings.Time.Value}");
+            Settings.Filter.SettingChanged += (_, __) => Notify($"Filter: {Settings.Filter.Value}");
             RememberRain();
             Settings.Rain.SettingChanged += (_, __) =>
             {
@@ -130,7 +135,8 @@ namespace LightGreen
 
             Log.LogInfo($"{Name} {Version} loaded: {Application.productName} {Application.version}, Unity {Application.unityVersion}. " +
                         $"{_features.Count} features. {Settings.ToggleKey.Value} compares with the game's own look, " +
-                        $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} switches the rain." +
+                        $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} switches the rain, " +
+                        $"{Settings.FilterKey.Value} changes the photo filter." +
                         (Settings.Enabled.Value ? "" : " (Off: General.Enabled = false.)"));
         }
 
@@ -138,6 +144,7 @@ namespace LightGreen
         {
             ReloadConfigIfEdited();
             PresetStore.Poll();
+            FilterStore.Poll();
             Vr.Poll();
             ReadKeys();
 
@@ -169,6 +176,14 @@ namespace LightGreen
                 Settings.Rain.Value = Raining ? 0f : _lastRain;
                 _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
                 Log.LogInfo(Raining ? $"Rain: on, strength {Settings.Rain.Value:0.##} (RainKey)." : "Rain: off (RainKey).");
+            }
+            if (Pressed(keyboard, Settings.FilterKey.Value) && !_comparing)
+            {
+                bool back = keyboard.shiftKey.isPressed;
+                // Setting the value saves the config file, as TimeKey does; take that write as our own too.
+                Settings.Filter.Value = PhotoFilter.Step(Settings.Filter.Value, back ? -1 : 1);
+                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+                Log.LogInfo($"Photo filter: {Settings.Filter.Value} (FilterKey{(back ? " with Shift" : "")}).");
             }
         }
 
@@ -265,6 +280,7 @@ namespace LightGreen
         {
             _features.RestoreAll();
             _volumes?.Destroy();
+            _filter.Destroy();
             _occlusion.Destroy();
             _lightPool.Destroy();
             _rain?.Destroy();

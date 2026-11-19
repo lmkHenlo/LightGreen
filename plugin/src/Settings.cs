@@ -14,6 +14,7 @@ namespace LightGreen
         internal static ConfigEntry<Key> ToggleKey;
         internal static ConfigEntry<Key> TimeKey;
         internal static ConfigEntry<Key> RainKey;
+        internal static ConfigEntry<Key> FilterKey;
 
         internal static ConfigEntry<TimeOfDay> Time;
         internal static ConfigEntry<float> ProgressionMinutes;
@@ -21,6 +22,9 @@ namespace LightGreen
 
         internal static ConfigEntry<float> DayBrightness;
         internal static ConfigEntry<float> NightBrightness;
+
+        internal static ConfigEntry<string> Filter;
+        internal static ConfigEntry<float> FilterStrength;
 
         internal static ConfigEntry<float> ShadowTint;
         internal static ConfigEntry<float> ColorGrading;
@@ -61,6 +65,8 @@ namespace LightGreen
                 "Steps through the times of day (it changes TimeOfDay.Time).");
             RainKey = config.Bind("Keys", "RainKey", Key.F10,
                 "Switches the rain off and on (it changes Effects.Rain). It comes back as heavy as it last was, or 1.");
+            FilterKey = config.Bind("Keys", "FilterKey", Key.F11,
+                "Steps to the next photo filter (it changes Filters.Filter); with Shift, the previous one.");
 
             Time = config.Bind("TimeOfDay", "Time", TimeOfDay.HoleDefault,
                 "HoleDefault keeps each hole's own sun and sky. Dawn, Morning, Noon, GoldenHour, Sunset, BlueHour and Night move the sun " +
@@ -80,6 +86,14 @@ namespace LightGreen
                     "between Day and Night. Lit windows, lampposts, glowing balls and explosions keep their brightness, so they " +
                     "stand out more in a darker night.",
                     new AcceptableValueRange<float>(0.25f, 1.5f)));
+
+            Filter = config.Bind("Filters", "Filter", "None",
+                "A photo filter on top of LightGreen's look, like a photo editor's: None, a filter from LightGreen.filters.json " +
+                "(Mono, Mono Red, Sepia, Faded Film, Vivid, Warm, Cool, Teal & Orange, Cross Process, Duotone, Poster, Toy Camera, " +
+                "Dreamy), or the name of a .cube file in the LightGreen.filters folder (without .cube). The HUD isn't filtered. " +
+                "Keys.FilterKey steps through them.");
+            FilterStrength = config.Bind("Filters", "Strength", 1f,
+                new ConfigDescription("How much of the photo filter shows: 0 = none, 1 = all of it.", new AcceptableValueRange<float>(0f, 1f)));
 
             ShadowTint = Effect(config, "ShadowTint", 1f, 4f, "Shadows lean toward the biome's hue (cool in Snow, warm in Desert).");
             ColorGrading = Effect(config, "ColorGrading", 1f, 3f, "Per-biome and time-of-day white balance, saturation and contrast.");

@@ -16,6 +16,7 @@ LightGreen changes how the game looks for you, using the game's own shaders and 
 - **Night.** Balls glow evenly, your own the brightest. On City holes made dark with F9, building windows and vehicle lights glow, lampposts light the street, and bright lights bloom.
 - **Weather.** Footprints in snow last longer (45 seconds) and show as blue-grey dents. Rain (off by default; **F10** switches it) brings streaks, splashes and a grey overcast sky.
 - **Lens effects.** A lens flare toward a low sun, a miniature (tilt-shift) look for the hole overview flyover, and depth of field in photo mode. Vignette and chromatic aberration are there too, off by default.
+- **Photo filters.** Mono, Sepia, Faded Film, Teal & Orange, Toy Camera and more, stepped through with **F11**, on top of the rest of the look. Your own `.cube` LUTs work too. The HUD isn't filtered.
 - **F8** switches LightGreen off and on while you play, to compare with the game's own look.
 
 ## Table of Contents
@@ -53,7 +54,7 @@ Super Battle Golf/
 ## Usage
 
 1. Start a hole. LightGreen is on from the start.
-2. Press **F9** to change the time of day, **F8** to compare with the game's own look, and **F10** to switch the rain off and on.
+2. Press **F9** to change the time of day, **F8** to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back).
 3. Change anything else in `BepInEx/config/com.lightgreen.cfg` (in r2modman: **Config editor**). It's reloaded within a second when you save it, so you can tune while you play. For example, to turn rain on:
 
 ```ini
@@ -68,11 +69,14 @@ Rain = 1
 | `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while you play. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Switches the rain off and on, as heavy as it last was (or 1). |
+| `Keys.FilterKey` | `F11` | Steps to the next photo filter (with Shift, the previous one). |
 | `TimeOfDay.Time` | `HoleDefault` | `HoleDefault` keeps each hole's own sun and sky; or `Dawn`, `Morning`, `Noon`, `GoldenHour`, `Sunset`, `BlueHour`, `Night`. |
 | `TimeOfDay.ProgressionMinutes` | `0` | Minutes for a full day cycle; 0 keeps the time put. |
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
 | `Brightness.Day` | `1` | How bright daylight is, from 0.5 to 1.5, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, from 0.25 to 1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
+| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. |
+| `Filters.Strength` | `1` | How much of the photo filter shows, from 0 to 1. |
 | `Effects.*` | `1` | How strong each effect is: 0 off, 1 as tuned, 2 double, each up to its own most (below). `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
@@ -92,6 +96,26 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 2 | `TiltShift`, `Footprints` |
 
 The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first start. It's reloaded when you save it.
+
+### Photo filters
+
+| Filter | Look |
+|---|---|
+| Mono | Neutral black and white |
+| Mono Red | Black and white through a red filter: darker skies and water, brighter skin, wood and sand |
+| Sepia | Warm brown monochrome |
+| Faded Film | Lifted blacks, softer contrast, slightly warm |
+| Vivid | More contrast and saturation |
+| Warm | Golden, sunlit |
+| Cool | Blue-teal, crisp |
+| Teal & Orange | Teal shadows, warm highlights |
+| Cross Process | Yellow-green highlights, blue shadows |
+| Duotone | Navy to peach |
+| Poster | Fewer colour steps, like a poster or comic |
+| Toy Camera | Saturated cross-process, dark corners, a bulging lens |
+| Dreamy | Pastel and soft, with a glow around bright parts |
+
+The filters are in `BepInEx/config/LightGreen.filters.json`, which you can edit while you play. To use your own LUTs, put `.cube` files in `BepInEx/config/LightGreen.filters/`: each becomes a filter named after the file. In VR, filters keep their colours but not their vignette, distortion or fringes.
 
 ## Notes
 
