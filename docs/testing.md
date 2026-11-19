@@ -223,6 +223,8 @@ limit) or where it starts to look broken, flash too hard or cost too much:
 
 If an effect looks wrong at its most, note the highest value that looks right: its most can come down to that.
 
+**Results (2026-11-18):** X1–X7 pass. Each effect's most stays as set.
+
 ## 0.1.1: no yellow snow
 
 **Found (2026-11-18):** on a Snow hole at Dawn, Morning, Golden hour and Sunset, snow and ice turned yellow-green
@@ -251,3 +253,6 @@ hole's, added as grey, in the same shape as before. The fill light keeps the hol
 If A4's shade looks too cold: give Dawn, Morning, Golden hour and Sunset a gentle warm `ambientTint` (about
 1, 0.94, 0.86 at Golden hour) and raise the presets version from 6 to 7, so existing files are backed up and
 replaced with the new defaults.
+
+**Results (2026-11-18):** A1–A5 pass. A4: the shade at Golden hour and Sunset looks right, so no warm `ambientTint`
+was added and the presets stay at version 6.
