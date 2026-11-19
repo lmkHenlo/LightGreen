@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-18
+
 ### Added
 
 - **F10** switches the rain off and on, coming back as heavy as it last was (or 1), and saves it to `Effects.Rain` (`Keys.RainKey`).
@@ -41,3 +43,7 @@ The first release.
 - Optional rain: streaks, splashes and a grey overcast sky, off by default (`Effects.Rain`).
 - **F8** switches LightGreen off and on to compare with the game's own look (`Keys.ToggleKey`), and `General.Enabled` turns it off entirely.
 - The settings file is reloaded within a second of being saved.
+
+[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/lmkHenlo/LightGreen/releases/tag/v0.1.0
