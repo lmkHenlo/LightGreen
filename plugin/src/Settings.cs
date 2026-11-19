@@ -46,7 +46,6 @@ namespace LightGreen
         internal static ConfigEntry<float> SunShadowDistance;
         internal static ConfigEntry<AOQuality> AmbientOcclusionQuality;
 
-        private static readonly AcceptableValueRange<float> Strength = new AcceptableValueRange<float>(0f, 2f);
 
         internal static void Bind(ConfigFile config)
         {
@@ -69,43 +68,43 @@ namespace LightGreen
             TransitionSeconds = config.Bind("TimeOfDay", "TransitionSeconds", 3f,
                 new ConfigDescription("How long a change of time of day takes to blend in.", new AcceptableValueRange<float>(0f, 30f)));
 
-            ShadowTint = Effect(config, "ShadowTint", 1f, "Shadows lean toward the biome's hue (cool in Snow, warm in Desert).");
-            ColorGrading = Effect(config, "ColorGrading", 1f, "Per-biome and time-of-day white balance, saturation and contrast.");
-            DistanceHaze = Effect(config, "DistanceHaze", 1f, "Distant terrain fades toward the horizon colour.");
-            LensFlare = Effect(config, "LensFlare", 1f, "Streaks and ghosts when looking toward a low sun. Off in VR.");
-            WaterTuning = Effect(config, "WaterTuning", 1f, "Sun highlights on water, and water that follows the time of day.");
-            IceGlints = Effect(config, "IceGlints", 1f, "Sparkle on snow terrain. Halved in VR.");
-            TiltShift = Effect(config, "TiltShift", 1f, "The hole-overview flyover looks like a miniature. Off in VR.");
-            PhotoDepthOfField = Effect(config, "PhotoDepthOfField", 1f,
+            ShadowTint = Effect(config, "ShadowTint", 1f, 4f, "Shadows lean toward the biome's hue (cool in Snow, warm in Desert).");
+            ColorGrading = Effect(config, "ColorGrading", 1f, 3f, "Per-biome and time-of-day white balance, saturation and contrast.");
+            DistanceHaze = Effect(config, "DistanceHaze", 1f, 4f, "Distant terrain fades toward the horizon colour.");
+            LensFlare = Effect(config, "LensFlare", 1f, 4f, "Streaks and ghosts when looking toward a low sun. Off in VR.");
+            WaterTuning = Effect(config, "WaterTuning", 1f, 3f, "Sun highlights on water, and water that follows the time of day.");
+            IceGlints = Effect(config, "IceGlints", 1f, 3f, "Sparkle on snow terrain. Halved in VR.");
+            TiltShift = Effect(config, "TiltShift", 1f, 2f, "The hole-overview flyover looks like a miniature. Off in VR.");
+            PhotoDepthOfField = Effect(config, "PhotoDepthOfField", 1f, 4f,
                 "Photo mode focuses on what's in the middle of the frame and softens the rest. Off in VR.");
-            Vignette = Effect(config, "Vignette", 0f, "Darker screen corners, on top of the course's own. Off in VR.");
-            ChromaticAberration = Effect(config, "ChromaticAberration", 0f, "Colour fringes at the screen edges. Off in VR.");
-            AmbientOcclusion = Effect(config, "AmbientOcclusion", 1f,
+            Vignette = Effect(config, "Vignette", 0f, 4f, "Darker screen corners, on top of the course's own. Off in VR.");
+            ChromaticAberration = Effect(config, "ChromaticAberration", 0f, 4f, "Colour fringes at the screen edges. Off in VR.");
+            AmbientOcclusion = Effect(config, "AmbientOcclusion", 1f, 4f,
                 "Soft darkening where surfaces meet: under and around objects, in corners and crevices. Uses the game's own " +
                 "ambient occlusion (HTrace AO), turned on for every course, with the grass blades left out so open grass stays " +
                 "even. Off in VR.");
-            EffectLights = Effect(config, "EffectLights", 1f,
+            EffectLights = Effect(config, "EffectLights", 1f, 4f,
                 "Explosions light the ground and players around them for a moment (the big ones with shadows), muzzle " +
                 "flashes pop, and rocket and freeze-bomb trails carry a light. Gentler with the game's Explosion flashes option off. " +
                 "Needs the game's Dynamic Lighting setting on.");
-            BallGlow = Effect(config, "BallGlow", 1f,
+            BallGlow = Effect(config, "BallGlow", 1f, 3f,
                 "Balls glow evenly all over in the dark, your own the brightest, so they stay easy to find at night. " +
                 "Off in daylight.");
             BallGlowOwnOnly = config.Bind("Effects", "BallGlowOwnOnly", false,
                 "Only your own ball glows (a calmer scene in a crowded lobby).");
-            Lightning = Effect(config, "Lightning", 1f,
+            Lightning = Effect(config, "Lightning", 1f, 3f,
                 "The Thunderstorm item's lightning lights where it lands (with a shadow) and the ground for a long way round, " +
                 "flickering two or three times. With the game's Explosion flashes option off, and in VR, it is one gentle pulse instead. " +
                 "Needs the game's Dynamic Lighting setting on.");
-            CityNight = Effect(config, "CityNight", 1f,
+            CityNight = Effect(config, "CityNight", 1f, 4f,
                 "City holes at night, as the game's own night City holes look: building windows and vehicle lights glow, " +
                 "lampposts light the street (the nearest with shadows), and bright light blooms. Follows how dark it is; " +
                 "nothing by day. The lampposts need the game's Dynamic Lighting setting on.");
-            Rain = Effect(config, "Rain", 0f,
+            Rain = Effect(config, "Rain", 0f, 3f,
                 "Rain on every course: streaks, splashes where it lands, and a grey overcast sky. Surfaces don't get wet. " +
                 "Off by default: it's only a look, and could be mistaken for the Thunderstorm item. The value is how heavy. " +
                 "Keys.RainKey switches it off and on while playing.");
-            Footprints = Effect(config, "Footprints", 1f,
+            Footprints = Effect(config, "Footprints", 1f, 2f,
                 "Footprints in snow last longer (Effects.FootprintSeconds) and show as blue-grey dents that read on white, " +
                 "fading out at the end. Sand keeps the game's prints, and so does a player a smoke bomb hides from you. " +
                 "The value is how dark the prints are.");
@@ -162,7 +161,13 @@ namespace LightGreen
             }
         }
 
-        private static ConfigEntry<float> Effect(ConfigFile config, string key, float value, string description) =>
-            config.Bind("Effects", key, value, new ConfigDescription(description + " 0 = off, 1 = tuned, 2 = double.", Strength));
+        /// <summary>
+        /// An effect's strength: 0 = off, 1 = tuned. Each has its own most: where turning it up stops making a
+        /// difference, or where it starts to look broken, flash too hard or cost too much.
+        /// </summary>
+        private static ConfigEntry<float> Effect(ConfigFile config, string key, float value, float most, string description) =>
+            config.Bind("Effects", key, value, new ConfigDescription(
+                description + (most > 2f ? $" 0 = off, 1 = tuned, 2 = double, up to {most:0}." : " 0 = off, 1 = tuned, 2 = double (the most)."),
+                new AcceptableValueRange<float>(0f, most)));
     }
 }

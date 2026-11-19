@@ -197,3 +197,28 @@ Put `RainKey` back to `F10` after R4.
 (RainKey).`, then the rain's own `Rain: on, strength 1.`) and off on Forest and Snow holes; after `Rain = 1.5` was
 saved (`Config reloaded.` once), F10 off and back on at 1.5; F8 off and on leaves the rain as it was; no
 `Config reloaded.` after any F10 press; no warnings or errors.
+
+## 0.1.1: stronger effects
+
+Effect strengths go past 2. Each has its own most, set from where its code stops making a difference (its own
+limit) or where it starts to look broken, flash too hard or cost too much:
+
+| Up to | Effects | Why there |
+|---|---|---|
+| 4 | `ShadowTint`, `DistanceHaze`, `LensFlare`, `PhotoDepthOfField`, `Vignette`, `ChromaticAberration`, `AmbientOcclusion`, `EffectLights`, `CityNight` | Shade is fully the biome's hue at 2.5–4; haze colour reaches the horizon's by about 4 (fog distance stays as at 1); the lens is fully open at 4; vignette and fringes are full at 4; AO intensity 2 |
+| 3 | `ColorGrading`, `WaterTuning`, `IceGlints`, `BallGlow`, `Lightning`, `Rain` | Night exposure −0.75 stop at 3; water glare; snow shimmer; ball colours wash toward white; lightning flashes; rain costs 1.5× the drops of 2 |
+| 2 | `TiltShift`, `Footprints` | Already at their own limit at 2 (widest lens; darkest prints) |
+
+**Build:** as before. Each `Effects.*` entry now shows its own range (`# Acceptable value range: From 0 to N`).
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| X1 | Config | Start the game, open the config | Each effect shows the range above; your values are kept; no warnings or errors |
+| X2 | Too high | Set `Lightning = 5` and save | Treated as 3 (the file may show 3 after the reload); no errors |
+| X3 | Shade and colour | `ShadowTint = 4`, `ColorGrading = 3`, `DistanceHaze = 4` on Snow and Desert; F9 to Sunset and Night | Strong but readable: shade a clear biome hue, no broken textures; Sunset warm, Night dark but playable; distant terrain takes the horizon's colour |
+| X4 | Light | `EffectLights = 4`, `Lightning = 3` (Explosion flashes on), `CityNight = 4` on a City hole at Night | Bright pops and strikes that aren't uncomfortable to look at; windows and lamps brighter; no errors |
+| X5 | Glow and glints | `BallGlow = 3` at Night with other players; `IceGlints = 3` and `WaterTuning = 3` on Snow and Coast | Balls bright and still told apart by colour; sparkle and water highlights strong without heavy shimmer or glare |
+| X6 | Occlusion and lens | `AmbientOcclusion = 4`; `LensFlare = 4` toward a low sun; `Vignette = 4`, `ChromaticAberration = 4`; `PhotoDepthOfField = 4` in photo mode | Darker contact shadows, halos and noise acceptable; strong flare, full vignette and fringes, strongest photo blur |
+| X7 | Rain cost | `Rain = 3`, F8 both ways, then `Rain = 2` | Heavier rain; frame rate acceptable next to 2 |
+
+If an effect looks wrong at its most, note the highest value that looks right: its most can come down to that.
