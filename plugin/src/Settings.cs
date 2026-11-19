@@ -13,6 +13,7 @@ namespace LightGreen
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<Key> ToggleKey;
         internal static ConfigEntry<Key> TimeKey;
+        internal static ConfigEntry<Key> RainKey;
 
         internal static ConfigEntry<TimeOfDay> Time;
         internal static ConfigEntry<float> ProgressionMinutes;
@@ -56,6 +57,8 @@ namespace LightGreen
                 "Switches LightGreen off and on while playing, to compare with the game's own look.");
             TimeKey = config.Bind("Keys", "TimeKey", Key.F9,
                 "Steps through the times of day (it changes TimeOfDay.Time).");
+            RainKey = config.Bind("Keys", "RainKey", Key.F10,
+                "Switches the rain off and on (it changes Effects.Rain). It comes back as heavy as it last was, or 1.");
 
             Time = config.Bind("TimeOfDay", "Time", TimeOfDay.HoleDefault,
                 "HoleDefault keeps each hole's own sun and sky. Dawn, Morning, Noon, GoldenHour, Sunset, BlueHour and Night move the sun " +
@@ -100,7 +103,8 @@ namespace LightGreen
                 "nothing by day. The lampposts need the game's Dynamic Lighting setting on.");
             Rain = Effect(config, "Rain", 0f,
                 "Rain on every course: streaks, splashes where it lands, and a grey overcast sky. Surfaces don't get wet. " +
-                "Off by default: it's only a look, and could be mistaken for the Thunderstorm item. The value is how heavy.");
+                "Off by default: it's only a look, and could be mistaken for the Thunderstorm item. The value is how heavy. " +
+                "Keys.RainKey switches it off and on while playing.");
             Footprints = Effect(config, "Footprints", 1f,
                 "Footprints in snow last longer (Effects.FootprintSeconds) and show as blue-grey dents that read on white, " +
                 "fading out at the end. Sand keeps the game's prints, and so does a player a smoke bomb hides from you. " +

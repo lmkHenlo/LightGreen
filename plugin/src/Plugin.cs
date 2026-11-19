@@ -27,7 +27,7 @@ namespace LightGreen
     {
         public const string Guid = "com.lightgreen";
         public const string Name = "LightGreen";
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
 
         /// <summary>
         /// The Unity version of the game build LightGreen is made for (Super Battle Golf 1.4.0-798). A different
@@ -50,6 +50,7 @@ namespace LightGreen
         private Harmony _harmony;
 
         private bool _comparing;
+        private float _lastRain = 1f;   // how heavy the rain comes back with RainKey
         private float _nextConfigCheck;
         private DateTime _configWriteTime;
         private string _notice;
@@ -113,6 +114,12 @@ namespace LightGreen
             GameEvents.GraphicsSettingsApplied += _shadows.OnGameApplied;
             PresetStore.Reloaded += _environment.OnPresetsReloaded;
             Settings.Time.SettingChanged += (_, __) => Notify($"Time of day: {Settings.Time.Value}");
+            RememberRain();
+            Settings.Rain.SettingChanged += (_, __) =>
+            {
+                RememberRain();
+                Notify(Raining ? $"Rain: on ({Settings.Rain.Value:0.##})" : "Rain: off");
+            };
 
             if (Application.unityVersion != ExpectedUnity)
                 Log.LogWarning($"The game runs Unity {Application.unityVersion}; this LightGreen was made for {ExpectedUnity} " +
@@ -123,7 +130,7 @@ namespace LightGreen
 
             Log.LogInfo($"{Name} {Version} loaded: {Application.productName} {Application.version}, Unity {Application.unityVersion}. " +
                         $"{_features.Count} features. {Settings.ToggleKey.Value} compares with the game's own look, " +
-                        $"{Settings.TimeKey.Value} changes the time of day." +
+                        $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} switches the rain." +
                         (Settings.Enabled.Value ? "" : " (Off: General.Enabled = false.)"));
         }
 
@@ -156,6 +163,21 @@ namespace LightGreen
                 _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
                 Log.LogInfo($"Time of day: {Settings.Time.Value}");
             }
+            if (Pressed(keyboard, Settings.RainKey.Value) && !_comparing)
+            {
+                // Setting the value saves the config file, as TimeKey does; take that write as our own too.
+                Settings.Rain.Value = Raining ? 0f : _lastRain;
+                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+                Log.LogInfo(Raining ? $"Rain: on, strength {Settings.Rain.Value:0.##} (RainKey)." : "Rain: off (RainKey).");
+            }
+        }
+
+        private static bool Raining => Settings.Rain.Value > 0.01f;
+
+        /// <summary>Keeps the last rain strength above off, for RainKey to bring back.</summary>
+        private void RememberRain()
+        {
+            if (Raining) _lastRain = Settings.Rain.Value;
         }
 
         private static readonly System.Collections.Generic.Dictionary<string, string> Logged =

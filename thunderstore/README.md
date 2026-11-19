@@ -4,7 +4,7 @@
 
 Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
 
-Version 0.1.0, tested on Super Battle Golf 1.4.0-798 with BepInEx 5.4.23.5.
+Version 0.1.1, tested on Super Battle Golf 1.4.0-798 with BepInEx 5.4.23.5.
 
 LightGreen changes how the game looks for you, using the game's own shaders and effects so it keeps the bright cel-shaded style:
 
@@ -14,7 +14,7 @@ LightGreen changes how the game looks for you, using the game's own shaders and 
 - **Ambient occlusion** on every course: soft shading under carts and benches, at the foot of posts, trees and walls, and in corners. Open grass stays even.
 - **Light from effects.** Explosions light the ground and players around them for a moment (the big ones with shadows), muzzle flashes pop, and rocket and freeze-bomb trails carry a light. The Thunderstorm item's strikes light where they land and flicker.
 - **Night.** Balls glow evenly, your own the brightest. On City holes made dark with F9, building windows and vehicle lights glow, lampposts light the street, and bright lights bloom.
-- **Weather.** Footprints in snow last longer (45 seconds) and show as blue-grey dents. Rain (off by default) brings streaks, splashes and a grey overcast sky.
+- **Weather.** Footprints in snow last longer (45 seconds) and show as blue-grey dents. Rain (off by default; **F10** switches it) brings streaks, splashes and a grey overcast sky.
 - **Lens effects.** A lens flare toward a low sun, a miniature (tilt-shift) look for the hole overview flyover, and depth of field in photo mode. Vignette and chromatic aberration are there too, off by default.
 - **F8** switches LightGreen off and on while you play, to compare with the game's own look.
 
@@ -53,7 +53,7 @@ Super Battle Golf/
 ## Usage
 
 1. Start a hole. LightGreen is on from the start.
-2. Press **F9** to change the time of day, and **F8** to compare with the game's own look.
+2. Press **F9** to change the time of day, **F8** to compare with the game's own look, and **F10** to switch the rain off and on.
 3. Change anything else in `BepInEx/config/com.lightgreen.cfg` (in r2modman: **Config editor**). It's reloaded within a second when you save it, so you can tune while you play. For example, to turn rain on:
 
 ```ini
@@ -67,6 +67,7 @@ Rain = 1
 | `General.Enabled` | `true` | `false` turns LightGreen off: the game looks exactly as it does without the mod. |
 | `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while you play. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
+| `Keys.RainKey` | `F10` | Switches the rain off and on, as heavy as it last was (or 1). |
 | `TimeOfDay.Time` | `HoleDefault` | `HoleDefault` keeps each hole's own sun and sky; or `Dawn`, `Morning`, `Noon`, `GoldenHour`, `Sunset`, `BlueHour`, `Night`. |
 | `TimeOfDay.ProgressionMinutes` | `0` | Minutes for a full day cycle; 0 keeps the time put. |
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |

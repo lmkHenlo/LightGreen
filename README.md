@@ -5,7 +5,7 @@
 
 Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
 
-LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, and optional rain. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
+LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, and optional rain you switch with F10. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
 
 ## Table of Contents
 
@@ -66,7 +66,7 @@ To build it yourself, see [Building from source](#building-from-source).
 
 ## Usage
 
-Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), and **F8** to switch LightGreen off and on to compare with the game's own look.
+Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, and **F10** to switch the rain off and on.
 
 The settings live in `BepInEx/config/com.lightgreen.cfg`, which is created on first launch; with r2modman you can also edit them under **Config editor**. The file is reloaded within a second of being saved, so changes show while you play. For example, to turn rain on and make ambient occlusion cheaper:
 
@@ -85,6 +85,7 @@ AmbientOcclusionQuality = Low
 | `General.Enabled` | `true` | LightGreen on. Off: the game looks exactly as it does without the mod. |
 | `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while playing, to compare with the game's own look. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
+| `Keys.RainKey` | `F10` | Switches the rain off and on, as heavy as it last was (or 1). Saved to `Effects.Rain`. |
 | `TimeOfDay.Time` | `HoleDefault` | `HoleDefault` keeps each hole's own sun and sky; `Dawn`, `Morning`, `Noon`, `GoldenHour`, `Sunset`, `BlueHour`, `Night` move the sun and recolour the sky, light, haze and water. Only you see it. |
 | `TimeOfDay.ProgressionMinutes` | `0` | Minutes for a full day cycle; 0 keeps the time put. |
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
@@ -127,7 +128,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `docs/testing.md` | The checks and results for each phase. |
 | `thunderstore/` | The Thunderstore page (`README.md`), `manifest.json` and `icon.png`. |
 | `plugin/LightGreen.csproj` | Project file for editors; the build script doesn't need it. |
-| `plugin/src/Plugin.cs` | Entry point: settings reload and the F8 and F9 keys. |
+| `plugin/src/Plugin.cs` | Entry point: settings reload and the F8, F9 and F10 keys. |
 | `plugin/src/Settings.cs` | The settings, and removed ones taken out of the file. |
 | `plugin/src/Vr.cs` | Whether a headset is in use. |
 | `plugin/src/Core/Features.cs` | The feature interface and host. A feature that throws is put back and switched off until the game restarts; the rest carry on. |
