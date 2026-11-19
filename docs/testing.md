@@ -280,3 +280,6 @@ colour together, at every time of day including the hole's own. Lights and glows
 | B9 | Reload and F8 | Change both while playing; F8 | Applies within a second; F8 shows the game's own look |
 
 Put both back to 1 and `ProgressionMinutes` to 0 afterwards.
+
+**Results (2026-11-18):** B1–B9 pass. B1: lit sides keep brightening up to 1.5, so `MaxLightBrightening` stays 1.5
+and brightening is all done with light (exposure is never used at these ranges).
