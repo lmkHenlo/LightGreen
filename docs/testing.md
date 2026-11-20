@@ -377,7 +377,5 @@ with most of the zoom left). Infrared, seen at full strength, was harsh: the gam
 grass maroon, and reds bright green; the channel mixer can't keep the sky blue while turning grass red. **Infrared and
 Fisheye were dropped** (version 3). Rerun G1, then G2 for Negative at `Filters.Strength` 1.
 
-**Results (2026-11-19), second run (version 3, `Filters.Strength` 1):** G1 and G2 pass, Negative included; every
-filter works as intended. Handheld Console was then renamed GameBoy (version 4, so the file is replaced once more):
-rerun G1 and check GameBoy is in the F11 cycle where Handheld Console was.
+**Results (2026-11-19), second run (`Filters.Strength` 1):** every filter works as intended, Negative included. That test build turned out to be one step behind: it was compiled before its sources were updated, so it still had version 2 with Infrared and Fisheye, and the next one (meant to rename Handheld Console) had version 3 without the rename. Builds now compile straight from the repository. The removal and the rename (version 4) are checked with the 0.2.0 build: G1 shows `(version 4)` and `Photo filters: 27 in LightGreen.filters.json`, with GameBoy where Handheld Console was and no Infrared or Fisheye.
 
