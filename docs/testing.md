@@ -644,3 +644,6 @@ and R2 below), screenshots taken 15 s or more after switching.
 | R2 | Cartoon rain | `CartoonRain = 1`; wait 15 s; look round, at a wide field of view too | No fat grey ovals anywhere; streaks as before; the sky a soft blue mist |
 | R3 | Frame rate | Rain and cartoon rain at 1 and 3, F8 both ways | No worse than before (fewer particles) |
 
+**Results (2026-11-20):** the user checked rain and cartoon rain with this build: "Looks good." Snow, rain and
+cartoon rain are signed off as they stand.
+
