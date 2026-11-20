@@ -42,6 +42,12 @@ namespace LightGreen.Systems
             internal float Sway;
             /// <summary>Turning as they fall, up to this many radians a second either way; 0 for none.</summary>
             internal float Spin;
+            /// <summary>
+            /// A clear zone round the camera, in metres; 0 for none. The layer then fills a hollow cylinder (Width across)
+            /// instead of a box, tilted along the fall so the wind doesn't carry particles into the hole: none pass
+            /// right by the lens, where a streak would be drawn very long.
+            /// </summary>
+            internal float Clearance;
         }
 
         private const string ShaderName = "Universal Render Pipeline/Particles/Unlit";
@@ -92,7 +98,16 @@ namespace LightGreen.Systems
             {
                 Spec spec = _specs[i];
                 ParticleSystem ps = _systems[i];
-                ps.transform.position = eye + Vector3.up * spec.Lift;
+                if (spec.Clearance > 0f)
+                {
+                    // The hollow cylinder's axis runs along the fall, through the camera.
+                    Vector3 alongFall = new Vector3(-wind.x, spec.Fall, -wind.y) / Mathf.Max(0.1f, spec.Fall);   // 1 m up
+                    ps.transform.SetPositionAndRotation(eye + alongFall * spec.Lift, Quaternion.FromToRotation(Vector3.up, alongFall.normalized));
+                }
+                else
+                {
+                    ps.transform.position = eye + Vector3.up * spec.Lift;
+                }
 
                 if (densityChanged) SetDensity(ps, spec, density);
 
@@ -126,7 +141,9 @@ namespace LightGreen.Systems
         private static void SetDensity(ParticleSystem ps, Spec spec, float density)
         {
             float lifetime = Lifetime(spec);
-            float count = spec.Width * spec.Width * spec.Height * spec.Density * density;
+            float outer = spec.Width * 0.5f, inner = Mathf.Min(spec.Clearance, outer * 0.9f);
+            float area = spec.Clearance > 0f ? Mathf.PI * (outer * outer - inner * inner) : spec.Width * spec.Width;
+            float count = area * spec.Height * spec.Density * density;
             var main = ps.main;
             main.maxParticles = Mathf.CeilToInt(count * 1.3f) + 16;
             var emission = ps.emission;
@@ -170,8 +187,25 @@ namespace LightGreen.Systems
 
             var shape = ps.shape;
             shape.enabled = true;
-            shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(spec.Width, spec.Height, spec.Width);
+            if (spec.Clearance > 0f)
+            {
+                // A cone with no spread is a cylinder; its thickness leaves the clear zone. Its axis (the shape's +Z)
+                // turned to the transform's up, and moved down half its length so it's centred on the transform.
+                float radius = spec.Width * 0.5f;
+                shape.shapeType = ParticleSystemShapeType.ConeVolume;
+                shape.angle = 0f;
+                shape.radius = radius;
+                shape.radiusThickness = 1f - Mathf.Min(spec.Clearance, radius * 0.9f) / radius;
+                shape.length = spec.Height;
+                shape.rotation = new Vector3(-90f, 0f, 0f);
+                shape.position = new Vector3(0f, -spec.Height * 0.5f, 0f);
+                shape.scale = Vector3.one;
+            }
+            else
+            {
+                shape.shapeType = ParticleSystemShapeType.Box;
+                shape.scale = new Vector3(spec.Width, spec.Height, spec.Width);
+            }
 
             var velocity = ps.velocityOverLifetime;
             velocity.enabled = true;

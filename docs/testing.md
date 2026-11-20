@@ -532,7 +532,7 @@ user's order); S3's cycle above gains the cartoon rain step.
 | Mid | 90 × 40 × 90 m | about 970 | 6–8 cm | about 1.1 m |
 | Far | 240 × 70 × 240 m | about 600 | 22–28 cm | about 1.4 m |
 
-  About 2,700 in all, fewer than the rain's 3,800. They drift with the game's wind, and always lean at least 2.5 m/s
+  About 2,700 in all, fewer than the rain's 3,800 (2,400 after the review below). They drift with the game's wind, and always lean at least 2.5 m/s
   (about 15°) so they slant even in a calm, as in the reference.
 - **Ripples:** where the rain throws droplets, cartoon rain lays two white rings flat on the ground (the inner fainter),
   growing from a quarter of their size to 30–45 cm and fading over 0.5–0.7 s; about 400 a second within 15 m at
@@ -565,4 +565,24 @@ snow, clear; each kind's setting; below 0.01 counts as off. All pass.
 | C8 | Camera, F8, holes | A camera cut; F8 off and on; a new hole in cartoon rain | The view fills at once after a cut; F8 off: none of it and the game's own sky; a new hole starts misty at once |
 | C9 | Frame rate | Cartoon rain at 1 and 3, then rain at the same values, F8 both ways | Cartoon rain at 1 costs about what rain at 1 does; note the numbers |
 | C10 | VR | Cartoon rain with SBGVR | Streaks and rings show in the headset |
+
+**Review (2026-11-20), first look in the game (screenshot, Forest "Timber" hole 2):** the mid and far streaks and the
+blue mist read as in the reference, the colours stay bright. But streaks falling within a metre or two of the camera were
+drawn as long white slashes across the edges of the view, like speed lines, and fanned out from below the centre
+(perspective, stronger at a wide field of view), where the reference's lines run nearly parallel; and no ripples could
+be seen on the tee in front of the player. Changed:
+
+- **A clear zone:** the near layer fills a hollow cylinder (inner radius 3 m, outer 15 m) instead of a box, its axis
+  tilted along the fall (wind over fall speed) and through the camera, so the wind doesn't carry streaks into it. The
+  particle layer gained `Spec.Clearance` for this; the rain's and snow's layers keep their boxes. Near streaks: about
+  869 (was about 1,150); about 2,445 in all.
+- **Shorter near streaks:** two thirds of the length (stretch 0.06, was 0.09).
+- **Ripples:** 50–75 cm (was 30–45), fully opaque at first, lasting 0.7–0.9 s, and drawn from both sides (`_Cull` 0):
+  a flat quad facing down was likely culled, which would explain seeing none. The log says `Cartoon rain: ripples
+  landing on the ground.` once a hole when the first ones land.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| C11 | Clear zone | Cartoon rain on Timber hole 2 as in the screenshot; look round, at a wide field of view too | No long slashes at the edges; streaks nearly parallel, slanting one way; still clearly rain, and still heavier-looking than `Rain = 1` |
+| C12 | Ripples seen | Same place; stand still and look at the tee and the fairway | White two-ring ripples spread on the ground round you; the log line above appears |
 

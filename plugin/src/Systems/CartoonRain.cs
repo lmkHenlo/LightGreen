@@ -9,9 +9,12 @@ namespace LightGreen.Systems
     /// <list type="bullet">
     /// <item>Streaks: bold, nearly white, crisp-edged lines (a disc drawn in code by <see cref="RainArt"/>, stretched along
     /// the fall), slanted the same way: with the game's wind, and always at least a steady lean. Near, mid and far layers
-    /// from the particle layer, about 2,700 at strength 1 (the rain has 3,800, fainter and thinner).</item>
-    /// <item>Ripples: two white rings laid flat where drops land within 15 m of the camera, growing and fading over about
-    /// 0.6 s, placed by a few ground checks a frame, as the rain's splashes are.</item>
+    /// from the particle layer, about 2,400 at strength 1 (the rain has 3,800, fainter and thinner). The near layer keeps
+    /// a 3 m clear zone round the camera, tilted along the fall: a streak passing right by the lens was drawn as a long
+    /// white slash, and fanned out by perspective, more so at a wide field of view.</item>
+    /// <item>Ripples: two white rings laid flat where drops land within 15 m of the camera, growing to 50–75 cm and fading
+    /// over about 0.8 s, placed by a few ground checks a frame, as the rain's splashes are. Drawn from both sides, so a
+    /// ring never faces away and vanishes.</item>
     /// </list>
     /// Its sky, a soft blue mist that keeps the colours bright, is set in <see cref="Rain"/> with the others'. At night the
     /// streaks and ripples dim. Only one weather at a time (<see cref="Weather"/>).
@@ -48,7 +51,8 @@ namespace LightGreen.Systems
                 new ParticleLayer.Spec
                 {
                     Name = "near", Width = 30f, Height = 16f, Lift = 4f, Density = 0.08f, Fall = 10f,
-                    MinSize = 0.025f, MaxSize = 0.035f, MaxScreenSize = 0.006f, Alpha = 0.85f, Stretch = 0.09f, Texture = _disc,
+                    MinSize = 0.025f, MaxSize = 0.035f, MaxScreenSize = 0.006f, Alpha = 0.85f, Stretch = 0.06f, Texture = _disc,
+                    Clearance = 3f,
                 },
                 new ParticleLayer.Spec
                 {
@@ -98,7 +102,8 @@ namespace LightGreen.Systems
             _rippleDebt -= Mathf.FloorToInt(_rippleDebt);
 
             Vector3 eye = camera.transform.position;
-            var emit = new ParticleSystem.EmitParams { startColor = new Color(color.r, color.g, color.b, 0.85f) };
+            var emit = new ParticleSystem.EmitParams { startColor = new Color(color.r, color.g, color.b, 1f) };
+            bool landed = false;
             for (int i = 0; i < count; i++)
             {
                 Vector2 offset = Random.insideUnitCircle * RippleRadius;
@@ -107,10 +112,12 @@ namespace LightGreen.Systems
                     continue;
                 emit.position = hit.point + hit.normal * 0.03f;
                 emit.rotation3D = new Vector3(90f, Random.Range(0f, 360f), 0f);   // flat on the ground
-                emit.startSize = Random.Range(0.3f, 0.45f);
-                emit.startLifetime = Random.Range(0.5f, 0.7f);
+                emit.startSize = Random.Range(0.5f, 0.75f);
+                emit.startLifetime = Random.Range(0.7f, 0.9f);
                 _ripples.Emit(emit, 1);
+                landed = true;
             }
+            if (landed) Plugin.LogChange("hole:cartoonrain-ripples", "Cartoon rain: ripples landing on the ground.");
             if (!_ripples.gameObject.activeSelf) _ripples.gameObject.SetActive(true);
         }
 
@@ -152,11 +159,12 @@ namespace LightGreen.Systems
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.alignment = ParticleSystemRenderSpace.World;
-            renderer.maxParticleSize = 0.5f;
+            renderer.maxParticleSize = 1f;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             var material = new Material(source) { name = "LightGreen cartoon rain: ripples", hideFlags = HideFlags.DontSave };
             material.SetTexture("_BaseMap", _ripple);
+            if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);   // both sides: a ring never faces away
             renderer.sharedMaterial = material;
             _ripples.Play();
             return true;
