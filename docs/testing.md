@@ -530,6 +530,20 @@ summer. So:
 S2 gains the colder grade. Whether the sky in that screenshot had finished its 10-second change isn't known: if S2's
 sky still looks clear after 15 seconds of snow, the sky tint isn't reaching that course's sky.
 
+**Changed again (2026-11-20, second screenshot):** the sky came out measurably paler (its top from about
+(0.35, 0.61, 0.85) on screen to (0.49, 0.69, 0.85)), the fog over the water pale blue-white and the grass a little
+muted, so those work. Two things didn't:
+
+- the flakes still read as dots: the main layer's are mostly 10–25 m away, so 1.5× bigger only took them from about
+  4 px to 6 px. A fourth layer, "close", now fills a 20 × 20 × 10 m box round the camera with about 440 medium,
+  crisp flakes (0.08–0.13 m, at most 2.5% of the screen), 15–35 px across at 5–10 m, where the lumpy outline and blue
+  shade show. About 4,850 flakes in all at strength 1, roughly 10% more;
+- the whiter fog turned the dark pines in the middle distance a milky grey-green, more a damp morning than bright
+  snow. It now starts and ends further out (0.85 and 0.95 of the dry distances, from 0.7 and 0.8), keeping the
+  whiter colour: the far distance stays white, the middle trees keep their contrast.
+
+S10 should note the frame rate with the close layer.
+
 ## Cartoon rain
 
 A third weather from the user's reference picture (a stylised forest in the rain): bold, long, thin white streaks all

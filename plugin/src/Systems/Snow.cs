@@ -6,15 +6,18 @@ namespace LightGreen.Systems
     /// <summary>
     /// Cartoon snow on every course while Effects.Snow is above 0: soft, round, slightly lumpy white flakes (drawn in
     /// code by <see cref="FlakeArt"/>, so nothing is shipped) drifting with the game's wind, swaying and turning as they
-    /// fall. Three layers round the camera, from the particle layer:
+    /// fall. Four layers round the camera, from the particle layer:
     /// <list type="bullet">
     /// <item>near: a few big, soft flakes passing close to the lens, as if out of focus (they may cover the ball for a
     /// moment: wanted, for the look);</item>
+    /// <item>close: medium, crisp flakes within about 10 m, where they're 15–35 px on screen and their lumpy outline and
+    /// blue shade read (the main layer's flakes are mostly 10–25 m away, a few pixels across);</item>
     /// <item>main: the snowfall itself, crisp-edged, big enough at 20 m that the lumpy shape and blue shade still show
     /// (smaller, they read as dust and vanish against white cloud);</item>
     /// <item>far: tiny flakes for depth.</item>
     /// </list>
-    /// About 4,400 flakes at strength 1, a little more than the rain's 3,800, and only the near ones are big on screen:
+    /// About 4,850 flakes at strength 1 (the close layer's 440 among them), against the rain's 3,800; only the near and
+    /// close ones are big on screen:
     /// the earlier snowfall (about 8,200, many of them large and far) cost too much frame rate.
     /// Magical rather than real: the flakes are a little brighter than white, so the game's bloom gives them a soft
     /// glow; at night they dim and turn blue. The sky (bright and pale blue) is set with the rain's, in <see cref="Rain"/>;
@@ -53,6 +56,12 @@ namespace LightGreen.Systems
                     Name = "near", Width = 14f, Height = 8f, Lift = 1.5f, Density = 0.024f, Fall = 0.9f,
                     MinSize = 0.06f, MaxSize = 0.11f, MaxScreenSize = 0.04f, Alpha = 0.85f,
                     Texture = _soft, Tiles = 2, Sway = 0.35f, Spin = 0.6f,
+                },
+                new ParticleLayer.Spec
+                {
+                    Name = "close", Width = 20f, Height = 10f, Lift = 2f, Density = 0.11f, Fall = 1f,
+                    MinSize = 0.08f, MaxSize = 0.13f, MaxScreenSize = 0.025f, Alpha = 1f,
+                    Texture = _crisp, Tiles = 2, Sway = 0.3f, Spin = 0.7f,
                 },
                 new ParticleLayer.Spec
                 {

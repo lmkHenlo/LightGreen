@@ -66,8 +66,8 @@ namespace LightGreen.Systems
         private const float OvercastFogStart = 0.5f;
         private const float OvercastFogEnd = 0.6f;
         /// <summary>Snow's fog: it closes in less than rain's, toward a bright blue-white.</summary>
-        private const float SnowFogStart = 0.7f;
-        private const float SnowFogEnd = 0.8f;
+        private const float SnowFogStart = 0.85f;
+        private const float SnowFogEnd = 0.95f;
         private static readonly Color SnowFog = new Color(0.92f, 0.95f, 1f);
         private const float SnowFogBlend = 0.9f;
         /// <summary>Snow's grade at full strength: a little colder (white balance) and less saturated, so green grass under
