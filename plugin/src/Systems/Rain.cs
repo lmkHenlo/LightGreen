@@ -8,7 +8,9 @@ namespace LightGreen.Systems
     /// Effects.Rain is above 0. Off by default: it's only a look, and could be mistaken for the Thunderstorm item.
     /// <list type="bullet">
     /// <item>Streaks round the camera, from the particle layer: near, mid and a faint far layer, slanted by the game's
-    /// wind, capped on screen so none hides the ball.</item>
+    /// wind, capped on screen so none hides the ball. Each fills a hollow cylinder nested inside the next (near 2–15 m,
+    /// mid 15–45 m, far 45–120 m), so no big far drop falls past the lens; about 2,800 at strength 1. Half opaque up
+    /// close (0.5, 0.35 mid, 0.16 far): fainter, it read as haze rather than rain.</item>
     /// <item>Splashes: small droplet bursts where rain lands within 15 m of the camera, placed by a few ground checks a
     /// frame (cheaper than particle collision).</item>
     /// <item>Overcast: the sun dims and greys, and the sky and fog turn grey (the time of day and post-processing do
@@ -33,17 +35,20 @@ namespace LightGreen.Systems
             new ParticleLayer.Spec
             {
                 Name = "near", Width = 30f, Height = 16f, Lift = 4f, Density = 0.12f, Fall = 8f,
-                MinSize = 0.012f, MaxSize = 0.02f, MaxScreenSize = 0.004f, Alpha = 0.35f, Stretch = 0.06f,
+                MinSize = 0.016f, MaxSize = 0.026f, MaxScreenSize = 0.005f, Alpha = 0.5f, Stretch = 0.06f,
+                Clearance = 2f,
             },
             new ParticleLayer.Spec
             {
                 Name = "mid", Width = 90f, Height = 40f, Lift = 10f, Density = 0.004f, Fall = 9f,
-                MinSize = 0.03f, MaxSize = 0.045f, MaxScreenSize = 0.004f, Alpha = 0.25f, Stretch = 0.08f,
+                MinSize = 0.03f, MaxSize = 0.045f, MaxScreenSize = 0.004f, Alpha = 0.35f, Stretch = 0.08f,
+                Clearance = 15f,
             },
             new ParticleLayer.Spec
             {
                 Name = "far", Width = 240f, Height = 70f, Lift = 25f, Density = 0.0002f, Fall = 10f,
-                MinSize = 0.15f, MaxSize = 0.2f, MaxScreenSize = 0.006f, Alpha = 0.12f, Stretch = 0.1f,
+                MinSize = 0.15f, MaxSize = 0.2f, MaxScreenSize = 0.006f, Alpha = 0.16f, Stretch = 0.1f,
+                Clearance = 45f,
             });
 
         private static readonly Color RainColor = new Color(0.72f, 0.78f, 0.88f);

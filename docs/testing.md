@@ -619,3 +619,28 @@ be seen on the tee in front of the player. Changed:
 `RainArt.cs`): cartoon rain is its streaks and its blue mist. C6 and C12 no longer apply; C2 no longer looks for
 ripples.
 
+**Results and changes (2026-11-20, screenshots of cartoon rain and rain on Timber hole 1):** snow was signed off
+("looks good"). Cartoon rain reads as rain at once and no slash crosses the player or the tee: **C11 passes**. Two
+problems:
+
+- **Fat grey ovals in cartoon rain:** a few drops, at the left edge and over the water, drew as wide, faint ovals
+  (about 25 × 80 px). They were the mid and far layers' big drops (0.06–0.08 m and 0.22–0.28 m) falling right past
+  the camera: only the near layer had a clear zone, and the others' boxes still held the camera. Now every layer is
+  a hollow cylinder nested inside the next, tilted along the fall: near 3–15 m, mid 15–45 m, far 45–120 m. Each layer
+  keeps its density where it draws, so the look is the same with fewer particles: about 1,950 in all (was 2,445).
+- **Rain nearly invisible:** at strength 1, a handful of faint lines; it read as a hazy clear day, and its splashes
+  were a few pixels each. Its streaks are now a little wider (0.016–0.026 m, from 0.012–0.02; at most 0.5% of the
+  screen, from 0.4%) and more opaque (0.5 near, 0.35 mid, 0.16 far; from 0.35, 0.25, 0.12), still thinner and
+  greyer than cartoon rain's. Its layers are nested the same way (near 2–15 m, mid 15–45 m, far 45–120 m), so the
+  stronger far drops can't fall past the lens: about 2,800 streaks (was 3,800), same look.
+
+In both screenshots the top of the sky measured about as a clear day's. In the cartoon rain one the chat line shows
+it had only just been switched on, inside the 10 s change; for the rain one the timing isn't known. To check (R1
+and R2 below), screenshots taken 15 s or more after switching.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| R1 | Rain | `Rain = 1` on a Forest hole by day; wait 15 s | Clearly rain: thin, grey-white streaks everywhere, still fainter and thinner than cartoon rain; the sky and fog grey; no wide ovals |
+| R2 | Cartoon rain | `CartoonRain = 1`; wait 15 s; look round, at a wide field of view too | No fat grey ovals anywhere; streaks as before; the sky a soft blue mist |
+| R3 | Frame rate | Rain and cartoon rain at 1 and 3, F8 both ways | No worse than before (fewer particles) |
+
