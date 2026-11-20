@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `Filters.Filter` is a dropdown in r2modman's config editor and other config editors, listing None, the built-in filters, the ones in `LightGreen.filters.json` and your `.cube` files. The config file's list is updated when filters are added, removed or renamed, and a name that isn't in it is kept rather than reset to None.
+
+### Changed
+
+- `Filters.Filter`'s description no longer lists the filters' names; the dropdown does.
+
 ## [0.2.0] - 2026-11-19
 
 ### Added

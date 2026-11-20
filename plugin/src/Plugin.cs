@@ -55,6 +55,8 @@ namespace LightGreen
         private float _lastRain = 1f;   // how heavy the rain comes back with RainKey
         private float _nextConfigCheck;
         private DateTime _configWriteTime;
+        private string _filterChoicesWritten;   // the filter list last written to the config file
+        private int _filterRevisionSeen;
         private string _notice;
         private float _noticeUntil;
         private GUIStyle _noticeStyle;
@@ -63,8 +65,10 @@ namespace LightGreen
         {
             Log = Logger;
             Settings.Bind(Config);
+            _filterChoicesWritten = string.Join(", ", FilterChoices.Current());   // Bind just wrote these
             PresetStore.Load(Log);
             FilterStore.Load(Log);
+            SyncFilterChoices();
             GameEvents.Hook(Log);
             _harmony = new Harmony(Guid);
 
@@ -145,6 +149,7 @@ namespace LightGreen
             ReloadConfigIfEdited();
             PresetStore.Poll();
             FilterStore.Poll();
+            if (FilterStore.Revision != _filterRevisionSeen) SyncFilterChoices();
             Vr.Poll();
             ReadKeys();
 
@@ -226,6 +231,34 @@ namespace LightGreen
             catch (ArgumentException)
             {
                 return false;   // a key this keyboard doesn't have
+            }
+        }
+
+        /// <summary>
+        /// Keeps Filters.Filter's list in the config file (the dropdown in r2modman and other config editors) in step with
+        /// the filters LightGreen has loaded, saving the file when a filter is added, removed or renamed.
+        /// </summary>
+        private void SyncFilterChoices()
+        {
+            _filterRevisionSeen = FilterStore.Revision;
+            string choices = string.Join(", ", FilterChoices.Current());
+            if (choices == _filterChoicesWritten) return;
+            _filterChoicesWritten = choices;
+            try
+            {
+                // Take in an edit to the file first, so saving doesn't write over it.
+                if (_configWriteTime != default)
+                {
+                    _nextConfigCheck = 0f;
+                    ReloadConfigIfEdited();
+                }
+                Config.Save();
+                // Our own write: not an edit to reload.
+                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Couldn't update the photo filter list in the config file: {e.Message}");
             }
         }
 

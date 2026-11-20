@@ -74,7 +74,7 @@ Rain = 1
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
 | `Brightness.Day` | `1` | How bright daylight is, from 0.5 to 1.5, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, from 0.25 to 1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
-| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. |
+| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. In r2modman's config editor it's a dropdown of every filter LightGreen has found, sorted A–Z and kept up to date as filters are added or removed. A `.cube` file whose name has a comma in it shows up split in two there, but F11 still reaches it. |
 | `Filters.Strength` | `1` | How much of the photo filter shows, from 0 to 1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | How strong each effect is: 0 off, 1 as tuned, 2 double, each up to its own most (below). `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |

@@ -379,3 +379,27 @@ Fisheye were dropped** (version 3). Rerun G1, then G2 for Negative at `Filters.S
 
 **Results (2026-11-19), second run (`Filters.Strength` 1):** every filter works as intended, Negative included. That test build turned out to be one step behind: it was compiled before its sources were updated, so it still had version 2 with Infrared and Fisheye, and the next one (meant to rename Handheld Console) had version 3 without the rename. Builds now compile straight from the repository. The removal and the rename (version 4) are checked with the 0.2.0 build: G1 shows `(version 4)` and `Photo filters: 27 in LightGreen.filters.json`, with GameBoy where Handheld Console was and no Infrared or Fisheye.
 
+## Filter dropdown
+
+r2modman's config editor shows a setting as a dropdown when its config file entry has a `# Acceptable values:` line
+(it splits the line at commas and sorts it A–Z). `Filters.Filter` now has one: None and every filter LightGreen has
+loaded. BepInEx's own list resets a value that isn't in it, which would undo a `.cube` added while playing, so
+`FilterChoices` reads the names afresh each time and accepts any name. LightGreen saves the config file when the list
+changes (at start, and when a filter is added, removed or renamed), first taking in any edit to the file so it isn't
+written over, and takes that save as its own so it doesn't reload.
+
+**Checked before the build (outside the game), with BepInEx 5.4.23.5's own `ConfigFile`:** the file lists None and the
+27 built-in filters; a listed filter is kept; an unlisted name (a `.cube` added later) is kept, not reset; a blank
+value becomes None; after a `.cube` appears, saving lists it, and so does the list in-game config editors read; a
+missing name typed by hand survives a reload.
+
+**Build:** as before, plus `Presets/FilterChoices.cs`.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| D1 | Dropdown | Start the game once, quit, open LightGreen in r2modman's config editor | `Filters.Filter` is a dropdown: None, the 27 built-in filters and your `.cube` filters, A–Z |
+| D2 | Pick from it | Choose Noir in the dropdown and save, with the game running | Noir within a second (log: `Config reloaded.`); F11 goes on to Sepia |
+| D3 | A `.cube` added while playing | Copy `Invert.cube` into `BepInEx/config/LightGreen.filters/` while playing | Log: `Photo filters: 27 in …, 1 from .cube files …`, and no `Config reloaded.` from LightGreen's own save; reopen the config editor: Invert is listed |
+| D4 | A name that isn't there | F11 to Invert, quit, delete `Invert.cube`, start | `Filters.Filter` still says Invert (not reset); no filter shows; the log says Invert isn't a filter; the dropdown no longer lists it |
+| D5 | An edit isn't lost | While playing, change `Effects.Rain` in the config file and save, then within a second copy a `.cube` into the folder | The rain change takes effect and stays in the file |
+

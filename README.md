@@ -92,7 +92,7 @@ AmbientOcclusionQuality = Low
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
 | `Brightness.Day` | `1` | How bright daylight is, 0.5–1.5: the sun, fill light, sky and haze together, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, 0.25–1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
-| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. |
+| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. In r2modman's config editor it's a dropdown of every filter LightGreen has found, sorted A–Z and kept up to date as filters are added or removed. A `.cube` file whose name has a comma in it shows up split in two there, but F11 still reaches it. |
 | `Filters.Strength` | `1` | How much of the photo filter shows, 0–1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | Strength per effect, 0 off, 1 tuned, 2 double, each up to its own most (below): `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |
@@ -191,7 +191,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
 | `plugin/src/Core/LutBuilder.cs`, `CubeLut.cs` | A photo filter's colours as a lookup table, and the `.cube` file reader. |
 | `plugin/src/Core/Json.cs` | Reads and writes the presets and filters files. |
-| `plugin/src/Presets/` | The per-biome and per-time presets, the photo filters, and their files. |
+| `plugin/src/Presets/` | The per-biome and per-time presets, the photo filters, their files, and the list of filters for `Filters.Filter`. |
 | `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
 | `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom, the photo filter. |
 | `plugin/src/Systems/PhotoFilter.cs` | The photo filter and its colour table. |

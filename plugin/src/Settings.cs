@@ -87,12 +87,11 @@ namespace LightGreen
                     "stand out more in a darker night.",
                     new AcceptableValueRange<float>(0.25f, 1.5f)));
 
-            Filter = config.Bind("Filters", "Filter", "None",
-                "A photo filter on top of LightGreen's look, like a photo editor's: None, a filter from LightGreen.filters.json " +
-                "(Mono, Mono Red, Noir, Sepia, Cyanotype, Faded Film, Instant Film, Bleach Bypass, Two-Strip, Vivid, Warm, Cool, " +
-                "Teal & Orange, Cross Process, Day for Night, Duotone, Poster, GameBoy, Solarize, Negative, Thermal, Night Vision, " +
-                "Toy Camera, Dreamy, Protanopia, Deuteranopia, Tritanopia), or the name of a .cube file in the LightGreen.filters folder (without .cube). The HUD isn't filtered. " +
-                "Keys.FilterKey steps through them.");
+            Filter = config.Bind("Filters", "Filter", "None", new ConfigDescription(
+                "A photo filter on top of LightGreen's look, like a photo editor's: None, a filter from LightGreen.filters.json, " +
+                "or a .cube file in the LightGreen.filters folder (its name without .cube). The list below is every filter " +
+                "LightGreen has found, kept up to date as filters are added or removed. The HUD isn't filtered. " +
+                "Keys.FilterKey steps through them.", new FilterChoices()));
             FilterStrength = config.Bind("Filters", "Strength", 1f,
                 new ConfigDescription("How much of the photo filter shows: 0 = none, 1 = all of it.", new AcceptableValueRange<float>(0f, 1f)));
 
