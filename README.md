@@ -29,6 +29,8 @@ LightGreen was built and tested in three phases, recorded in [docs/testing.md](d
 2. **Light:** ambient occlusion, a grass switch, effect lights, ball glow, lightning, City at night.
 3. **Weather:** longer-lasting footprints in snow, and optional rain without wet surfaces.
 
+Later releases (the rain key, day and night brightness, photo filters) were tested the same way, in the same file.
+
 Each effect is a *feature*: it is applied every frame on a hole, and put back exactly as the game had it when LightGreen is switched off, outside a hole, or if it fails. A feature that throws an error, or whose hook no longer matches the game after an update, switches itself off and the rest carry on.
 
 ### See Also
@@ -72,11 +74,9 @@ The settings live in `BepInEx/config/com.lightgreen.cfg`, which is created on fi
 
 ```ini
 [Effects]
-## How heavy the rain is: 0 = off, 1 = tuned, 2 = double, up to 3.
 Rain = 1
 
 [Quality]
-## Ambient occlusion detail: Low, Medium or High.
 AmbientOcclusionQuality = Low
 ```
 
@@ -93,7 +93,7 @@ AmbientOcclusionQuality = Low
 | `Brightness.Day` | `1` | How bright daylight is, 0.5–1.5: the sun, fill light, sky and haze together, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, 0.25–1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
 | `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. |
-| `Filters.Strength` | `1` | How much of the photo filter shows, 0–1. |
+| `Filters.Strength` | `1` | How much of the photo filter shows, 0–1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | Strength per effect, 0 off, 1 tuned, 2 double, each up to its own most (below): `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
@@ -112,7 +112,7 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 3 | `ColorGrading`, `WaterTuning`, `IceGlints`, `BallGlow`, `Lightning`, `Rain` |
 | 2 | `TiltShift`, `Footprints` |
 
-The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first launch and reloaded when saved.
+The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first launch and reloaded when saved. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`.
 
 ### Photo filters
 

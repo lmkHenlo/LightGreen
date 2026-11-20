@@ -59,7 +59,6 @@ Super Battle Golf/
 
 ```ini
 [Effects]
-## How heavy the rain is: 0 = off, 1 = tuned, 2 = double, up to 3.
 Rain = 1
 ```
 
@@ -76,7 +75,7 @@ Rain = 1
 | `Brightness.Day` | `1` | How bright daylight is, from 0.5 to 1.5, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, from 0.25 to 1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
 | `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. |
-| `Filters.Strength` | `1` | How much of the photo filter shows, from 0 to 1. |
+| `Filters.Strength` | `1` | How much of the photo filter shows, from 0 to 1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | How strong each effect is: 0 off, 1 as tuned, 2 double, each up to its own most (below). `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
@@ -95,7 +94,7 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 3 | `ColorGrading`, `WaterTuning`, `IceGlints`, `BallGlow`, `Lightning`, `Rain` |
 | 2 | `TiltShift`, `Footprints` |
 
-The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first start. It's reloaded when you save it.
+The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first start. It's reloaded when you save it. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`.
 
 ### Photo filters
 
