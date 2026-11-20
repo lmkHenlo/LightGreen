@@ -54,7 +54,7 @@ Super Battle Golf/
 ## Usage
 
 1. Start a hole. LightGreen is on from the start.
-2. Press **F9** to change the time of day, **F8** to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back).
+2. Press **F9** to change the time of day, **F8** to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen · Filter: Noir"), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
 3. Change anything else in `BepInEx/config/com.lightgreen.cfg` (in r2modman: **Config editor**). It's reloaded within a second when you save it, so you can tune while you play. For example, to turn rain on:
 
 ```ini
@@ -65,6 +65,8 @@ Rain = 1
 | Setting | Default | What it does |
 |---|---|---|
 | `General.Enabled` | `true` | `false` turns LightGreen off: the game looks exactly as it does without the mod. |
+| `General.Notices` | `Chat` | Where LightGreen says what a key or a config edit changed. `Chat`: a line in the game's chat box, seen only by you (with no chat box, the top-left corner). `Screen`: the top-left corner. `Off`: nowhere. |
+| `General.NoticeDelay` | `0.5` | Chat only: seconds (0–2) to wait after the last change before posting, so stepping through filters posts one line. `0` posts each change at once. |
 | `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while you play. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Switches the rain off and on, as heavy as it last was (or 1). |

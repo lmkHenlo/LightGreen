@@ -68,7 +68,7 @@ To build it yourself, see [Building from source](#building-from-source).
 
 ## Usage
 
-Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back).
+Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen · Filter: Noir"), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
 
 The settings live in `BepInEx/config/com.lightgreen.cfg`, which is created on first launch; with r2modman you can also edit them under **Config editor**. The file is reloaded within a second of being saved, so changes show while you play. For example, to turn rain on and make ambient occlusion cheaper:
 
@@ -83,6 +83,8 @@ AmbientOcclusionQuality = Low
 | Setting | Default | What it does |
 |---|---|---|
 | `General.Enabled` | `true` | LightGreen on. Off: the game looks exactly as it does without the mod. |
+| `General.Notices` | `Chat` | Where LightGreen says what a key or a config edit changed. `Chat`: a line in the game's chat box, seen only by you (nothing is sent; with no chat box, such as in some menus, the top-left corner). `Screen`: the top-left corner. `Off`: nowhere. |
+| `General.NoticeDelay` | `0.5` | Chat only: seconds (0–2) to wait after the last change before posting, so stepping through filters posts one line, not one per press. A time change then a filter change still post two lines. `0` posts each change at once. |
 | `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while playing, to compare with the game's own look. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Switches the rain off and on, as heavy as it last was (or 1). Saved to `Effects.Rain`. |
@@ -179,10 +181,11 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `docs/testing.md` | The checks and results for each phase. |
 | `thunderstore/` | The Thunderstore page (`README.md`), `manifest.json` and `icon.png`. |
 | `plugin/LightGreen.csproj` | Project file for editors; the build script doesn't need it. |
-| `plugin/src/Plugin.cs` | Entry point: settings reload and the F8, F9, F10 and F11 keys. |
+| `plugin/src/Plugin.cs` | Entry point: settings reload, the F8, F9, F10 and F11 keys, and their messages. |
 | `plugin/src/Settings.cs` | The settings, and removed ones taken out of the file. |
 | `plugin/src/Vr.cs` | Whether a headset is in use. |
 | `plugin/src/Core/Features.cs` | The feature interface and host. A feature that throws is put back and switched off until the game restarts; the rest carry on. |
+| `plugin/src/Core/ChatNotices.cs` | Posts LightGreen's messages to the game's chat box, on your screen only. |
 | `plugin/src/Core/PatchModule.cs` | One Harmony patch class per feature, so a hook a game update breaks turns off only that feature. |
 | `plugin/src/Core/GameEvents.cs`, `Biome.cs` | Which biome the hole is, and the game's events LightGreen follows. |
 | `plugin/src/Core/MaterialEdits.cs` | Material changes that can be undone exactly. |

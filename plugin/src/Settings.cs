@@ -7,10 +7,15 @@ namespace LightGreen
     /// <summary>Ambient occlusion cost and detail (Quality.AmbientOcclusionQuality).</summary>
     internal enum AOQuality { Low, Medium, High }
 
+    /// <summary>Where LightGreen's short messages go (General.Notices).</summary>
+    internal enum NoticeTarget { Chat, Screen, Off }
+
     /// <summary>LightGreen's settings (BepInEx/config/com.lightgreen.cfg). Each feature adds its own as it's built.</summary>
     internal static class Settings
     {
         internal static ConfigEntry<bool> Enabled;
+        internal static ConfigEntry<NoticeTarget> Notices;
+        internal static ConfigEntry<float> NoticeDelay;
         internal static ConfigEntry<Key> ToggleKey;
         internal static ConfigEntry<Key> TimeKey;
         internal static ConfigEntry<Key> RainKey;
@@ -58,6 +63,13 @@ namespace LightGreen
         {
             Enabled = config.Bind("General", "Enabled", true,
                 "Turns LightGreen on. Off: the game looks exactly as it does without the mod.");
+            Notices = config.Bind("General", "Notices", NoticeTarget.Chat,
+                "Where LightGreen says what a key or a config edit changed (\"Filter: Noir\"). Chat: a line in the game's chat box, " +
+                "seen only by you (the top-left corner when there is no chat box). Screen: the top-left corner. Off: nowhere.");
+            NoticeDelay = config.Bind("General", "NoticeDelay", 0.5f, new ConfigDescription(
+                "Chat only: seconds to wait after the last key press before posting, so stepping through filters posts one line, " +
+                "not one per press. 0 posts every change at once.",
+                new AcceptableValueRange<float>(0f, 2f)));
 
             ToggleKey = config.Bind("Keys", "ToggleKey", Key.F8,
                 "Switches LightGreen off and on while playing, to compare with the game's own look.");

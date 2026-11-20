@@ -403,3 +403,44 @@ missing name typed by hand survives a reload.
 | D4 | A name that isn't there | F11 to Invert, quit, delete `Invert.cube`, start | `Filters.Filter` still says Invert (not reset); no filter shows; the log says Invert isn't a filter; the dropdown no longer lists it |
 | D5 | An edit isn't lost | While playing, change `Effects.Rain` in the config file and save, then within a second copy a `.cube` into the folder | The rain change takes effect and stays in the file |
 
+## Messages in the chat box
+
+LightGreen's short messages (what F8–F11 or a config edit changed) went to the top-left corner, drawn with IMGUI. The
+game has a text chat, and its `TextChatUi.ShowMessage` adds a line to this player's chat box only, with nothing sent
+over the network: the game posts its own local lines that way (the chat-muted notice, the cheats warning in match
+setup, vote-kick results). From the game's data, the chat box shows up to 7 new lines for 5 seconds each (then a
+1.5-second fade) and keeps 100 lines of history; it is part of the game's managers, so it should exist for the whole
+session, menus included.
+
+- `General.Notices`: `Chat` (default), `Screen` (the top-left corner, as before) or `Off`.
+- Chat lines read `LightGreen · <message>`, the name bold and green, the message as plain text (`<noparse>`), so a
+  filter name with tags in it shows as typed.
+- Each kind of message (time, filter, rain, toggle) keeps only its latest text until no change has come for
+  `General.NoticeDelay` seconds (0.5 by default, 0–2; 0 posts each at once). Screen mode stays instant.
+- No chat box at that moment: the message goes to the top-left corner. If the call fails (a game update changed the
+  chat), LightGreen logs one warning and uses the top-left corner for the rest of the session. The call sits in its
+  own method so that failure is caught.
+- LightGreen now references the game's `SharedAssembly` (where `TextChatUi.HasInstance` is defined), which every
+  copy of the game has.
+
+**Checked before the build (outside the game):** the line is formatted as above; a name with tags stays plain text; no
+chat box returns false with nothing posted; a failing call returns false with one warning, then stays off for the
+session with no more warnings. The merging is checked in the game (N2, N3).
+
+**Build:** as before, plus `Core/ChatNotices.cs`. No warnings.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| N1 | Chat line | On a hole, F9 | About half a second later, `LightGreen · Time of day: …` in the chat box; nothing top-left; it fades after about 5 seconds |
+| N2 | Rapid presses | F11 ten times quickly | One line, with the last filter |
+| N3 | Two kinds | F9 then F11 quickly | Two lines, the time and the filter |
+| N4 | History | Open the chat | LightGreen's lines are in the history with players' messages |
+| N5 | Driving range and single player | F9 there | A chat line |
+| N6 | No chat box | F8 in the main menu or while loading | In the chat if the box exists there, otherwise top-left; no warning in the log |
+| N7 | Screen and Off | `General.Notices = Screen`, then `Off`; F9 each time | Screen: the top-left text at once, as before. Off: nothing |
+| N8 | Delay | `General.NoticeDelay = 0`, then F11 three times | Three lines, at once |
+| N9 | Config edit | Pick a filter in r2modman's dropdown while playing | A chat line |
+| N10 | Tags in a name | In `LightGreen.filters.json`, copy Mono's entry and name the copy `<b>Bold` (Windows doesn't allow `<` in a file name, so not a `.cube`); F11 to it | The line shows `<b>Bold` as typed |
+| N11 | Others don't see it | In multiplayer, with a second player if you can | They see none of LightGreen's lines |
+| N12 | VR | With SBGVR, F9 | Note whether the chat line shows in the headset |
+

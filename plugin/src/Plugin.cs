@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
@@ -60,6 +61,10 @@ namespace LightGreen
         private string _notice;
         private float _noticeUntil;
         private GUIStyle _noticeStyle;
+        // Chat messages waiting out General.NoticeDelay: the latest text of each kind, in the order the kinds came.
+        private readonly Dictionary<string, string> _pendingNotices = new Dictionary<string, string>();
+        private readonly List<string> _pendingKinds = new List<string>();
+        private float _noticesDueAt;
 
         private void Awake()
         {
@@ -121,13 +126,13 @@ namespace LightGreen
             };
             GameEvents.GraphicsSettingsApplied += _shadows.OnGameApplied;
             PresetStore.Reloaded += _environment.OnPresetsReloaded;
-            Settings.Time.SettingChanged += (_, __) => Notify($"Time of day: {Settings.Time.Value}");
-            Settings.Filter.SettingChanged += (_, __) => Notify($"Filter: {Settings.Filter.Value}");
+            Settings.Time.SettingChanged += (_, __) => Notify("time", $"Time of day: {Settings.Time.Value}");
+            Settings.Filter.SettingChanged += (_, __) => Notify("filter", $"Filter: {Settings.Filter.Value}");
             RememberRain();
             Settings.Rain.SettingChanged += (_, __) =>
             {
                 RememberRain();
-                Notify(Raining ? $"Rain: on ({Settings.Rain.Value:0.##})" : "Rain: off");
+                Notify("rain", Raining ? $"Rain: on ({Settings.Rain.Value:0.##})" : "Rain: off");
             };
 
             if (Application.unityVersion != ExpectedUnity)
@@ -146,6 +151,7 @@ namespace LightGreen
 
         private void Update()
         {
+            if (_pendingKinds.Count > 0 && Time.unscaledTime >= _noticesDueAt) FlushNotices();
             ReloadConfigIfEdited();
             PresetStore.Poll();
             FilterStore.Poll();
@@ -166,7 +172,7 @@ namespace LightGreen
                 _comparing = !_comparing;
                 string state = _comparing ? "off (the game's own look)" : "on";
                 Log.LogInfo(state);
-                Notify(state);
+                Notify("toggle", state);
             }
             if (Pressed(keyboard, Settings.TimeKey.Value) && !_comparing)
             {
@@ -288,13 +294,48 @@ namespace LightGreen
             }
         }
 
-        private void Notify(string text)
+        /// <summary>
+        /// Says what a key or a config edit changed, where General.Notices says. For the chat, each kind of message
+        /// (time, filter, rain, toggle) keeps only its latest text until no change has come for General.NoticeDelay
+        /// seconds, so stepping through filters posts one line, and a time change then a filter change post two.
+        /// </summary>
+        private void Notify(string kind, string text)
+        {
+            switch (Settings.Notices.Value)
+            {
+                case NoticeTarget.Off:
+                    return;
+                case NoticeTarget.Screen:
+                    ShowOnScreen(text);
+                    return;
+            }
+            if (!_pendingNotices.ContainsKey(kind)) _pendingKinds.Add(kind);
+            _pendingNotices[kind] = text;
+            _noticesDueAt = Time.unscaledTime + Settings.NoticeDelay.Value;
+            if (Settings.NoticeDelay.Value <= 0f) FlushNotices();
+        }
+
+        /// <summary>Posts the waiting messages to the chat; any the chat can't take go to the top-left corner.</summary>
+        private void FlushNotices()
+        {
+            var onScreen = new List<string>();
+            foreach (string kind in _pendingKinds)
+            {
+                string text = _pendingNotices[kind];
+                if (!ChatNotices.TryPost(text)) onScreen.Add(text);
+            }
+            _pendingKinds.Clear();
+            _pendingNotices.Clear();
+            if (onScreen.Count > 0) ShowOnScreen(string.Join("  ·  ", onScreen));
+        }
+
+        private void ShowOnScreen(string text)
         {
             _notice = text;
             _noticeUntil = Time.unscaledTime + 2.5f;
         }
 
-        /// <summary>A short line in the top-left corner when the ToggleKey is pressed.</summary>
+        /// <summary>A short line in the top-left corner (General.Notices = Screen, or when there is no chat box).</summary>
         private void OnGUI()
         {
             if (_notice == null || Time.unscaledTime > _noticeUntil) return;
