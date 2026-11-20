@@ -49,11 +49,13 @@ namespace LightGreen
         private readonly PhotoFilter _filter = new PhotoFilter();
         private CityNight _cityNight;
         private Rain _rain;
+        private Snow _snow;
         private readonly Footprints _footprints = new Footprints();
         private Harmony _harmony;
 
         private bool _comparing;
         private float _lastRain = 1f;   // how heavy the rain comes back with RainKey
+        private float _lastSnow = 1f;   // and the snow
         private float _nextConfigCheck;
         private DateTime _configWriteTime;
         private string _filterChoicesWritten;   // the filter list last written to the config file
@@ -97,6 +99,8 @@ namespace LightGreen
             // Weather.
             _rain = new Rain(_environment);
             _features.Add(_rain);
+            _snow = new Snow(_environment);
+            _features.Add(_snow);
             _features.Add(_footprints);
 
             new PatchModule(typeof(EffectLights.PlayedPatch), "Hook: Effects played").TryApply(_harmony, Log);
@@ -128,11 +132,24 @@ namespace LightGreen
             PresetStore.Reloaded += _environment.OnPresetsReloaded;
             Settings.Time.SettingChanged += (_, __) => Notify("time", $"Time of day: {Settings.Time.Value}");
             Settings.Filter.SettingChanged += (_, __) => Notify("filter", $"Filter: {Settings.Filter.Value}");
-            RememberRain();
+            // One weather at a time: both on when the game starts keeps the snow; turning one on turns the other off.
+            if (Settings.Rain.Value > 0.01f && Settings.Snow.Value > 0.01f)
+            {
+                Settings.Rain.Value = 0f;
+                Log.LogInfo("Effects.Rain and Effects.Snow were both on: only one weather shows at a time, so the snow is kept and Effects.Rain is now 0.");
+            }
+            RememberWeather();
             Settings.Rain.SettingChanged += (_, __) =>
             {
-                RememberRain();
-                Notify("rain", Raining ? $"Rain: on ({Settings.Rain.Value:0.##})" : "Rain: off");
+                if (Settings.Rain.Value > 0.01f && Settings.Snow.Value > 0.01f) Settings.Snow.Value = 0f;
+                RememberWeather();
+                Notify("weather", WeatherNotice());
+            };
+            Settings.Snow.SettingChanged += (_, __) =>
+            {
+                if (Settings.Snow.Value > 0.01f && Settings.Rain.Value > 0.01f) Settings.Rain.Value = 0f;
+                RememberWeather();
+                Notify("weather", WeatherNotice());
             };
 
             if (Application.unityVersion != ExpectedUnity)
@@ -144,7 +161,7 @@ namespace LightGreen
 
             Log.LogInfo($"{Name} {Version} loaded: {Application.productName} {Application.version}, Unity {Application.unityVersion}. " +
                         $"{_features.Count} features. {Settings.ToggleKey.Value} compares with the game's own look, " +
-                        $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} switches the rain, " +
+                        $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} steps the weather (clear, rain, snow), " +
                         $"{Settings.FilterKey.Value} changes the photo filter." +
                         (Settings.Enabled.Value ? "" : " (Off: General.Enabled = false.)"));
         }
@@ -183,10 +200,13 @@ namespace LightGreen
             }
             if (Pressed(keyboard, Settings.RainKey.Value) && !_comparing)
             {
-                // Setting the value saves the config file, as TimeKey does; take that write as our own too.
-                Settings.Rain.Value = Raining ? 0f : _lastRain;
+                // Clear, rain, snow, clear: each comes back as heavy as it last was. Setting a value saves the config
+                // file, as TimeKey does; take that write as our own too. Turning snow on turns the rain off (above).
+                if (Snow.Falling) Settings.Snow.Value = 0f;
+                else if (Raining) Settings.Snow.Value = _lastSnow;
+                else Settings.Rain.Value = _lastRain;
                 _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
-                Log.LogInfo(Raining ? $"Rain: on, strength {Settings.Rain.Value:0.##} (RainKey)." : "Rain: off (RainKey).");
+                Log.LogInfo($"{WeatherNotice()} (RainKey).");
             }
             if (Pressed(keyboard, Settings.FilterKey.Value) && !_comparing)
             {
@@ -198,13 +218,19 @@ namespace LightGreen
             }
         }
 
-        private static bool Raining => Settings.Rain.Value > 0.01f;
+        private static bool Raining => Settings.Rain.Value > 0.01f && !Snow.Falling;
 
-        /// <summary>Keeps the last rain strength above off, for RainKey to bring back.</summary>
-        private void RememberRain()
+        /// <summary>Keeps the last rain and snow strengths above off, for RainKey to bring back.</summary>
+        private void RememberWeather()
         {
-            if (Raining) _lastRain = Settings.Rain.Value;
+            if (Settings.Rain.Value > 0.01f) _lastRain = Settings.Rain.Value;
+            if (Settings.Snow.Value > 0.01f) _lastSnow = Settings.Snow.Value;
         }
+
+        private static string WeatherNotice() =>
+            Snow.Falling ? $"Weather: snow ({Settings.Snow.Value:0.##})"
+            : Raining ? $"Weather: rain ({Settings.Rain.Value:0.##})"
+            : "Weather: clear";
 
         private static readonly System.Collections.Generic.Dictionary<string, string> Logged =
             new System.Collections.Generic.Dictionary<string, string>();
@@ -296,7 +322,7 @@ namespace LightGreen
 
         /// <summary>
         /// Says what a key or a config edit changed, where General.Notices says. For the chat, each kind of message
-        /// (time, filter, rain, toggle) keeps only its latest text until no change has come for General.NoticeDelay
+        /// (time, filter, weather, toggle) keeps only its latest text until no change has come for General.NoticeDelay
         /// seconds, so stepping through filters posts one line, and a time change then a filter change post two.
         /// </summary>
         private void Notify(string kind, string text)
@@ -358,6 +384,7 @@ namespace LightGreen
             _occlusion.Destroy();
             _lightPool.Destroy();
             _rain?.Destroy();
+            _snow?.Destroy();
             _harmony?.UnpatchSelf();
             GameEvents.Unhook();
         }

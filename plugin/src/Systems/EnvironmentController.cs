@@ -104,9 +104,24 @@ namespace LightGreen.Systems
         /// </summary>
         internal float Overcast { get; set; }
 
+        /// <summary>
+        /// How much of the overcast is snow rather than rain, 0 to 1: snow's sky is bright and pale blue, not grey, and
+        /// its sun dims less. Set and eased with <see cref="Overcast"/>.
+        /// </summary>
+        internal float Snowy { get; set; }
+
         /// <summary>The sun's brightness under a full overcast, and how far the sky's colours go to grey.</summary>
         private const float OvercastSun = 0.45f;
         private const float OvercastSkyGrey = 0.7f;
+
+        /// <summary>Under a full snow sky: the sun's brightness, its pale cold tint, and the sky's bright, pale blue
+        /// colours (top, horizon, the glow round the sun), and how far the sky goes to them.</summary>
+        private const float SnowSun = 0.85f;
+        private static readonly Color SnowSunTint = new Color(0.9f, 0.95f, 1f);
+        private static readonly Color SnowSkyTop = new Color(0.55f, 0.7f, 0.95f);
+        private static readonly Color SnowSkyHorizon = new Color(0.9f, 0.95f, 1f);
+        private static readonly Color SnowSkyGlow = new Color(0.95f, 0.97f, 1f);
+        private const float SnowSkyBlend = 0.75f;
 
         /// <summary>
         /// 0 in daylight, 1 at night: the time of day's own night setting, or, for holes the game itself sets
@@ -309,12 +324,15 @@ namespace LightGreen.Systems
                     SunDirection = -(_stockSunRotation * Vector3.forward);
                 }
 
-                // Rain: a dimmer, greyer sun through the cloud.
+                // Rain: a dimmer, greyer sun through the cloud. Snow: a little dimmer and cold white.
                 if (overcast > 0f)
                 {
+                    float snowy = Mathf.Clamp01(Snowy);
                     float grey = sunColor.grayscale;
-                    sunColor = Color.Lerp(sunColor, new Color(grey, grey, grey, sunColor.a), 0.6f * overcast);
-                    sunIntensity *= Mathf.Lerp(1f, OvercastSun, overcast);
+                    sunColor = Color.Lerp(sunColor, new Color(grey, grey, grey, sunColor.a), 0.6f * overcast * (1f - snowy));
+                    Color cold = new Color(SnowSunTint.r * grey, SnowSunTint.g * grey, SnowSunTint.b * grey, sunColor.a) / Mathf.Max(SnowSunTint.grayscale, 1e-3f);
+                    sunColor = Color.Lerp(sunColor, cold, 0.5f * overcast * snowy);
+                    sunIntensity *= Mathf.Lerp(1f, Mathf.Lerp(OvercastSun, SnowSun, snowy), overcast);
                 }
 
                 // Day and night brightness, from how dark this sun leaves the scene.
@@ -362,13 +380,23 @@ namespace LightGreen.Systems
             Blend(sky, "_HorizonColor", Current.horizonColor, blend);
             Blend(sky, "_SunGradientColor", Current.sunGlowColor, blend);
 
-            // Rain: the sky's colours toward a soft grey.
+            // Rain: the sky's colours toward a soft grey. Snow: toward a bright, pale blue, dimmed at night.
             float overcast = Mathf.Clamp01(Overcast);
             if (overcast > 0f)
             {
-                Grey(sky, "_SkyColor", OvercastSkyGrey * overcast);
-                Grey(sky, "_HorizonColor", OvercastSkyGrey * overcast);
-                Grey(sky, "_SunGradientColor", OvercastSkyGrey * overcast);
+                float snowy = Mathf.Clamp01(Snowy);
+                float grey = OvercastSkyGrey * overcast * (1f - snowy);
+                Grey(sky, "_SkyColor", grey);
+                Grey(sky, "_HorizonColor", grey);
+                Grey(sky, "_SunGradientColor", grey);
+                float snow = SnowSkyBlend * overcast * snowy;
+                if (snow > 0f)
+                {
+                    float dim = Mathf.Lerp(1f, 0.25f, Mathf.Clamp01(Darkness));
+                    Tint(sky, "_SkyColor", SnowSkyTop * dim, snow);
+                    Tint(sky, "_HorizonColor", SnowSkyHorizon * dim, snow);
+                    Tint(sky, "_SunGradientColor", SnowSkyGlow * dim, snow);
+                }
             }
 
             // Night: the sky's own stars and moon, and less of the sun's glow around the moon.
@@ -413,6 +441,16 @@ namespace LightGreen.Systems
             Color c = sky.GetColor(property);
             float g = c.grayscale * 0.9f;
             Color value = Color.Lerp(c, new Color(g, g, g, c.a), amount);
+            _sky.SetColor(sky, property, value);
+        }
+
+        /// <summary>The sky colour as it stands this frame, moved toward target.</summary>
+        private void Tint(Material sky, string property, Color target, float amount)
+        {
+            if (!sky.HasProperty(property)) return;
+            Color c = sky.GetColor(property);
+            Color value = Color.Lerp(c, target, amount);
+            value.a = c.a;
             _sky.SetColor(sky, property, value);
         }
 

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LightGreen.Systems
 {
     /// <summary>
-    /// Weather particles around the camera: rain. Each layer is a particle system
+    /// Weather particles around the camera: rain and snow. Each layer is a particle system
     /// built in code whose emitter follows the camera (the spectator and flyover cameras included); its
     /// particles live in world space, so they keep their place as the camera moves and drift with the wind.
     /// On a camera cut (a jump of more than 25 m in one frame) every layer is cleared and refilled at once,
@@ -34,6 +34,14 @@ namespace LightGreen.Systems
             internal float Alpha;
             /// <summary>Streaks instead of dots (rain): each particle is drawn this many seconds of its motion long. 0 for dots.</summary>
             internal float Stretch;
+            /// <summary>The layer's own picture in place of the game's soft dot (snowflakes), or null; with Tiles above 1,
+            /// an atlas of Tiles × Tiles pictures, each particle showing one at random.</summary>
+            internal Texture2D Texture;
+            internal int Tiles;
+            /// <summary>Wander as they fall (snow), in m/s; 0 for none.</summary>
+            internal float Sway;
+            /// <summary>Turning as they fall, up to this many radians a second either way; 0 for none.</summary>
+            internal float Spin;
         }
 
         private const string ShaderName = "Universal Render Pipeline/Particles/Unlit";
@@ -172,6 +180,39 @@ namespace LightGreen.Systems
             velocity.y = new ParticleSystem.MinMaxCurve(-spec.Fall, -spec.Fall);
             velocity.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
+            if (spec.Sway > 0f)
+            {
+                // Unity's own noise at its cheapest: a slow, gentle wander.
+                var noise = ps.noise;
+                noise.enabled = true;
+                noise.separateAxes = false;
+                noise.strength = spec.Sway;
+                noise.frequency = 0.35f;
+                noise.scrollSpeed = 0.15f;
+                noise.damping = true;
+                noise.octaveCount = 1;
+                noise.quality = ParticleSystemNoiseQuality.Low;
+            }
+            if (spec.Spin > 0f)
+            {
+                var spin = ps.rotationOverLifetime;
+                spin.enabled = true;
+                spin.z = new ParticleSystem.MinMaxCurve(-spec.Spin, spec.Spin);
+            }
+            if (spec.Texture != null && spec.Tiles > 1)
+            {
+                // One picture of the atlas per particle, kept for its life.
+                var sheet = ps.textureSheetAnimation;
+                sheet.enabled = true;
+                sheet.mode = ParticleSystemAnimationMode.Grid;
+                sheet.numTilesX = spec.Tiles;
+                sheet.numTilesY = spec.Tiles;
+                sheet.animation = ParticleSystemAnimationType.WholeSheet;
+                sheet.frameOverTime = new ParticleSystem.MinMaxCurve(0f);
+                sheet.startFrame = new ParticleSystem.MinMaxCurve(0f, spec.Tiles * spec.Tiles - 0.001f);
+                sheet.cycleCount = 1;
+            }
+
             var renderer = go.GetComponent<ParticleSystemRenderer>();
             if (spec.Stretch > 0f)
             {
@@ -190,6 +231,7 @@ namespace LightGreen.Systems
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             var material = new Material(source) { name = $"{_rootName}: {spec.Name}", hideFlags = HideFlags.DontSave };
+            if (spec.Texture != null) material.SetTexture("_BaseMap", spec.Texture);
             renderer.sharedMaterial = material;
             _materials.Add(material);
             return ps;

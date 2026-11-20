@@ -454,3 +454,59 @@ At the user's request they now match the game's own lines (`LightGreen: …`, th
 LightGreen stays in the chat rather than the kill feed (`InfoFeed`, which would need a Harmony patch on private code).
 Rerun N1–N12 with the new look.
 
+## Snow
+
+Cartoon snow, from the user's reference picture: soft, round, slightly lumpy white flakes of many sizes, a few big
+blurred ones close to the camera, and a bright, pale blue sky. "Magical, not realistic." It cycles with the rain on
+F10: clear, rain, snow, clear.
+
+An earlier snowfall (Snow holes only) was dropped before testing in phase 3 for its cost in frame rate: about 8,200
+see-through particles, many of them large and far away (much of the screen covered over and over). This one is built
+to cost less than the rain (about 3,800 particles, W14 passed):
+
+| Layer | Box round the camera | Flakes at strength 1 | Size | On screen at most |
+|---|---|---|---|---|
+| Near | 14 × 8 × 14 m | about 20 | 6–11 cm, soft edge | 4% of the screen |
+| Main | 50 × 24 × 50 m | about 1,800 | 4.5–8 cm, crisp edge | 1.2% |
+| Far | 160 × 50 × 160 m | about 380 | 35–55 cm | 0.4% |
+
+- **The flakes** are drawn in code (`Core/FlakeArt.cs`, Unity-free): two 2 × 2 atlases of 64-pixel flakes, crisp and
+  soft, each flake round with three low lumps round its edge, flat white with a faint blue shade on its lower right in
+  two soft steps. Each particle shows one of the four at random (texture sheet, fixed frame). They're drawn with a copy
+  of the game's own particle material, as the rain is, its texture swapped for the flakes; nothing is shipped.
+- **Motion:** falling at about 1 m/s, a slow wander (Unity's particle noise at its cheapest), turning slowly, drifting
+  with the game's wind (slower than rain). A camera cut refills the view at once, as for the rain.
+- **Magical:** the flakes are a little brighter than white (1.15), so the game's bloom gives them a soft glow; at
+  night they dim to 0.35 and turn blue.
+- **Sky:** the rain's overcast gets a snowy share (`EnvironmentController.Snowy`). Snow's sky goes toward a bright,
+  pale blue (top, horizon and the glow round the sun), dimmed by how dark it is; the sun dims to 0.85 (rain: 0.45)
+  and turns cold white; the fog closes in less than rain's (0.7 and 0.8 of its distances, rain 0.5 and 0.6) toward
+  a bright blue-white. `Rain.cs` eases the sky for both, over 10 s (at once on a new hole), so rain and snow never
+  pull it different ways; going from rain to snow, the grey turns pale blue over 10 s.
+- **One weather at a time:** `Effects.Snow` above 0 keeps the rain off. Turning one on (F10 or a config edit) sets
+  the other to 0; both on at start keeps the snow (logged). F10 steps clear → rain → snow → clear, each as heavy as it
+  last was. The message: `Weather: rain (1)`, `Weather: snow (1)` or `Weather: clear`, one kind (`weather`) for the
+  chat's merging.
+- Nothing settles on the ground (that needed shaders), and the game's own footprints still show only on Snow holes'
+  snow.
+
+**Checked before the build (outside the game):** the flake atlases were drawn and looked at, crisp and soft (the
+first lumps were too strong next to the reference and were halved). The particles, sky and fog are checked in the
+game.
+
+**Build:** as before, plus `Core/FlakeArt.cs` and `Systems/Snow.cs`; one more feature (Snow). No warnings.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| S1 | Log | Start the game | `… 15 features …` (one more than before); the load line says `F10 steps the weather (clear, rain, snow)`; no errors |
+| S2 | The look | `Effects.Snow = 1` on a Forest hole by day | Round white flakes of many sizes, a faint blue shade on one side, swaying and turning as they fall, drifting with the wind arrow; a few big soft ones pass close by; the sky turns bright and pale blue over about 10 s, the fog blue-white; compare with the reference picture |
+| S3 | F10 cycle | F10 four times from clear | Rain, then snow (the grey sky turns pale blue over about 10 s), then clear (it clears over about 10 s), then rain; chat: `Weather: rain (1)`, `Weather: snow (1)`, `Weather: clear` |
+| S4 | One at a time | In the config file, set `Rain = 1` while it snows; then quit, set both to 1, start | The rain replaces the snow and `Snow` becomes 0; at start, snow shows, `Rain` becomes 0 and the log says why |
+| S5 | Heaviness | `Snow = 3`, then `0.5` | Many more flakes, then few; F10 round the cycle brings snow back at the last value |
+| S6 | Every course | Snow on Coast, Desert, City, Snow and the driving range | Flakes everywhere; on Snow holes the game's footprints still work |
+| S7 | Night | Snow at Night, and on a City hole at night | Dim, blue flakes, no bright white; the sky dark, not pale |
+| S8 | Camera | Switch to spectating or a flyover, and back | The view is full of snow at once after each cut, no empty moment |
+| S9 | F8 and holes | F8 off and on; next hole in the snow | Off: no snow, the game's own sky; a new hole starts snowy at once |
+| S10 | Frame rate | Snow at 1 and 3, then rain at the same values, F8 both ways each time | Snow at 1 costs no more than rain at 1; note the numbers |
+| S11 | VR | Snow with SBGVR | Flakes show in the headset and none sit stuck to the view |
+

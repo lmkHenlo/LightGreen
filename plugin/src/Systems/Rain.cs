@@ -15,6 +15,9 @@ namespace LightGreen.Systems
     /// it, from <see cref="EnvironmentController.Overcast"/>); at once on a new hole, eased over 10 s otherwise.</item>
     /// </list>
     /// No wet look: surfaces stay as the game draws them (wet surfaces and puddles needed LightGreen's own shaders).
+    /// <para>The sky is the rain's job for the snow too (<see cref="Snow"/> draws only the flakes), so the two never pull
+    /// it different ways: snow's overcast is bright and pale blue (<see cref="EnvironmentController.Snowy"/>), eased
+    /// over the same 10 s. Only one falls at a time: with Effects.Snow on, there's no rain.</para>
     /// </summary>
     internal sealed class Rain : IFeature
     {
@@ -71,16 +74,21 @@ namespace LightGreen.Systems
                 return;
             }
 
-            float strength = Mathf.Max(0f, Settings.Rain.Value);
+            bool snowing = Snow.Falling;
+            float strength = snowing ? 0f : Mathf.Max(0f, Settings.Rain.Value);
             bool raining = strength > 0.01f;
 
-            // The sky: overcast while it rains, eased (at once on a new hole).
-            float overcastTarget = raining ? Mathf.Clamp01(strength) : 0f;
-            if (raining || _touchedSky)
+            // The sky: overcast while it rains or snows, eased (at once on a new hole). It keeps its last kind of
+            // cloud while it clears.
+            bool weather = raining || snowing;
+            float overcastTarget = weather ? Mathf.Clamp01(snowing ? Settings.Snow.Value : strength) : 0f;
+            float snowyTarget = snowing ? 1f : raining ? 0f : _environment.Snowy;
+            if (weather || _touchedSky)
             {
-                _environment.Overcast = _fresh && raining
-                    ? overcastTarget
-                    : Mathf.MoveTowards(_environment.Overcast, overcastTarget, Time.deltaTime / OvercastSeconds);
+                bool atOnce = _fresh && weather;
+                float step = Time.deltaTime / OvercastSeconds;
+                _environment.Overcast = atOnce ? overcastTarget : Mathf.MoveTowards(_environment.Overcast, overcastTarget, step);
+                _environment.Snowy = atOnce ? snowyTarget : Mathf.MoveTowards(_environment.Snowy, snowyTarget, step);
                 _touchedSky = _environment.Overcast > 0f;
             }
             _fresh = false;
@@ -184,6 +192,7 @@ namespace LightGreen.Systems
             if (_touchedSky)
             {
                 _environment.Overcast = 0f;
+                _environment.Snowy = 0f;
                 _touchedSky = false;
             }
             _fresh = true;

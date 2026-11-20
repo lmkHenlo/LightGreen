@@ -5,7 +5,7 @@
 
 Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
 
-LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, optional rain you switch with F10, and photo filters you step through with F11, your own .cube LUTs included. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
+LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, optional rain or cartoon snow you step through with F10, and photo filters you step through with F11, your own .cube LUTs included. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ LightGreen was built and tested in three phases, recorded in [docs/testing.md](d
 2. **Light:** ambient occlusion, a grass switch, effect lights, ball glow, lightning, City at night.
 3. **Weather:** longer-lasting footprints in snow, and optional rain without wet surfaces.
 
-Later releases (the rain key, day and night brightness, photo filters) were tested the same way, in the same file.
+Later releases (the rain key, day and night brightness, photo filters, snow) were tested the same way, in the same file.
 
 Each effect is a *feature*: it is applied every frame on a hole, and put back exactly as the game had it when LightGreen is switched off, outside a hole, or if it fails. A feature that throws an error, or whose hook no longer matches the game after an update, switches itself off and the rest carry on.
 
@@ -68,7 +68,7 @@ To build it yourself, see [Building from source](#building-from-source).
 
 ## Usage
 
-Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen: Filter: Noir", like a player's message), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
+Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, **F10** to step the weather (clear, rain, snow), and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen: Filter: Noir", like a player's message), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
 
 The settings live in `BepInEx/config/com.lightgreen.cfg`, which is created on first launch; with r2modman you can also edit them under **Config editor**. The file is reloaded within a second of being saved, so changes show while you play. For example, to turn rain on and make ambient occlusion cheaper:
 
@@ -87,7 +87,7 @@ AmbientOcclusionQuality = Low
 | `General.NoticeDelay` | `0.5` | Chat only: seconds (0–2) to wait after the last change before posting, so stepping through filters posts one line, not one per press. A time change then a filter change still post two lines. `0` posts each change at once. |
 | `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while playing, to compare with the game's own look. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
-| `Keys.RainKey` | `F10` | Switches the rain off and on, as heavy as it last was (or 1). Saved to `Effects.Rain`. |
+| `Keys.RainKey` | `F10` | Steps the weather: clear, rain, snow, then clear again. Each comes back as heavy as it last was (or 1). Saved to `Effects.Rain` and `Effects.Snow`. |
 | `Keys.FilterKey` | `F11` | Steps to the next photo filter (with Shift, the previous one). Saved to `Filters.Filter`. |
 | `TimeOfDay.Time` | `HoleDefault` | `HoleDefault` keeps each hole's own sun and sky; `Dawn`, `Morning`, `Noon`, `GoldenHour`, `Sunset`, `BlueHour`, `Night` move the sun and recolour the sky, light, haze and water. Only you see it. |
 | `TimeOfDay.ProgressionMinutes` | `0` | Minutes for a full day cycle; 0 keeps the time put. |
@@ -97,7 +97,8 @@ AmbientOcclusionQuality = Low
 | `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. In r2modman's config editor it's a dropdown of every filter LightGreen has found, sorted A–Z and kept up to date as filters are added or removed. A `.cube` file whose name has a comma in it shows up split in two there, but F11 still reaches it. |
 | `Filters.Strength` | `1` | How much of the photo filter shows, 0–1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | Strength per effect, 0 off, 1 tuned, 2 double, each up to its own most (below): `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
-| `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain` | `0` | Off unless you turn them up, on the same scale. |
+| `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain`, `Effects.Snow` | `0` | Off unless you turn them up, on the same scale. |
+| `Effects.Snow` | `0` | Cartoon snow on every course: soft, round flakes drifting with the wind, a few big ones close by, and a bright, pale blue sky. Nothing settles on the ground. 0–3, how heavy. Only one weather shows at a time: turning snow on turns the rain off (and the other way round), and if both are on when the game starts, snow is kept. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
 | `Effects.FootprintSeconds` | `45` | How long a footprint in snow lasts, 2–180 seconds (the game's last about 2). |
 | `Effects.FootprintMax` | `300` | Most footprints in snow at once, 20–2000; past it the oldest fade. |
@@ -111,7 +112,7 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | Up to | Effects |
 |---|---|
 | 4 | `ShadowTint`, `DistanceHaze`, `LensFlare`, `PhotoDepthOfField`, `Vignette`, `ChromaticAberration`, `AmbientOcclusion`, `EffectLights`, `CityNight` |
-| 3 | `ColorGrading`, `WaterTuning`, `IceGlints`, `BallGlow`, `Lightning`, `Rain` |
+| 3 | `ColorGrading`, `WaterTuning`, `IceGlints`, `BallGlow`, `Lightning`, `Rain`, `Snow` |
 | 2 | `TiltShift`, `Footprints` |
 
 The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first launch and reloaded when saved. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`.
@@ -190,7 +191,8 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Core/GameEvents.cs`, `Biome.cs` | Which biome the hole is, and the game's events LightGreen follows. |
 | `plugin/src/Core/MaterialEdits.cs` | Material changes that can be undone exactly. |
 | `plugin/src/Core/GameFlashes.cs` | The game's Explosion flashes option, which makes LightGreen's flashes gentler. |
-| `plugin/src/Core/GameWind.cs` | The game's wind, which rain drifts with. |
+| `plugin/src/Core/GameWind.cs` | The game's wind, which rain and snow drift with. |
+| `plugin/src/Core/FlakeArt.cs` | Draws the snowflakes in code. |
 | `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
 | `plugin/src/Core/LutBuilder.cs`, `CubeLut.cs` | A photo filter's colours as a lookup table, and the `.cube` file reader. |
 | `plugin/src/Core/Json.cs` | Reads and writes the presets and filters files. |
@@ -207,7 +209,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Systems/CityNight.cs` | City windows, vehicle lights and lampposts at night. |
 | `plugin/src/Systems/BallGlow.cs` | Glowing balls at night. |
 | `plugin/src/Systems/LightPool.cs` | Hands the lights out each frame. |
-| `plugin/src/Systems/Rain.cs`, `ParticleLayer.cs` | Rain and its particles. |
+| `plugin/src/Systems/Rain.cs`, `Snow.cs`, `ParticleLayer.cs` | Rain (and the rainy or snowy sky), snow, and their particles. |
 | `plugin/src/Systems/Footprints.cs` | Longer-lasting footprints in snow. |
 
 ## Maintainers

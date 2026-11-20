@@ -8,12 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Snow (`Effects.Snow`, off by default): soft, round cartoon flakes drawn in code, swaying, turning and drifting with the wind, a few big soft ones passing close to the camera, and a bright, pale blue sky and fog. About 2,200 flakes, fewer than the rain. Nothing settles on the ground.
 - Messages in the game's chat box: what F8–F11 or a config edit changed ("LightGreen: Filter: Noir", like a player's message) now shows as a line in your chat, seen only by you; nothing is sent. Quick presses are merged into one line per kind of change after `General.NoticeDelay` (0.5 s). With no chat box, the message shows in the top-left corner as before.
 - `General.Notices` (`Chat`, `Screen` or `Off`) and `General.NoticeDelay`.
 - `Filters.Filter` is a dropdown in r2modman's config editor and other config editors, listing None, the built-in filters, the ones in `LightGreen.filters.json` and your `.cube` files. The config file's list is updated when filters are added, removed or renamed, and a name that isn't in it is kept rather than reset to None.
 
 ### Changed
 
+- **F10** (`Keys.RainKey`) steps the weather: clear, rain, snow, then clear again. Only one weather shows at a time: turning one on turns the other off, and if both are on at start, snow is kept. Its message reads `Weather: rain (1)`, `Weather: snow (1)` or `Weather: clear`.
 - LightGreen's messages go to the chat box by default instead of the top-left corner; set `General.Notices = Screen` for the old behaviour.
 - `Filters.Filter`'s description no longer lists the filters' names; the dropdown does.
 
