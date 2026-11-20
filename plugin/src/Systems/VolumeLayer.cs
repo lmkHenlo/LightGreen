@@ -69,6 +69,10 @@ namespace LightGreen.Systems
         private const float SnowFogStart = 0.7f;
         private const float SnowFogEnd = 0.8f;
         private static readonly Color SnowFog = new Color(0.88f, 0.93f, 1f);
+        /// <summary>Cartoon rain's mist: it closes in between rain's and snow's, toward a soft blue.</summary>
+        private const float MistFogStart = 0.6f;
+        private const float MistFogEnd = 0.7f;
+        private static readonly Color MistFog = new Color(0.6f, 0.74f, 0.86f);
 
         /// <summary>Bloom on City holes at night, at full night and CityNight 1: the threshold drops to this (from
         /// the course's own, URP's 0.9 by default) so lit windows and lamps bloom, and the intensity rises to this.</summary>
@@ -104,7 +108,7 @@ namespace LightGreen.Systems
 
             // Distance haze: the game's own fog, moved where the presets put it and coloured toward the horizon.
             // In the rain (env.Overcast) the fog closes in and greys, whether or not the haze is on; in snow
-            // (env.Snowy) it closes in less and turns a bright blue-white. Its colour follows
+            // (env.Snowy) it closes in less and turns a bright blue-white; in cartoon rain (env.Misty) a soft blue. Its colour follows
             // Brightness.Day and Night (env.LightScale) like the sky, so distant terrain doesn't glow in a darker scene.
             float haze = Settings.DistanceHaze.Value;
             float overcast = Mathf.Clamp01(env.Overcast);
@@ -114,8 +118,10 @@ namespace LightGreen.Systems
                 float start = Mathf.Lerp(env.StockFogStart, env.StockFogStart * biome.fogStart * time.fogDistance, Mathf.Clamp01(haze));
                 float end = Mathf.Lerp(env.StockFogEnd, env.StockFogEnd * biome.fogEnd * time.fogDistance, Mathf.Clamp01(haze));
                 float snowy = Mathf.Clamp01(env.Snowy);
-                start *= Mathf.Lerp(1f, Mathf.Lerp(OvercastFogStart, SnowFogStart, snowy), overcast);
-                end *= Mathf.Lerp(1f, Mathf.Lerp(OvercastFogEnd, SnowFogEnd, snowy), overcast);
+                float misty = Mathf.Clamp01(env.Misty);
+                float rainy = 1f - Mathf.Clamp01(snowy + misty);
+                start *= Mathf.Lerp(1f, OvercastFogStart * rainy + SnowFogStart * snowy + MistFogStart * misty, overcast);
+                end *= Mathf.Lerp(1f, OvercastFogEnd * rainy + SnowFogEnd * snowy + MistFogEnd * misty, overcast);
                 // Linear fog needs a start at or past the camera and an end past the start.
                 start = Mathf.Max(start, 0f);
                 end = Mathf.Max(end, start + 1f);
@@ -124,10 +130,14 @@ namespace LightGreen.Systems
                 stockFog = new Color(stockFog.r * light, stockFog.g * light, stockFog.b * light, stockFog.a);
                 Color fog = Color.Lerp(stockFog, env.HorizonColor, colorBlend);   // the horizon colour is already scaled
                 float grey = fog.grayscale * 0.85f;
-                fog = Color.Lerp(fog, new Color(grey, grey, grey, fog.a), 0.7f * overcast * (1f - snowy));
-                Color snowFog = SnowFog * (light * Mathf.Lerp(1f, 0.3f, Mathf.Clamp01(env.Darkness)));
+                fog = Color.Lerp(fog, new Color(grey, grey, grey, fog.a), 0.7f * overcast * rainy);
+                float lit = light * Mathf.Lerp(1f, 0.3f, Mathf.Clamp01(env.Darkness));
+                Color snowFog = SnowFog * lit;
                 snowFog.a = fog.a;
                 fog = Color.Lerp(fog, snowFog, 0.75f * overcast * snowy);
+                Color mistFog = MistFog * lit;
+                mistFog.a = fog.a;
+                fog = Color.Lerp(fog, mistFog, 0.7f * overcast * misty);
                 _fog.fogColor.Override(fog);
                 _fog.fogStart.Override(start);
                 _fog.fogEnd.Override(end);

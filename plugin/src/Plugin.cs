@@ -50,12 +50,14 @@ namespace LightGreen
         private CityNight _cityNight;
         private Rain _rain;
         private Snow _snow;
+        private CartoonRain _cartoonRain;
         private readonly Footprints _footprints = new Footprints();
         private Harmony _harmony;
 
         private bool _comparing;
         private float _lastRain = 1f;   // how heavy the rain comes back with RainKey
         private float _lastSnow = 1f;   // and the snow
+        private float _lastCartoonRain = 1f;   // and the cartoon rain
         private float _nextConfigCheck;
         private DateTime _configWriteTime;
         private string _filterChoicesWritten;   // the filter list last written to the config file
@@ -99,6 +101,8 @@ namespace LightGreen
             // Weather.
             _rain = new Rain(_environment);
             _features.Add(_rain);
+            _cartoonRain = new CartoonRain(_environment);
+            _features.Add(_cartoonRain);
             _snow = new Snow(_environment);
             _features.Add(_snow);
             _features.Add(_footprints);
@@ -132,25 +136,28 @@ namespace LightGreen
             PresetStore.Reloaded += _environment.OnPresetsReloaded;
             Settings.Time.SettingChanged += (_, __) => Notify("time", $"Time of day: {Settings.Time.Value}");
             Settings.Filter.SettingChanged += (_, __) => Notify("filter", $"Filter: {Settings.Filter.Value}");
-            // One weather at a time: both on when the game starts keeps the snow; turning one on turns the other off.
-            if (Settings.Rain.Value > 0.01f && Settings.Snow.Value > 0.01f)
+            // One weather at a time. More than one on when the game starts keeps the first of snow, cartoon rain and
+            // rain; turning one on turns the others off.
+            WeatherKind kept = Weather.Current;
+            foreach (WeatherKind other in new[] { WeatherKind.Rain, WeatherKind.CartoonRain, WeatherKind.Snow })
             {
-                Settings.Rain.Value = 0f;
-                Log.LogInfo("Effects.Rain and Effects.Snow were both on: only one weather shows at a time, so the snow is kept and Effects.Rain is now 0.");
+                if (other == kept || Weather.Entry(other).Value <= 0.01f) continue;
+                Weather.Entry(other).Value = 0f;
+                Log.LogInfo($"Only one weather shows at a time: {Weather.Name(kept)} is kept, and Effects.{Weather.Entry(other).Definition.Key} is now 0.");
             }
             RememberWeather();
-            Settings.Rain.SettingChanged += (_, __) =>
+            foreach (WeatherKind kind in new[] { WeatherKind.Rain, WeatherKind.CartoonRain, WeatherKind.Snow })
             {
-                if (Settings.Rain.Value > 0.01f && Settings.Snow.Value > 0.01f) Settings.Snow.Value = 0f;
-                RememberWeather();
-                Notify("weather", WeatherNotice());
-            };
-            Settings.Snow.SettingChanged += (_, __) =>
-            {
-                if (Settings.Snow.Value > 0.01f && Settings.Rain.Value > 0.01f) Settings.Rain.Value = 0f;
-                RememberWeather();
-                Notify("weather", WeatherNotice());
-            };
+                BepInEx.Configuration.ConfigEntry<float> entry = Weather.Entry(kind);
+                entry.SettingChanged += (_, __) =>
+                {
+                    if (entry.Value > 0.01f)
+                        foreach (WeatherKind other in new[] { WeatherKind.Rain, WeatherKind.CartoonRain, WeatherKind.Snow })
+                            if (other != kind && Weather.Entry(other).Value > 0.01f) Weather.Entry(other).Value = 0f;
+                    RememberWeather();
+                    Notify("weather", Weather.Notice());
+                };
+            }
 
             if (Application.unityVersion != ExpectedUnity)
                 Log.LogWarning($"The game runs Unity {Application.unityVersion}; this LightGreen was made for {ExpectedUnity} " +
@@ -161,7 +168,7 @@ namespace LightGreen
 
             Log.LogInfo($"{Name} {Version} loaded: {Application.productName} {Application.version}, Unity {Application.unityVersion}. " +
                         $"{_features.Count} features. {Settings.ToggleKey.Value} compares with the game's own look, " +
-                        $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} steps the weather (clear, rain, snow), " +
+                        $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} steps the weather (clear, rain, cartoon rain, snow), " +
                         $"{Settings.FilterKey.Value} changes the photo filter." +
                         (Settings.Enabled.Value ? "" : " (Off: General.Enabled = false.)"));
         }
@@ -200,13 +207,15 @@ namespace LightGreen
             }
             if (Pressed(keyboard, Settings.RainKey.Value) && !_comparing)
             {
-                // Clear, rain, snow, clear: each comes back as heavy as it last was. Setting a value saves the config
-                // file, as TimeKey does; take that write as our own too. Turning snow on turns the rain off (above).
-                if (Snow.Falling) Settings.Snow.Value = 0f;
-                else if (Raining) Settings.Snow.Value = _lastSnow;
-                else Settings.Rain.Value = _lastRain;
+                // Clear, rain, cartoon rain, snow, clear: each comes back as heavy as it last was. Setting a value saves
+                // the config file, as TimeKey does; take that write as our own too. Turning one on turns the others off
+                // (above).
+                WeatherKind now = Weather.Current;
+                WeatherKind next = Weather.Next(now);
+                if (next == WeatherKind.Clear) Weather.Entry(now).Value = 0f;
+                else Weather.Entry(next).Value = next == WeatherKind.Rain ? _lastRain : next == WeatherKind.Snow ? _lastSnow : _lastCartoonRain;
                 _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
-                Log.LogInfo($"{WeatherNotice()} (RainKey).");
+                Log.LogInfo($"{Weather.Notice()} (RainKey).");
             }
             if (Pressed(keyboard, Settings.FilterKey.Value) && !_comparing)
             {
@@ -218,19 +227,13 @@ namespace LightGreen
             }
         }
 
-        private static bool Raining => Settings.Rain.Value > 0.01f && !Snow.Falling;
-
-        /// <summary>Keeps the last rain and snow strengths above off, for RainKey to bring back.</summary>
+        /// <summary>Keeps the last strength of each weather above off, for RainKey to bring back.</summary>
         private void RememberWeather()
         {
             if (Settings.Rain.Value > 0.01f) _lastRain = Settings.Rain.Value;
+            if (Settings.CartoonRain.Value > 0.01f) _lastCartoonRain = Settings.CartoonRain.Value;
             if (Settings.Snow.Value > 0.01f) _lastSnow = Settings.Snow.Value;
         }
-
-        private static string WeatherNotice() =>
-            Snow.Falling ? $"Weather: snow ({Settings.Snow.Value:0.##})"
-            : Raining ? $"Weather: rain ({Settings.Rain.Value:0.##})"
-            : "Weather: clear";
 
         private static readonly System.Collections.Generic.Dictionary<string, string> Logged =
             new System.Collections.Generic.Dictionary<string, string>();
@@ -385,6 +388,7 @@ namespace LightGreen
             _lightPool.Destroy();
             _rain?.Destroy();
             _snow?.Destroy();
+            _cartoonRain?.Destroy();
             _harmony?.UnpatchSelf();
             GameEvents.Unhook();
         }

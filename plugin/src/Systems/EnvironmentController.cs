@@ -110,6 +110,13 @@ namespace LightGreen.Systems
         /// </summary>
         internal float Snowy { get; set; }
 
+        /// <summary>
+        /// How much of the overcast is cartoon rain's soft blue mist, 0 to 1: the colours stay bright, the sky and fog go
+        /// a misty blue, the sun dims a little. Snowy + Misty is at most 1; the rest is rain's grey. Set and eased with
+        /// <see cref="Overcast"/>.
+        /// </summary>
+        internal float Misty { get; set; }
+
         /// <summary>The sun's brightness under a full overcast, and how far the sky's colours go to grey.</summary>
         private const float OvercastSun = 0.45f;
         private const float OvercastSkyGrey = 0.7f;
@@ -122,6 +129,13 @@ namespace LightGreen.Systems
         private static readonly Color SnowSkyHorizon = new Color(0.9f, 0.95f, 1f);
         private static readonly Color SnowSkyGlow = new Color(0.95f, 0.97f, 1f);
         private const float SnowSkyBlend = 0.75f;
+
+        /// <summary>Under full cartoon-rain mist: the sun's brightness, and the sky's misty blues and how far it goes to them.</summary>
+        private const float MistSun = 0.7f;
+        private static readonly Color MistSkyTop = new Color(0.55f, 0.72f, 0.86f);
+        private static readonly Color MistSkyHorizon = new Color(0.7f, 0.82f, 0.9f);
+        private static readonly Color MistSkyGlow = new Color(0.85f, 0.92f, 0.95f);
+        private const float MistSkyBlend = 0.6f;
 
         /// <summary>
         /// 0 in daylight, 1 at night: the time of day's own night setting, or, for holes the game itself sets
@@ -324,15 +338,19 @@ namespace LightGreen.Systems
                     SunDirection = -(_stockSunRotation * Vector3.forward);
                 }
 
-                // Rain: a dimmer, greyer sun through the cloud. Snow: a little dimmer and cold white.
+                // Rain: a dimmer, greyer sun through the cloud. Snow: a little dimmer and cold white. Cartoon rain:
+                // a little dimmer, its colour kept.
                 if (overcast > 0f)
                 {
                     float snowy = Mathf.Clamp01(Snowy);
+                    float misty = Mathf.Clamp01(Misty);
+                    float rainy = 1f - Mathf.Clamp01(snowy + misty);
                     float grey = sunColor.grayscale;
-                    sunColor = Color.Lerp(sunColor, new Color(grey, grey, grey, sunColor.a), 0.6f * overcast * (1f - snowy));
+                    sunColor = Color.Lerp(sunColor, new Color(grey, grey, grey, sunColor.a), 0.6f * overcast * rainy);
                     Color cold = new Color(SnowSunTint.r * grey, SnowSunTint.g * grey, SnowSunTint.b * grey, sunColor.a) / Mathf.Max(SnowSunTint.grayscale, 1e-3f);
                     sunColor = Color.Lerp(sunColor, cold, 0.5f * overcast * snowy);
-                    sunIntensity *= Mathf.Lerp(1f, Mathf.Lerp(OvercastSun, SnowSun, snowy), overcast);
+                    float dimmed = OvercastSun * rainy + SnowSun * snowy + MistSun * misty;
+                    sunIntensity *= Mathf.Lerp(1f, dimmed, overcast);
                 }
 
                 // Day and night brightness, from how dark this sun leaves the scene.
@@ -385,7 +403,8 @@ namespace LightGreen.Systems
             if (overcast > 0f)
             {
                 float snowy = Mathf.Clamp01(Snowy);
-                float grey = OvercastSkyGrey * overcast * (1f - snowy);
+                float misty = Mathf.Clamp01(Misty);
+                float grey = OvercastSkyGrey * overcast * (1f - Mathf.Clamp01(snowy + misty));
                 Grey(sky, "_SkyColor", grey);
                 Grey(sky, "_HorizonColor", grey);
                 Grey(sky, "_SunGradientColor", grey);
@@ -396,6 +415,14 @@ namespace LightGreen.Systems
                     Tint(sky, "_SkyColor", SnowSkyTop * dim, snow);
                     Tint(sky, "_HorizonColor", SnowSkyHorizon * dim, snow);
                     Tint(sky, "_SunGradientColor", SnowSkyGlow * dim, snow);
+                }
+                float mist = MistSkyBlend * overcast * misty;
+                if (mist > 0f)
+                {
+                    float dim = Mathf.Lerp(1f, 0.25f, Mathf.Clamp01(Darkness));
+                    Tint(sky, "_SkyColor", MistSkyTop * dim, mist);
+                    Tint(sky, "_HorizonColor", MistSkyHorizon * dim, mist);
+                    Tint(sky, "_SunGradientColor", MistSkyGlow * dim, mist);
                 }
             }
 

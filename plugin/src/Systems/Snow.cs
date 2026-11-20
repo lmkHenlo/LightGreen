@@ -27,7 +27,7 @@ namespace LightGreen.Systems
         private readonly Texture2D _soft;
 
         /// <summary>Whether it's snowing: Effects.Snow above 0 (and then the rain stays off).</summary>
-        internal static bool Falling => Settings.Snow.Value > 0.01f;
+        internal static bool Falling => Weather.Current == WeatherKind.Snow;
 
         /// <summary>Drift with the wind: m/s at calm and per km/h. Slower than rain: snow floats.</summary>
         private const float DriftAtCalm = 0.25f;

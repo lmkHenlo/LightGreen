@@ -515,3 +515,54 @@ about 3,600, far about 770; about 4,400 in all at strength 1, a little more than
 gives the new counts. The near layer's 40 big flakes are the ones that cost the most to draw; if S10 shows a drop,
 they're the first to thin.
 
+## Cartoon rain
+
+A third weather from the user's reference picture (a stylised forest in the rain): bold, long, thin white streaks all
+slanting the same way, small two-ring ripples where drops land, and a soft blue mist with the colours still bright.
+"More visible than rain, but still read as rain." F10 now steps clear → rain → cartoon rain → snow → clear (the
+user's order); S3's cycle above gains the cartoon rain step.
+
+- **Streaks:** a crisp white disc drawn in code (`Core/RainArt.cs`, Unity-free), stretched by the particle system
+  along the fall into a tapered line, as in the reference. Next to the rain, about twice as wide and long on screen and
+  nearly opaque (0.85 near, 0.7 mid, 0.35 far; rain 0.35, 0.25, 0.12), a little blue-white, dimming at night:
+
+| Layer | Box round the camera | Streaks at strength 1 | Width | Length (fall × stretch) |
+|---|---|---|---|---|
+| Near | 30 × 16 × 30 m | about 1,150 | 2.5–3.5 cm | about 0.9 m |
+| Mid | 90 × 40 × 90 m | about 970 | 6–8 cm | about 1.1 m |
+| Far | 240 × 70 × 240 m | about 600 | 22–28 cm | about 1.4 m |
+
+  About 2,700 in all, fewer than the rain's 3,800. They drift with the game's wind, and always lean at least 2.5 m/s
+  (about 15°) so they slant even in a calm, as in the reference.
+- **Ripples:** where the rain throws droplets, cartoon rain lays two white rings flat on the ground (the inner fainter),
+  growing from a quarter of their size to 30–45 cm and fading over 0.5–0.7 s; about 400 a second within 15 m at
+  strength 1, everywhere a drop lands (as the rain's splashes are), at most 30 ground checks a frame.
+- **Mist:** a third share of the overcast (`EnvironmentController.Misty`, beside `Snowy`; the rest is rain's grey):
+  the sky goes 60% of the way to misty blues, the fog closes in to 0.6 and 0.7 of its distances toward a soft blue, and
+  the sun dims to 0.7 with its colour kept, so the colours stay bright. Eased with the others over 10 s; from one
+  weather to another, the old kind's share hands over to the new one's.
+- **One weather at a time:** `Systems/Weather.cs` says which is on (snow first, then cartoon rain, then rain, should more
+  than one be set) and F10's order. Turning one on (F10 or a config edit) sets the others to 0; more than one on at start
+  keeps that first one (logged). The message: `Weather: cartoon rain (1)`.
+
+**Checked before the build (outside the game):** the streak disc and ripple were drawn and looked at (the disc
+stretched as the particle system does, the ripple squashed as seen at an angle). `Weather` with BepInEx's own
+`ConfigFile`: clear when all are 0; rain; cartoon rain over rain; snow over both; F10's order clear, rain, cartoon rain,
+snow, clear; each kind's setting; below 0.01 counts as off. All pass.
+
+**Build:** as before, plus `Core/RainArt.cs`, `Systems/Weather.cs` and `Systems/CartoonRain.cs`; one more feature
+(Cartoon rain). No warnings.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| C1 | Log | Start the game | `… 16 features …`; the load line says `F10 steps the weather (clear, rain, cartoon rain, snow)`; no errors |
+| C2 | The look | `Effects.CartoonRain = 1` on a Forest hole by day; compare with the reference and with `Rain = 1` | Long, thin, bright white streaks, clearly easier to see than the rain, all slanting one way; white two-ring ripples spreading where drops land; the air turns a soft blue over about 10 s with the colours still bright, not grey |
+| C3 | F10 cycle | F10 five times from clear | Rain, cartoon rain (the grey turns misty blue), snow (pale blue), clear, rain; chat: `Weather: rain (1)`, `Weather: cartoon rain (1)`, `Weather: snow (1)`, `Weather: clear` |
+| C4 | One at a time | In the config file set `CartoonRain = 1` while it snows; then quit, set `Rain`, `CartoonRain` and `Snow` all to 1, start | The cartoon rain replaces the snow, `Snow` becomes 0; at start snow shows, `Rain` and `CartoonRain` become 0, two log lines say so |
+| C5 | Calm and wind | A calm hole, then a windy one | Streaks slant in a calm too; in wind they slant with the HUD's wind arrow |
+| C6 | Ripples | Watch the ground, grass, sand, water, a slope | Rings lie flat and spread on each; none float in the air or sit under the ground |
+| C7 | Night | Cartoon rain at Night, and on a City hole at night | Dimmer streaks and rings, no glaring white; the sky dark blue, not pale |
+| C8 | Camera, F8, holes | A camera cut; F8 off and on; a new hole in cartoon rain | The view fills at once after a cut; F8 off: none of it and the game's own sky; a new hole starts misty at once |
+| C9 | Frame rate | Cartoon rain at 1 and 3, then rain at the same values, F8 both ways | Cartoon rain at 1 costs about what rain at 1 does; note the numbers |
+| C10 | VR | Cartoon rain with SBGVR | Streaks and rings show in the headset |
+

@@ -49,6 +49,7 @@ namespace LightGreen
         internal static ConfigEntry<float> CityNight;
         internal static ConfigEntry<float> Rain;
         internal static ConfigEntry<float> Snow;
+        internal static ConfigEntry<float> CartoonRain;
         internal static ConfigEntry<float> Footprints;
         internal static ConfigEntry<float> FootprintSeconds;
         internal static ConfigEntry<int> FootprintMax;
@@ -77,7 +78,8 @@ namespace LightGreen
             TimeKey = config.Bind("Keys", "TimeKey", Key.F9,
                 "Steps through the times of day (it changes TimeOfDay.Time).");
             RainKey = config.Bind("Keys", "RainKey", Key.F10,
-                "Steps the weather: clear, rain, snow, then clear again (it changes Effects.Rain and Effects.Snow). " +
+                "Steps the weather: clear, rain, cartoon rain, snow, then clear again (it changes Effects.Rain, Effects.CartoonRain " +
+                "and Effects.Snow). " +
                 "Each comes back as heavy as it last was, or 1.");
             FilterKey = config.Bind("Keys", "FilterKey", Key.F11,
                 "Steps to the next photo filter (it changes Filters.Filter); with Shift, the previous one.");
@@ -144,12 +146,18 @@ namespace LightGreen
             Rain = Effect(config, "Rain", 0f, 3f,
                 "Rain on every course: streaks, splashes where it lands, and a grey overcast sky. Surfaces don't get wet. " +
                 "Off by default: it's only a look, and could be mistaken for the Thunderstorm item. The value is how heavy. " +
-                "Keys.RainKey steps through clear, rain and snow while playing. Only one shows at a time: turning one on turns the other off.");
+                "Keys.RainKey steps through clear, rain, cartoon rain and snow while playing. Only one weather shows at a time: " +
+                "turning one on turns the others off.");
+            CartoonRain = Effect(config, "CartoonRain", 0f, 3f,
+                "Cartoon rain on every course: bold, bright white streaks, easier to see than Effects.Rain, ripple rings where " +
+                "drops land, and a soft blue mist that keeps the colours bright. Off by default. The value is how heavy. " +
+                "Keys.RainKey steps through clear, rain, cartoon rain and snow. Only one weather shows at a time: turning one " +
+                "on turns the others off.");
             Snow = Effect(config, "Snow", 0f, 3f,
                 "Snow on every course: soft, round cartoon flakes drifting with the wind, a few big ones close by, and a bright, " +
                 "pale blue sky. Nothing settles on the ground. Off by default. The value is how heavy. Keys.RainKey steps through " +
-                "clear, rain and snow. Only one shows at a time: turning one on turns the other off, and if both are on when the " +
-                "game starts, snow is kept.");
+                "clear, rain, cartoon rain and snow. Only one weather shows at a time: turning one on turns the others off, and " +
+                "if more than one is on when the game starts, snow is kept, then cartoon rain.");
             Footprints = Effect(config, "Footprints", 1f, 2f,
                 "Footprints in snow last longer (Effects.FootprintSeconds) and show as blue-grey dents that read on white, " +
                 "fading out at the end. Sand keeps the game's prints, and so does a player a smoke bomb hides from you. " +

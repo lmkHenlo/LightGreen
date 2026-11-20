@@ -15,9 +15,11 @@ namespace LightGreen.Systems
     /// it, from <see cref="EnvironmentController.Overcast"/>); at once on a new hole, eased over 10 s otherwise.</item>
     /// </list>
     /// No wet look: surfaces stay as the game draws them (wet surfaces and puddles needed LightGreen's own shaders).
-    /// <para>The sky is the rain's job for the snow too (<see cref="Snow"/> draws only the flakes), so the two never pull
-    /// it different ways: snow's overcast is bright and pale blue (<see cref="EnvironmentController.Snowy"/>), eased
-    /// over the same 10 s. Only one falls at a time: with Effects.Snow on, there's no rain.</para>
+    /// <para>The sky is the rain's job for the snow and the cartoon rain too (<see cref="Snow"/> and
+    /// <see cref="CartoonRain"/> draw only their own particles), so they never pull it different ways: snow's overcast is
+    /// bright and pale blue (<see cref="EnvironmentController.Snowy"/>), cartoon rain's a soft blue mist
+    /// (<see cref="EnvironmentController.Misty"/>), eased over the same 10 s. Only one weather falls at a time
+    /// (<see cref="Weather"/>).</para>
     /// </summary>
     internal sealed class Rain : IFeature
     {
@@ -74,21 +76,23 @@ namespace LightGreen.Systems
                 return;
             }
 
-            bool snowing = Snow.Falling;
-            float strength = snowing ? 0f : Mathf.Max(0f, Settings.Rain.Value);
-            bool raining = strength > 0.01f;
+            WeatherKind kind = Weather.Current;
+            bool raining = kind == WeatherKind.Rain;
+            float strength = raining ? Weather.Strength : 0f;
 
-            // The sky: overcast while it rains or snows, eased (at once on a new hole). It keeps its last kind of
-            // cloud while it clears.
-            bool weather = raining || snowing;
-            float overcastTarget = weather ? Mathf.Clamp01(snowing ? Settings.Snow.Value : strength) : 0f;
-            float snowyTarget = snowing ? 1f : raining ? 0f : _environment.Snowy;
+            // The sky: overcast in any weather, eased (at once on a new hole). It keeps its last kind of cloud while it
+            // clears; going from one weather to another, the old kind's share hands over to the new one's.
+            bool weather = kind != WeatherKind.Clear;
+            float overcastTarget = weather ? Mathf.Clamp01(Weather.Strength) : 0f;
+            float snowyTarget = weather ? (kind == WeatherKind.Snow ? 1f : 0f) : _environment.Snowy;
+            float mistyTarget = weather ? (kind == WeatherKind.CartoonRain ? 1f : 0f) : _environment.Misty;
             if (weather || _touchedSky)
             {
                 bool atOnce = _fresh && weather;
                 float step = Time.deltaTime / OvercastSeconds;
                 _environment.Overcast = atOnce ? overcastTarget : Mathf.MoveTowards(_environment.Overcast, overcastTarget, step);
                 _environment.Snowy = atOnce ? snowyTarget : Mathf.MoveTowards(_environment.Snowy, snowyTarget, step);
+                _environment.Misty = atOnce ? mistyTarget : Mathf.MoveTowards(_environment.Misty, mistyTarget, step);
                 _touchedSky = _environment.Overcast > 0f;
             }
             _fresh = false;
@@ -193,6 +197,7 @@ namespace LightGreen.Systems
             {
                 _environment.Overcast = 0f;
                 _environment.Snowy = 0f;
+                _environment.Misty = 0f;
                 _touchedSky = false;
             }
             _fresh = true;
