@@ -336,4 +336,6 @@ rejected with where and why.
 | J2 | Presets edit | At Noon, set `Noon`'s `sunIntensity` to 2 in `LightGreen.presets.json` and save; then back to 1.05 | `Presets reloaded.` and the sunlit sides brighten, then return |
 | J3 | Broken presets | Delete a comma in `LightGreen.presets.json` and save; then put it back | `Couldn't reload the presets (line …, column …: …); keeping the previous ones.`; the look doesn't change; fixed, it reloads |
 
+**Results (2026-11-19):** J1–J3 pass. J3 also holds with the file renamed.
+
 Then rerun F1–F10.
