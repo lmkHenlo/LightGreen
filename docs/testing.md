@@ -462,13 +462,13 @@ F10: clear, rain, snow, clear.
 
 An earlier snowfall (Snow holes only) was dropped before testing in phase 3 for its cost in frame rate: about 8,200
 see-through particles, many of them large and far away (much of the screen covered over and over). This one is built
-to cost less than the rain (about 3,800 particles, W14 passed):
+to cost about what the rain does (about 3,800 particles, W14 passed), with few flakes big on screen:
 
 | Layer | Box round the camera | Flakes at strength 1 | Size | On screen at most |
 |---|---|---|---|---|
-| Near | 14 × 8 × 14 m | about 20 | 6–11 cm, soft edge | 4% of the screen |
-| Main | 50 × 24 × 50 m | about 1,800 | 4.5–8 cm, crisp edge | 1.2% |
-| Far | 160 × 50 × 160 m | about 380 | 35–55 cm | 0.4% |
+| Near | 14 × 8 × 14 m | about 40 | 6–11 cm, soft edge | 4% of the screen |
+| Main | 50 × 24 × 50 m | about 3,600 | 4.5–8 cm, crisp edge | 1.2% |
+| Far | 160 × 50 × 160 m | about 770 | 35–55 cm | 0.4% |
 
 - **The flakes** are drawn in code (`Core/FlakeArt.cs`, Unity-free): two 2 × 2 atlases of 64-pixel flakes, crisp and
   soft, each flake round with three low lumps round its edge, flat white with a faint blue shade on its lower right in
@@ -507,6 +507,11 @@ game.
 | S7 | Night | Snow at Night, and on a City hole at night | Dim, blue flakes, no bright white; the sky dark, not pale |
 | S8 | Camera | Switch to spectating or a flyover, and back | The view is full of snow at once after each cut, no empty moment |
 | S9 | F8 and holes | F8 off and on; next hole in the snow | Off: no snow, the game's own sky; a new hole starts snowy at once |
-| S10 | Frame rate | Snow at 1 and 3, then rain at the same values, F8 both ways each time | Snow at 1 costs no more than rain at 1; note the numbers |
+| S10 | Frame rate | Snow at 1 and 3, then rain at the same values, F8 both ways each time | Snow at 1 costs about as much as rain at 1 (it has a little more particles, almost all small on screen); note the numbers |
 | S11 | VR | Snow with SBGVR | Flakes show in the headset and none sit stuck to the view |
+
+**Changed (2026-11-20):** the user asked for twice the flakes: every layer's density doubled (near about 40, main
+about 3,600, far about 770; about 4,400 in all at strength 1, a little more than the rain's 3,800). The table above
+gives the new counts. The near layer's 40 big flakes are the ones that cost the most to draw; if S10 shows a drop,
+they're the first to thin.
 
