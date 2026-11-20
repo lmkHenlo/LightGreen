@@ -81,7 +81,7 @@ namespace LightGreen.Presets
     internal static class DefaultFilters
     {
         /// <summary>Raise when the built-in filters change, so existing files are replaced (with a backup).</summary>
-        internal const int Version = 2;
+        internal const int Version = 3;
 
         private static Color C(float r, float g, float b) => new Color(r, g, b);
 
@@ -225,14 +225,6 @@ namespace LightGreen.Presets
                     splitStrength = 0.5f,
                     vignette = 0.35f,
                 },
-                new PhotoFilterPreset
-                {
-                    // Infrared colour film: grass and leaves turn red and pink, skies go lavender.
-                    name = "Infrared",
-                    channelMixer = new[] { 0f, 1.1f, -0.1f, 0.75f, 0.25f, 0f, 0f, 0.55f, 0.45f },
-                    saturation = 0.35f,
-                    contrast = 0.1f,
-                },
 
                 // Graphic.
                 new PhotoFilterPreset
@@ -304,15 +296,6 @@ namespace LightGreen.Presets
                     vignetteSmoothness = 0.35f,
                     distortion = 0.25f,
                     aberration = 0.2f,
-                },
-                new PhotoFilterPreset
-                {
-                    // A wide action camera: a strong bulge, fringes and dark corners; the colours are left alone.
-                    name = "Fisheye",
-                    distortion = 0.6f,
-                    aberration = 0.25f,
-                    vignette = 0.45f,
-                    vignetteSmoothness = 0.45f,
                 },
                 new PhotoFilterPreset
                 {

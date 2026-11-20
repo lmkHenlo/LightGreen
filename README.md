@@ -137,7 +137,6 @@ F11 goes through them in this order. The last three show roughly how the world l
 | Teal & Orange | Teal shadows, warm highlights |
 | Cross Process | Yellow-green highlights, blue shadows |
 | Day for Night | Daylight graded to look like moonlight: darker, bluer, little colour |
-| Infrared | Infrared film: grass and leaves turn red and pink, skies lavender |
 | Duotone | Navy to peach |
 | Poster | Fewer colour steps, like a poster or comic |
 | Handheld Console | Four shades of green, like an old handheld console's screen |
@@ -146,7 +145,6 @@ F11 goes through them in this order. The last three show roughly how the world l
 | Thermal | False colour from dark blue to white, by brightness (not heat) |
 | Night Vision | Green, with glowing highlights and dark corners |
 | Toy Camera | Saturated cross-process, dark corners, a bulging lens |
-| Fisheye | A strong bulge, colour fringes and dark corners; colours unchanged |
 | Dreamy | Pastel and soft, with a glow around bright parts |
 | Protanopia | Roughly how the game looks without red-sensitive cones |
 | Deuteranopia | Roughly how it looks without green-sensitive cones |
