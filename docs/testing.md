@@ -339,3 +339,34 @@ rejected with where and why.
 **Results (2026-11-19):** J1–J3 pass. J3 also holds with the file renamed.
 
 **Results (2026-11-19), after the fix:** F1–F10 pass. Photo filters are complete.
+
+## More photo filters
+
+Sixteen more built-in filters, placed by family, so F11 goes: Mono, Mono Red, Noir, Sepia, Cyanotype; Faded Film,
+Instant Film, Bleach Bypass, Two-Strip; Vivid, Warm, Cool, Teal & Orange, Cross Process, Day for Night, Infrared;
+Duotone, Poster, Handheld Console, Solarize, Negative, Thermal, Night Vision; Toy Camera, Fisheye, Dreamy; Protanopia,
+Deuteranopia, Tritanopia. All use what filters could already do: no new settings or code. The built-in filters'
+version goes from 1 to 2, so an existing `LightGreen.filters.json` is backed up and replaced on the next start.
+
+- **Handheld Console:** black and white, a tone curve with four flat steps, then a four-colour gradient map.
+- **Solarize** and **Negative:** tone curves that fall (the curves already allowed that).
+- **Colour blindness:** channel mixer matrices from Machado, Oliveira and Fernandes (2009) at full strength. They're
+  meant for linear colour and the filter works on display colours, so they're close, not exact. The HUD isn't filtered.
+- **Fisheye:** only lens extras (distortion 0.6, fringes, vignette); its colour table is the identity.
+
+**Checked before the build (outside the game):** the offline table checks pass as before; all 29 filters save and load
+back field for field. Every new filter was applied to a Forest-by-day and a City-at-night screenshot and looks as
+named (Cyanotype's middle blue was lightened, Infrared's grass made pinker, Handheld Console's steps moved down to
+suit the game's brightness, and Night Vision's brightness lowered, after this check). The lens extras can't be
+previewed this way.
+
+**Build:** as before. Nothing new in the config.
+
+| # | Check | How | Pass if |
+|---|---|---|---|
+| G1 | Filters file updated | Start the game once | Log: `Updated the photo filters to LightGreen's new built-in ones (version 2). Your previous file is at …v1.bak.`, then `Photo filters: 29 in LightGreen.filters.json, …`; F11 goes in the order above, then your `.cube` filters, then None |
+| G2 | Each new filter | Each new one on Forest at Noon, Snow, and a City hole at Night | Each looks as in the README table; the HUD is unchanged |
+| G3 | Fisheye | Fisheye; look around and swing | A strong bulge with no black or smeared edges; fringes and dark corners; colours unchanged |
+| G4 | Night Vision | Night Vision on a City hole at Night | Green, lit windows and lamps glow, dark corners |
+| G5 | Strength | `Filters.Strength` 0.5 with Negative, then Solarize | Half way, with no banding or jumps (Negative at 0.5 is close to flat grey; that's expected) |
+

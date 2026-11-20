@@ -99,21 +99,39 @@ The colours for each biome and time of day are in `BepInEx/config/LightGreen.pre
 
 ### Photo filters
 
+F11 goes through them in this order. The last three show roughly how the world looks with colour blindness; the HUD isn't filtered, so it isn't included.
+
 | Filter | Look |
 |---|---|
 | Mono | Neutral black and white |
 | Mono Red | Black and white through a red filter: darker skies and water, brighter skin, wood and sand |
+| Noir | Hard black and white: deep shadows, bright highlights, dark corners |
 | Sepia | Warm brown monochrome |
+| Cyanotype | Prussian blue and white, like a blueprint |
 | Faded Film | Lifted blacks, softer contrast, slightly warm |
+| Instant Film | Lifted blacks, soft highlights, a slight green-yellow cast |
+| Bleach Bypass | Silvery, little colour, harsh contrast |
+| Two-Strip | Early two-colour film: reds and cyans only |
 | Vivid | More contrast and saturation |
 | Warm | Golden, sunlit |
 | Cool | Blue-teal, crisp |
 | Teal & Orange | Teal shadows, warm highlights |
 | Cross Process | Yellow-green highlights, blue shadows |
+| Day for Night | Daylight graded to look like moonlight: darker, bluer, little colour |
+| Infrared | Infrared film: grass and leaves turn red and pink, skies lavender |
 | Duotone | Navy to peach |
 | Poster | Fewer colour steps, like a poster or comic |
+| Handheld Console | Four shades of green, like an old handheld console's screen |
+| Solarize | The darkroom effect: the brightest parts turn dark again |
+| Negative | Every colour inverted |
+| Thermal | False colour from dark blue to white, by brightness (not heat) |
+| Night Vision | Green, with glowing highlights and dark corners |
 | Toy Camera | Saturated cross-process, dark corners, a bulging lens |
+| Fisheye | A strong bulge, colour fringes and dark corners; colours unchanged |
 | Dreamy | Pastel and soft, with a glow around bright parts |
+| Protanopia | Roughly how the game looks without red-sensitive cones |
+| Deuteranopia | Roughly how it looks without green-sensitive cones |
+| Tritanopia | Roughly how it looks without blue-sensitive cones |
 
 The filters are in `BepInEx/config/LightGreen.filters.json`, which you can edit while you play. To use your own LUTs, put `.cube` files in `BepInEx/config/LightGreen.filters/`: each becomes a filter named after the file. In VR, filters keep their colours but not their vignette, distortion or fringes.
 
