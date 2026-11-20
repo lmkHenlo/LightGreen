@@ -338,4 +338,4 @@ rejected with where and why.
 
 **Results (2026-11-19):** J1–J3 pass. J3 also holds with the file renamed.
 
-Then rerun F1–F10.
+**Results (2026-11-19), after the fix:** F1–F10 pass. Photo filters are complete.
