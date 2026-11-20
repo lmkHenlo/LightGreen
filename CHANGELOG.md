@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-19
+
 ### Added
 
 - Photo filters, on top of the rest of the look: Mono, Mono Red, Noir, Sepia, Cyanotype, Faded Film, Instant Film, Bleach Bypass, Two-Strip, Vivid, Warm, Cool, Teal & Orange, Cross Process, Day for Night, Duotone, Poster, GameBoy, Solarize, Negative, Thermal, Night Vision, Toy Camera and Dreamy, plus Protanopia, Deuteranopia and Tritanopia to check how the game looks with colour blindness. **F11** steps through them (**Shift+F11** goes back) and saves the choice to `Filters.Filter`; `Filters.Strength` fades them. The HUD isn't filtered.
@@ -53,6 +55,7 @@ The first release.
 - **F8** switches LightGreen off and on to compare with the game's own look (`Keys.ToggleKey`), and `General.Enabled` turns it off entirely.
 - The settings file is reloaded within a second of being saved.
 
-[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/lmkHenlo/LightGreen/releases/tag/v0.1.0
