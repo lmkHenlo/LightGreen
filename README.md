@@ -139,7 +139,7 @@ F11 goes through them in this order. The last three show roughly how the world l
 | Day for Night | Daylight graded to look like moonlight: darker, bluer, little colour |
 | Duotone | Navy to peach |
 | Poster | Fewer colour steps, like a poster or comic |
-| Handheld Console | Four shades of green, like an old handheld console's screen |
+| GameBoy | Four shades of green, like an old handheld console's screen |
 | Solarize | The darkroom effect: the brightest parts turn dark again |
 | Negative | Every colour inverted |
 | Thermal | False colour from dark blue to white, by brightness (not heat) |

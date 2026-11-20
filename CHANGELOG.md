@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Photo filters, on top of the rest of the look: Mono, Mono Red, Noir, Sepia, Cyanotype, Faded Film, Instant Film, Bleach Bypass, Two-Strip, Vivid, Warm, Cool, Teal & Orange, Cross Process, Day for Night, Duotone, Poster, Handheld Console, Solarize, Negative, Thermal, Night Vision, Toy Camera and Dreamy, plus Protanopia, Deuteranopia and Tritanopia to check how the game looks with colour blindness. **F11** steps through them (**Shift+F11** goes back) and saves the choice to `Filters.Filter`; `Filters.Strength` fades them. The HUD isn't filtered.
+- Photo filters, on top of the rest of the look: Mono, Mono Red, Noir, Sepia, Cyanotype, Faded Film, Instant Film, Bleach Bypass, Two-Strip, Vivid, Warm, Cool, Teal & Orange, Cross Process, Day for Night, Duotone, Poster, GameBoy, Solarize, Negative, Thermal, Night Vision, Toy Camera and Dreamy, plus Protanopia, Deuteranopia and Tritanopia to check how the game looks with colour blindness. **F11** steps through them (**Shift+F11** goes back) and saves the choice to `Filters.Filter`; `Filters.Strength` fades them. The HUD isn't filtered.
 - Your own `.cube` LUTs as photo filters: put them in `BepInEx/config/LightGreen.filters/`. The built-in filters are in `BepInEx/config/LightGreen.filters.json`, which reloads when saved.
 
 ### Fixed

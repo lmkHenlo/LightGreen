@@ -344,18 +344,18 @@ rejected with where and why.
 
 Fourteen more built-in filters (sixteen at first; Infrared and Fisheye were dropped after testing), placed by family, so F11 goes: Mono, Mono Red, Noir, Sepia, Cyanotype; Faded Film,
 Instant Film, Bleach Bypass, Two-Strip; Vivid, Warm, Cool, Teal & Orange, Cross Process, Day for Night;
-Duotone, Poster, Handheld Console, Solarize, Negative, Thermal, Night Vision; Toy Camera, Dreamy; Protanopia,
+Duotone, Poster, GameBoy, Solarize, Negative, Thermal, Night Vision; Toy Camera, Dreamy; Protanopia,
 Deuteranopia, Tritanopia. All use what filters could already do: no new settings or code. The built-in filters'
-version goes from 1 to 3, so an existing `LightGreen.filters.json` is backed up and replaced on the next start.
+version goes from 1 to 4, so an existing `LightGreen.filters.json` is backed up and replaced on the next start.
 
-- **Handheld Console:** black and white, a tone curve with four flat steps, then a four-colour gradient map.
+- **GameBoy** (first called Handheld Console): black and white, a tone curve with four flat steps, then a four-colour gradient map.
 - **Solarize** and **Negative:** tone curves that fall (the curves already allowed that).
 - **Colour blindness:** channel mixer matrices from Machado, Oliveira and Fernandes (2009) at full strength. They're
   meant for linear colour and the filter works on display colours, so they're close, not exact. The HUD isn't filtered.
 
 **Checked before the build (outside the game):** the offline table checks pass as before; all 27 filters save and load
 back field for field. Every new filter was applied to a Forest-by-day and a City-at-night screenshot and looks as
-named (Cyanotype's middle blue was lightened, Handheld Console's steps moved down to
+named (Cyanotype's middle blue was lightened, GameBoy's steps moved down to
 suit the game's brightness, and Night Vision's brightness lowered, after this check). The lens extras can't be
 previewed this way.
 
@@ -363,7 +363,7 @@ previewed this way.
 
 | # | Check | How | Pass if |
 |---|---|---|---|
-| G1 | Filters file updated | Start the game once | Log: `Updated the photo filters to LightGreen's new built-in ones (version 3). Your previous file is at …v2.bak.` (…v1.bak from an older one), then `Photo filters: 27 in LightGreen.filters.json, …`; F11 goes in the order above, then your `.cube` filters, then None |
+| G1 | Filters file updated | Start the game once | Log: `Updated the photo filters to LightGreen's new built-in ones (version 4). Your previous file is at …v3.bak.` (or …v1.bak, …v2.bak from an older one), then `Photo filters: 27 in LightGreen.filters.json, …`; F11 goes in the order above, then your `.cube` filters, then None |
 | G2 | Each new filter | Each new one on Forest at Noon, Snow, and a City hole at Night | Each looks as in the README table; the HUD is unchanged |
 | G4 | Night Vision | Night Vision on a City hole at Night | Green, lit windows and lamps glow, dark corners |
 | G5 | Strength | `Filters.Strength` 0.5 with Negative, then Solarize; then back to 1 | Half way, with no banding or jumps (Negative at 0.5 is flat grey; that's expected) |
@@ -376,4 +376,8 @@ except Negative (flat grey, which is what half strength gives) and Fisheye (only
 with most of the zoom left). Infrared, seen at full strength, was harsh: the game's light cyan sky turned purple, dark
 grass maroon, and reds bright green; the channel mixer can't keep the sky blue while turning grass red. **Infrared and
 Fisheye were dropped** (version 3). Rerun G1, then G2 for Negative at `Filters.Strength` 1.
+
+**Results (2026-11-19), second run (version 3, `Filters.Strength` 1):** G1 and G2 pass, Negative included; every
+filter works as intended. Handheld Console was then renamed GameBoy (version 4, so the file is replaced once more):
+rerun G1 and check GameBoy is in the F11 cycle where Handheld Console was.
 

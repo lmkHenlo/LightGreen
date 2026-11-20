@@ -81,7 +81,7 @@ namespace LightGreen.Presets
     internal static class DefaultFilters
     {
         /// <summary>Raise when the built-in filters change, so existing files are replaced (with a backup).</summary>
-        internal const int Version = 3;
+        internal const int Version = 4;
 
         private static Color C(float r, float g, float b) => new Color(r, g, b);
 
@@ -244,7 +244,7 @@ namespace LightGreen.Presets
                 new PhotoFilterPreset
                 {
                     // Four shades of green, like an old handheld console's screen.
-                    name = "Handheld Console",
+                    name = "GameBoy",
                     saturation = -1f,
                     curve = new[] { 0f, 0f, 0.17f, 0f, 0.2f, 0.3333f, 0.36f, 0.3333f, 0.39f, 0.6667f, 0.57f, 0.6667f, 0.6f, 1f, 1f, 1f },
                     gradient = new[] { C(0.06f, 0.22f, 0.06f), C(0.19f, 0.38f, 0.19f), C(0.55f, 0.67f, 0.06f), C(0.61f, 0.74f, 0.06f) },
