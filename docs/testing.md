@@ -368,5 +368,7 @@ previewed this way.
 | G2 | Each new filter | Each new one on Forest at Noon, Snow, and a City hole at Night | Each looks as in the README table; the HUD is unchanged |
 | G3 | Fisheye | Fisheye; look around and swing | A strong bulge with no black or smeared edges; fringes and dark corners; colours unchanged |
 | G4 | Night Vision | Night Vision on a City hole at Night | Green, lit windows and lamps glow, dark corners |
-| G5 | Strength | `Filters.Strength` 0.5 with Negative, then Solarize | Half way, with no banding or jumps (Negative at 0.5 is close to flat grey; that's expected) |
+| G5 | Strength | `Filters.Strength` 0.5 with Negative, then Solarize; then back to 1 | Half way, with no banding or jumps (Negative at 0.5 is flat grey; that's expected) |
+
+Run G5 last, and put `Filters.Strength` back to 1 afterwards: every filter is weaker below 1, and the lens extras too.
 
