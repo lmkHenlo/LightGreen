@@ -125,10 +125,10 @@ namespace LightGreen.Systems
         /// colours (top, horizon, the glow round the sun), and how far the sky goes to them.</summary>
         private const float SnowSun = 0.85f;
         private static readonly Color SnowSunTint = new Color(0.9f, 0.95f, 1f);
-        private static readonly Color SnowSkyTop = new Color(0.55f, 0.7f, 0.95f);
+        private static readonly Color SnowSkyTop = new Color(0.62f, 0.76f, 0.97f);
         private static readonly Color SnowSkyHorizon = new Color(0.9f, 0.95f, 1f);
         private static readonly Color SnowSkyGlow = new Color(0.95f, 0.97f, 1f);
-        private const float SnowSkyBlend = 0.75f;
+        private const float SnowSkyBlend = 0.9f;
 
         /// <summary>Under full cartoon-rain mist: the sun's brightness, and the sky's misty blues and how far it goes to them.</summary>
         private const float MistSun = 0.7f;

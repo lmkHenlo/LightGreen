@@ -10,13 +10,15 @@ namespace LightGreen.Systems
     /// <list type="bullet">
     /// <item>near: a few big, soft flakes passing close to the lens, as if out of focus (they may cover the ball for a
     /// moment: wanted, for the look);</item>
-    /// <item>main: the snowfall itself, crisp-edged;</item>
+    /// <item>main: the snowfall itself, crisp-edged, big enough at 20 m that the lumpy shape and blue shade still show
+    /// (smaller, they read as dust and vanish against white cloud);</item>
     /// <item>far: tiny flakes for depth.</item>
     /// </list>
     /// About 4,400 flakes at strength 1, a little more than the rain's 3,800, and only the near ones are big on screen:
     /// the earlier snowfall (about 8,200, many of them large and far) cost too much frame rate.
     /// Magical rather than real: the flakes are a little brighter than white, so the game's bloom gives them a soft
-    /// glow; at night they dim and turn blue. The sky (bright and pale blue) is set with the rain's, in <see cref="Rain"/>.
+    /// glow; at night they dim and turn blue. The sky (bright and pale blue) is set with the rain's, in <see cref="Rain"/>;
+    /// the fog and a slightly colder, less saturated grade in <see cref="VolumeLayer"/>.
     /// Nothing settles on the ground: that needed shaders. Only one weather at a time: with snow on, there's no rain.
     /// </summary>
     internal sealed class Snow : IFeature
@@ -55,7 +57,7 @@ namespace LightGreen.Systems
                 new ParticleLayer.Spec
                 {
                     Name = "main", Width = 50f, Height = 24f, Lift = 6f, Density = 0.06f, Fall = 1.1f,
-                    MinSize = 0.045f, MaxSize = 0.08f, MaxScreenSize = 0.012f, Alpha = 1f,
+                    MinSize = 0.07f, MaxSize = 0.12f, MaxScreenSize = 0.02f, Alpha = 1f,
                     Texture = _crisp, Tiles = 2, Sway = 0.3f, Spin = 0.8f,
                 },
                 new ParticleLayer.Spec

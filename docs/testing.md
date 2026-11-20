@@ -499,7 +499,7 @@ game.
 | # | Check | How | Pass if |
 |---|---|---|---|
 | S1 | Log | Start the game | `… 15 features …` (one more than before); the load line says `F10 steps the weather (clear, rain, snow)`; no errors |
-| S2 | The look | `Effects.Snow = 1` on a Forest hole by day | Round white flakes of many sizes, a faint blue shade on one side, swaying and turning as they fall, drifting with the wind arrow; a few big soft ones pass close by; the sky turns bright and pale blue over about 10 s, the fog blue-white; compare with the reference picture |
+| S2 | The look | `Effects.Snow = 1` on a Forest hole by day | Round white flakes of many sizes, a faint blue shade on one side, swaying and turning as they fall, drifting with the wind arrow; a few big soft ones pass close by; the sky turns bright and pale blue over about 10 s, the fog blue-white, the grass a little less green and the scene a little colder; compare with the reference picture |
 | S3 | F10 cycle | F10 four times from clear | Rain, then snow (the grey sky turns pale blue over about 10 s), then clear (it clears over about 10 s), then rain; chat: `Weather: rain (1)`, `Weather: snow (1)`, `Weather: clear` |
 | S4 | One at a time | In the config file, set `Rain = 1` while it snows; then quit, set both to 1, start | The rain replaces the snow and `Snow` becomes 0; at start, snow shows, `Rain` becomes 0 and the log says why |
 | S5 | Heaviness | `Snow = 3`, then `0.5` | Many more flakes, then few; F10 round the cycle brings snow back at the last value |
@@ -514,6 +514,21 @@ game.
 about 3,600, far about 770; about 4,400 in all at strength 1, a little more than the rain's 3,800). The table above
 gives the new counts. The near layer's 40 big flakes are the ones that cost the most to draw; if S10 shows a drop,
 they're the first to thin.
+
+**Changed (2026-11-20, after an in-game screenshot on a Forest hole):** the snow read as light, realistic flurries:
+the main layer's flakes came out one or two pixels across, so their shape and blue shade never showed and they
+vanished against white cloud; the sky looked close to clear, the far fog grey-green, and the saturated grass said
+summer. So:
+
+- the main layer's flakes are about 1.5× bigger (0.07–0.12 m, from 0.045–0.08) and may cover up to 2% of the
+  screen (from 1.2%); the count is unchanged, so the cost barely moves;
+- the sky moves further (0.9 of the way, from 0.75) toward a paler blue top (0.62, 0.76, 0.97);
+- the fog moves further (0.9, from 0.75) toward a whiter blue-white (0.92, 0.95, 1);
+- while it snows the grade is a little colder (white balance −12) and less saturated (−12), eased in and out with the
+  sky and applied whatever `Effects.ColorGrading` is, like the weather's fog.
+
+S2 gains the colder grade. Whether the sky in that screenshot had finished its 10-second change isn't known: if S2's
+sky still looks clear after 15 seconds of snow, the sky tint isn't reaching that course's sky.
 
 ## Cartoon rain
 

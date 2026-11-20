@@ -68,7 +68,12 @@ namespace LightGreen.Systems
         /// <summary>Snow's fog: it closes in less than rain's, toward a bright blue-white.</summary>
         private const float SnowFogStart = 0.7f;
         private const float SnowFogEnd = 0.8f;
-        private static readonly Color SnowFog = new Color(0.88f, 0.93f, 1f);
+        private static readonly Color SnowFog = new Color(0.92f, 0.95f, 1f);
+        private const float SnowFogBlend = 0.9f;
+        /// <summary>Snow's grade at full strength: a little colder (white balance) and less saturated, so green grass under
+        /// falling snow doesn't read as summer. Applied whatever Effects.ColorGrading is, like the weather's fog.</summary>
+        private const float SnowTemperature = -12f;
+        private const float SnowSaturation = -12f;
         /// <summary>Cartoon rain's mist: it closes in between rain's and snow's, toward a soft blue.</summary>
         private const float MistFogStart = 0.6f;
         private const float MistFogEnd = 0.7f;
@@ -100,10 +105,12 @@ namespace LightGreen.Systems
             // Colour grading: the course's values, plus the biome's and the time of day's.
             float grading = Settings.ColorGrading.Value;
             _color.contrast.Override(Mathf.Clamp(_courseContrast + Mathf.Clamp(biome.contrast + time.contrast, -20f, 20f) * grading, -100f, 100f));
-            _color.saturation.Override(Mathf.Clamp(_courseSaturation + Mathf.Clamp(biome.saturation + time.saturation, -25f, 25f) * grading, -100f, 100f));
+            // In snow, a little colder and less saturated, eased in and out with its sky.
+            float snowGrade = Mathf.Clamp01(env.Overcast) * Mathf.Clamp01(env.Snowy);
+            _color.saturation.Override(Mathf.Clamp(_courseSaturation + Mathf.Clamp(biome.saturation + time.saturation, -25f, 25f) * grading + SnowSaturation * snowGrade, -100f, 100f));
             // Plus Brightness.Day or Night's share past what more light can show (0 most of the time).
             _color.postExposure.Override(_courseExposure + Mathf.Clamp(biome.exposure + time.exposure, -0.5f, 0.5f) * grading + env.ExposureBoost);
-            _white.temperature.Override(Mathf.Clamp(_courseTemperature + (biome.temperature + time.temperature) * grading, -100f, 100f));
+            _white.temperature.Override(Mathf.Clamp(_courseTemperature + (biome.temperature + time.temperature) * grading + SnowTemperature * snowGrade, -100f, 100f));
             _white.tint.Override(Mathf.Clamp(_courseTint + (biome.tint + time.tint) * grading, -100f, 100f));
 
             // Distance haze: the game's own fog, moved where the presets put it and coloured toward the horizon.
@@ -134,7 +141,7 @@ namespace LightGreen.Systems
                 float lit = light * Mathf.Lerp(1f, 0.3f, Mathf.Clamp01(env.Darkness));
                 Color snowFog = SnowFog * lit;
                 snowFog.a = fog.a;
-                fog = Color.Lerp(fog, snowFog, 0.75f * overcast * snowy);
+                fog = Color.Lerp(fog, snowFog, SnowFogBlend * overcast * snowy);
                 Color mistFog = MistFog * lit;
                 mistFog.a = fog.a;
                 fog = Color.Lerp(fog, mistFog, 0.7f * overcast * misty);
