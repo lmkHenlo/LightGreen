@@ -54,7 +54,7 @@ Super Battle Golf/
 ## Usage
 
 1. Start a hole. LightGreen is on from the start.
-2. Press **F9** to change the time of day, **F8** to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen · Filter: Noir"), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
+2. Press **F9** to change the time of day, **F8** to compare with the game's own look, **F10** to switch the rain off and on, and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen: Filter: Noir", like a player's message), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
 3. Change anything else in `BepInEx/config/com.lightgreen.cfg` (in r2modman: **Config editor**). It's reloaded within a second when you save it, so you can tune while you play. For example, to turn rain on:
 
 ```ini

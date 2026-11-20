@@ -413,8 +413,11 @@ setup, vote-kick results). From the game's data, the chat box shows up to 7 new 
 session, menus included.
 
 - `General.Notices`: `Chat` (default), `Screen` (the top-left corner, as before) or `Off`.
-- Chat lines read `LightGreen · <message>`, the name bold and green, the message as plain text (`<noparse>`), so a
-  filter name with tags in it shows as typed.
+- Chat lines are built the way the game builds a player's message (`TextChatUi`'s own code): the name through
+  `GameManager.UiSettings.ApplyColorTag(name, TextHighlight.Regular)` (the game's highlight colour), `": "`, then the
+  message through `GameManager.RichTextNoParse`, so it reads `LightGreen: Filter: Noir` like `lmkHenlo: asdf`, and a
+  filter name with tags in it shows as typed. (First version: `LightGreen · <message>`, the name bold in LightGreen's
+  own green; changed to match the game's lines.)
 - Each kind of message (time, filter, rain, toggle) keeps only its latest text until no change has come for
   `General.NoticeDelay` seconds (0.5 by default, 0–2; 0 posts each at once). Screen mode stays instant.
 - No chat box at that moment: the message goes to the top-left corner. If the call fails (a game update changed the
@@ -423,15 +426,16 @@ session, menus included.
 - LightGreen now references the game's `SharedAssembly` (where `TextChatUi.HasInstance` is defined), which every
   copy of the game has.
 
-**Checked before the build (outside the game):** the line is formatted as above; a name with tags stays plain text; no
-chat box returns false with nothing posted; a failing call returns false with one warning, then stays off for the
-session with no more warnings. The merging is checked in the game (N2, N3).
+**Checked before the build (outside the game):** the line is built as above; a name with tags stays plain text; with
+no UI settings yet, the name shows without colour; no chat box returns false with nothing posted; a passing error
+(say, while a scene loads) returns false that time only, with no warning; a missing type or method (a game update)
+returns false with one warning, then stays off for the session with no more warnings. The merging is checked in the game (N2, N3).
 
 **Build:** as before, plus `Core/ChatNotices.cs`. No warnings.
 
 | # | Check | How | Pass if |
 |---|---|---|---|
-| N1 | Chat line | On a hole, F9 | About half a second later, `LightGreen · Time of day: …` in the chat box; nothing top-left; it fades after about 5 seconds |
+| N1 | Chat line | On a hole, F9 | About half a second later, `LightGreen: Time of day: …` in the chat box, the name coloured like a player's; nothing top-left; it fades after about 5 seconds |
 | N2 | Rapid presses | F11 ten times quickly | One line, with the last filter |
 | N3 | Two kinds | F9 then F11 quickly | Two lines, the time and the filter |
 | N4 | History | Open the chat | LightGreen's lines are in the history with players' messages |
@@ -443,4 +447,10 @@ session with no more warnings. The merging is checked in the game (N2, N3).
 | N10 | Tags in a name | In `LightGreen.filters.json`, copy Mono's entry and name the copy `<b>Bold` (Windows doesn't allow `<` in a file name, so not a `.cube`); F11 to it | The line shows `<b>Bold` as typed |
 | N11 | Others don't see it | In multiplayer, with a second player if you can | They see none of LightGreen's lines |
 | N12 | VR | With SBGVR, F9 | Note whether the chat line shows in the headset |
+
+**Results (2026-11-20), first look:** the lines appear in the chat box and stay in its history alongside players'
+messages (`LightGreen · on`, `LightGreen · Rain: on (1)`, `LightGreen · Filter: Cyanotype`, then `lmkHenlo: asdf`).
+At the user's request they now match the game's own lines (`LightGreen: …`, the name in the game's highlight colour);
+LightGreen stays in the chat rather than the kill feed (`InfoFeed`, which would need a Harmony patch on private code).
+Rerun N1–N12 with the new look.
 
