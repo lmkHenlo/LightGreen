@@ -149,8 +149,8 @@ namespace LightGreen
                 "Keys.RainKey steps through clear, rain, cartoon rain and snow while playing. Only one weather shows at a time: " +
                 "turning one on turns the others off.");
             CartoonRain = Effect(config, "CartoonRain", 0f, 3f,
-                "Cartoon rain on every course: bold, bright white streaks, easier to see than Effects.Rain, ripple rings where " +
-                "drops land, and a soft blue mist that keeps the colours bright. Off by default. The value is how heavy. " +
+                "Cartoon rain on every course: bold, bright white streaks, easier to see than Effects.Rain but still rain, " +
+                "and a soft blue mist that keeps the colours bright. Off by default. The value is how heavy. " +
                 "Keys.RainKey steps through clear, rain, cartoon rain and snow. Only one weather shows at a time: turning one " +
                 "on turns the others off.");
             Snow = Effect(config, "Snow", 0f, 3f,

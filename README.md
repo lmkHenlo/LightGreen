@@ -98,7 +98,7 @@ AmbientOcclusionQuality = Low
 | `Filters.Strength` | `1` | How much of the photo filter shows, 0–1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | Strength per effect, 0 off, 1 tuned, 2 double, each up to its own most (below): `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain`, `Effects.CartoonRain`, `Effects.Snow` | `0` | Off unless you turn them up, on the same scale. |
-| `Effects.CartoonRain` | `0` | Cartoon rain on every course: bold, bright white streaks, easier to see than `Effects.Rain` but still rain, ripple rings where drops land, and a soft blue mist that keeps the colours bright. 0–3, how heavy. One weather at a time, as for snow. |
+| `Effects.CartoonRain` | `0` | Cartoon rain on every course: bold, bright white streaks, easier to see than `Effects.Rain` but still rain, and a soft blue mist that keeps the colours bright. 0–3, how heavy. One weather at a time, as for snow. |
 | `Effects.Snow` | `0` | Cartoon snow on every course: soft, round flakes drifting with the wind, a few big ones close by, and a bright, pale blue sky. Nothing settles on the ground. 0–3, how heavy. Only one weather shows at a time: turning one on turns the others off, and if more than one is on when the game starts, snow is kept, then cartoon rain. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
 | `Effects.FootprintSeconds` | `45` | How long a footprint in snow lasts, 2–180 seconds (the game's last about 2). |
@@ -193,7 +193,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Core/MaterialEdits.cs` | Material changes that can be undone exactly. |
 | `plugin/src/Core/GameFlashes.cs` | The game's Explosion flashes option, which makes LightGreen's flashes gentler. |
 | `plugin/src/Core/GameWind.cs` | The game's wind, which the weather drifts with. |
-| `plugin/src/Core/FlakeArt.cs`, `RainArt.cs` | Draw the snowflakes, and cartoon rain's streaks and ripples, in code. |
+| `plugin/src/Core/FlakeArt.cs`, `RainArt.cs` | Draw the snowflakes, and cartoon rain's streaks, in code. |
 | `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
 | `plugin/src/Core/LutBuilder.cs`, `CubeLut.cs` | A photo filter's colours as a lookup table, and the `.cube` file reader. |
 | `plugin/src/Core/Json.cs` | Reads and writes the presets and filters files. |

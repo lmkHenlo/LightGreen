@@ -586,3 +586,7 @@ be seen on the tee in front of the player. Changed:
 | C11 | Clear zone | Cartoon rain on Timber hole 2 as in the screenshot; look round, at a wide field of view too | No long slashes at the edges; streaks nearly parallel, slanting one way; still clearly rain, and still heavier-looking than `Rain = 1` |
 | C12 | Ripples seen | Same place; stand still and look at the tee and the fairway | White two-ring ripples spread on the ground round you; the log line above appears |
 
+**Changed (2026-11-20):** the ground ripples are taken out at the user's request (with the ripple picture in
+`RainArt.cs`): cartoon rain is its streaks and its blue mist. C6 and C12 no longer apply; C2 no longer looks for
+ripples.
+
