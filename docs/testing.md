@@ -801,3 +801,6 @@ its top edge, below the meter's bottom-right corner: from the layout file (meter
 4.5 units above the meter's bottom at the game's size), at `SwingWind` 100 with `PowerMeter` 50 its top now sits where
 it does at the game's size, touching the meter's corner, and it grows downward. Screen-level groups keep the anchored
 side as before. H15 again.
+
+**Results (2026-11-21, H15 again):** the meter at half size, the swing wind at full size hanging just below the meter's
+bottom end, clear of it, its badge under the meter's corner. **H15 passes.** H16 (`Hints`) remains.
