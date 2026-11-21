@@ -881,3 +881,13 @@ most ten times a second. The `Materials tuned` line now gives the scan's time an
 | M4 | Looks the same | Compare shadow tint on players, cosmetics and the course, water and snow glints, before and after a few map changes, and in City at night | As before; a newly put on cosmetic tinted within a few seconds |
 | M5 | F8 | F8 through HUD only and off and back on a hole | Materials back to the game's in HUD only and off, tinted again when on |
 | M6 | Memory | LobbyEOS's 30 s lines over the hour | `Unity allocated` and the process size don't climb as they did (1.06 → 1.87 GB and 4.3 → 9.2 GB in this log) |
+
+Also from the heap paths of the same session (LobbyEOS, 19:37 UTC): `BallGlow._thisFrame` held a destroyed renderer.
+The set is cleared at the start of each glowing frame, so when the glow stopped (daylight, F8, off) it kept the last
+frame's balls, and the materials that can't glow (`_cantGlow`) were never let go. `BallGlow.Restore` now clears every
+renderer and material list, and it runs at each map change too.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| M7 | Ball glow | At night, see balls glow; change the time to day with F9, then back to night; play into the next map at night | Balls glow again each time; no ball keeps a glow by day |
+| M8 | Heap paths | In LobbyEOS's heap paths after an hour or more | No `BallGlow.` or `MaterialTuner.` lines under "held through" (or only a few, from the current map) |

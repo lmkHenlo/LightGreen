@@ -41,7 +41,7 @@ namespace LightGreen.Systems
         private readonly List<Renderer> _done = new List<Renderer>();
         private readonly HashSet<Material> _cantGlow = new HashSet<Material>();
 
-        private GolfBall[] _balls = new GolfBall[0];
+        private GolfBall[] _balls = System.Array.Empty<GolfBall>();
         private float _nextScan;
 
         public void Apply()
@@ -142,7 +142,13 @@ namespace LightGreen.Systems
                 foreach (Renderer r in _done) Unglow(r);
             }
             _edits.Restore();
-            _balls = new GolfBall[0];
+            // Let go of every renderer and material, so nothing from a map that's gone stays referenced (the
+            // renderer list kept the last frame's balls while the glow was off). Also called at each map change.
+            _glowing.Clear();
+            _thisFrame.Clear();
+            _done.Clear();
+            _cantGlow.Clear();
+            _balls = System.Array.Empty<GolfBall>();
             _nextScan = 0f;
         }
     }

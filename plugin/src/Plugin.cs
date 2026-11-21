@@ -49,6 +49,7 @@ namespace LightGreen
         private VolumeLayer _volumes;
         private readonly PhotoFilter _filter = new PhotoFilter();
         private CityNight _cityNight;
+        private BallGlow _ballGlow;
         private Rain _rain;
         private Snow _snow;
         private CartoonRain _cartoonRain;
@@ -101,7 +102,8 @@ namespace LightGreen
             _features.Add(new EffectLights(_lightPool));
             _features.Add(new LightningLights(_lightPool));
             _features.Add(_cityNight);
-            _features.Add(new BallGlow(_environment));
+            _ballGlow = new BallGlow(_environment);
+            _features.Add(_ballGlow);
             _features.Add(_lightPool);
             // Weather.
             _rain = new Rain(_environment);
@@ -135,6 +137,7 @@ namespace LightGreen
                 _materials.Rescan(announce: true);
                 _cityNight.Restore();
                 _cityNight.Rescan();
+                _ballGlow.Restore();
                 _rain.Rescan();
                 _hud.Rescan();
             };
