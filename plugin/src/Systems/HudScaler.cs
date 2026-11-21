@@ -51,6 +51,7 @@ namespace LightGreen.Systems
             internal Transform Piece;
             internal HudPart Part;
             internal Transform Outer;   // the nearest other group's element above it, scaled before it; null if none
+            internal HudPart OuterPart; // that element's group
             internal bool AboutPivot;   // shrinks about its own pivot (it follows something on screen)
             internal int Depth;         // how deep in the hierarchy: outer elements are scaled first
         }
@@ -177,12 +178,18 @@ namespace LightGreen.Systems
 
             var targets = new List<Target>();
             var claimed = new HashSet<Transform>();
-            foreach (Root root in roots) claimed.Add(root.Transform);
+            var partOf = new Dictionary<Transform, HudPart>();
+            foreach (Root root in roots)
+            {
+                claimed.Add(root.Transform);
+                partOf[root.Transform] = root.Part;
+            }
             foreach (Root root in roots)
                 targets.Add(new Target
                 {
                     Piece = root.Transform, Part = root.Part, AboutPivot = root.AboutPivot,
-                    Outer = Outer(root.Transform, claimed), Depth = Depth(root.Transform),
+                    Outer = Outer(root.Transform, claimed, partOf, out HudPart outerPart), OuterPart = outerPart,
+                    Depth = Depth(root.Transform),
                 });
             // Outer elements first: an inner one is placed against its outer one as scaled this frame.
             targets.Sort((a, b) => a.Depth.CompareTo(b.Depth));
@@ -279,6 +286,8 @@ namespace LightGreen.Systems
                         case LockOnTargetUiManager lockOn:
                             containers.Add(new KeyValuePair<HudPart, Transform>(HudPart.Reticles, lockOn.transform));
                             break;
+                        case TutorialPromptUi hint: Add(HudPart.Hints, hint.transform); break;
+                        case TutorialObjectiveUi objective: Add(HudPart.Hints, objective.transform); break;
                         case JumboBurgerGiantFormTimerManager timers:
                             containers.Add(new KeyValuePair<HudPart, Transform>(HudPart.GiantTimer, timers.transform));
                             break;
@@ -357,10 +366,16 @@ namespace LightGreen.Systems
         }
 
         /// <summary>The nearest other group's element above this one, or null.</summary>
-        private static Transform Outer(Transform transform, HashSet<Transform> claimed)
+        private static Transform Outer(Transform transform, HashSet<Transform> claimed, Dictionary<Transform, HudPart> partOf,
+            out HudPart part)
         {
+            part = default;
             for (Transform t = transform.parent; t != null; t = t.parent)
-                if (claimed.Contains(t)) return t;
+                if (claimed.Contains(t))
+                {
+                    part = partOf[t];
+                    return t;
+                }
             return null;
         }
 
@@ -375,9 +390,10 @@ namespace LightGreen.Systems
 
         /// <summary>
         /// Scales one element toward its still point. An element inside another group's element (the stroke count
-        /// and wind inside the progress bar, the swing wind inside the power meter) is first placed as if the outer one
-        /// were at the game's size, then put back against the outer one as scaled, so each group keeps its own size and
-        /// place whatever the other's is: the outer one is scaled whole, its own graphics with it.
+        /// and wind inside the progress bar, the swing wind inside the power meter) moves with the outer one, which is
+        /// scaled whole, but keeps its own size: its still point goes where the outer one's scaling takes it, and its
+        /// size is undone back to its own setting. With the outer one hidden there's nothing to follow, and it stays where
+        /// it is with the outer one at the game's size.
         /// </summary>
         private void Apply(Target target)
         {
@@ -402,13 +418,17 @@ namespace LightGreen.Systems
                 return;
             }
 
-            // As it would be with the outer element at the game's size.
-            Vector3 newScale = held.BaseScale * k;
+            // Its scale in its parent: its own, undone through the outer element's scale when that moves it along.
+            bool follow = outerScaled && !Hides(target.OuterPart);
+            Vector3 factor = Vector3.one * k;
+            if (follow) factor = Vector3.Scale(factor, Divide(_held[target.Outer].BaseScale, target.Outer.localScale));
+            Vector3 newScale = Vector3.Scale(held.BaseScale, factor);
             Vector3 newPosition = held.BasePosition;
             if (!target.AboutPivot && StillPoint(piece, held, out Vector3 still))
-                newPosition = new Vector3(HudMath.Toward(held.BasePosition.x, still.x, k),
-                    HudMath.Toward(held.BasePosition.y, still.y, k), HudMath.Toward(held.BasePosition.z, still.z, k));
-            if (outerScaled) AgainstOuter(target, ref newPosition, ref newScale);
+                newPosition = new Vector3(HudMath.Toward(held.BasePosition.x, still.x, factor.x),
+                    HudMath.Toward(held.BasePosition.y, still.y, factor.y), HudMath.Toward(held.BasePosition.z, still.z, factor.z));
+            // The outer element hidden: where it would be with the outer one at the game's size.
+            if (outerScaled && !follow) AgainstOuter(target, ref newPosition, ref newScale);
 
             if (!Same(position, newPosition)) piece.localPosition = newPosition;
             if (!Same(scale, newScale)) piece.localScale = newScale;

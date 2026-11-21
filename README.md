@@ -151,6 +151,7 @@ Each part of the HUD has its own size in the `[HUD]` section, in percent: 100 (t
 | `QuickChat` | The quick chat wheel |
 | `Reticles` | Item crosshairs, the interact marker and lock-on markers |
 | `GiantTimer` | The Jumbo Burger giant-form countdown |
+| `Hints` | The game's tip pop-ups ("Cancel Swing") and the tutorial's objective box |
 
 **F8** steps through three views: LightGreen on, then HUD only (the game's own look with your HUD sizes), then off (the game's own look and HUD).
 

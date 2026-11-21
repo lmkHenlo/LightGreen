@@ -653,7 +653,7 @@ cartoon rain are signed off as they stand.
 Asked for from two screenshots (walking and in the swing stance): every HUD group sized on its own, 0–100 %, 0 hiding
 it; built into LightGreen as a `[HUD]` section, not a separate mod. The hole's beam and the aim line were taken off the
 list at the user's request and are never changed. The user then asked for every other HUD part that could be scaled
-cleanly as well: 27 settings in all (the README's table). **F8** gains a third step: on → HUD only (the game's own look
+cleanly as well: 27 settings in all, 28 with `Hints` (added later; the README's table). **F8** gains a third step: on → HUD only (the game's own look
 with the `[HUD]` sizes) → off (the game's own look and HUD) → on.
 
 How it works (`Systems/HudScaler.cs`, `Systems/HudPatches.cs`, `Core/HudMath.cs`):
@@ -687,7 +687,7 @@ warnings.
 
 | # | Check | Steps | Expected |
 |---|---|---|---|
-| H1 | Log | Start the game | `[ok] Hook: HUD markers`, `[ok] Hook: HUD name tags`, `[ok] Hook: HUD pop-up words`; the load line says `F8 compares with the game's own look (on, HUD only, off)`; the config file has a `[HUD]` section of 27 settings at 100; no errors |
+| H1 | Log | Start the game | `[ok] Hook: HUD markers`, `[ok] Hook: HUD name tags`, `[ok] Hook: HUD pop-up words`; the load line says `F8 compares with the game's own look (on, HUD only, off)`; the config file has a `[HUD]` section of 28 settings at 100; no errors |
 | H2 | Layout file | Play a hole for 10 s | `HUD layout written to …LightGreen.hud.txt` in the log; send the file (and `LogOutput.log`, for its `HUD: … is …` lines) |
 | H3 | All at 50 | Every `[HUD]` setting at 50; walk, then take the swing stance (screenshot each, as before) | Every element from the two screenshots at half size, each at its own corner or side; nothing missing, nothing moved away from its place; the hole's beam and the aim line unchanged |
 | H4 | All at 0 | Every `[HUD]` setting at 0 | All of them gone; the beam and the aim line still there; F8's message shows top left, not in the hidden chat |
@@ -758,3 +758,24 @@ keep their own sizes and places at any `ProgressBar`, and can stay when the bar 
 `PowerMeter`. Two levels only (an inner group inside an inner group isn't in the HUD).
 
 H3 again for the progress bar.
+
+**Results and change (2026-11-21, H3 again, `ProgressBar` 50, `Strokes` 60, `Wind` 40, the rest 50):** the progress
+bar now shrinks whole, bar, flag and portraits together in the top-left corner, and the stroke count and wind came out
+at their own, different sizes: nested groups size independently. The rest as before; ReConfig's changes applied at
+once. Two things changed after it, on the user's go-ahead:
+
+- **The readouts followed nothing.** Placed as they'd sit under a full-size bar, the wind and stroke count stayed put
+  while the bar shrank to the corner, about 110 px below it (likewise the swing wind beside the power meter). Now an
+  inner group moves with its outer one and keeps only its own size: it's scaled about its own still point by its
+  setting divided by the outer one's scale, so its still point goes where the outer one's scaling takes it. With the
+  outer one hidden (0) there's nothing to follow, and it stays where it is with the outer one at the game's size (the
+  mapping from before), rather than all of them gathering in the outer one's corner.
+- **The tip pop-up wasn't covered** ("Cancel Swing: press F to cancel a charged swing", on the Driving Range): left out
+  as tutorial-only, wrongly. A 28th setting, `Hints`, covers it (`TutorialPromptUi`) and the tutorial's objective box
+  (`TutorialObjectiveUi`).
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| H14 | Readouts follow | `ProgressBar` 50, `Strokes` 60, `Wind` 40; then `ProgressBar` 0 | At 50: the wind and stroke count just under the half-size bar, each at its own size; at 0: the bar gone, the two readouts where they are with a full-size bar |
+| H15 | Swing wind follows | `PowerMeter` 50, `SwingWind` 100, swing stance | The swing wind at full size, just under the half-size meter |
+| H16 | Hints | `Hints` 50 on the Driving Range until a tip pops up | The tip box at half size |

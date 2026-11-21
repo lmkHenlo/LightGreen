@@ -16,6 +16,7 @@ namespace LightGreen
         ProgressBar, Strokes, Wind, HoleMarker, BallMarker, RestartPrompt, ItemBar, PowerMeter, SwingWind, AngleSelector,
         ControlPrompts, NameTags, TeammateMarkers, OtherMarkers, PopupText, Chat, KillFeed, Scoreboard, VoiceChat,
         HoleBanner, ObjectiveMessage, TeamScore, SpeedBoost, SpectatorPrompts, QuickChat, Reticles, GiantTimer,
+        Hints,
     }
 
     /// <summary>LightGreen's settings (BepInEx/config/com.lightgreen.cfg). Each feature adds its own as it's built.</summary>
@@ -103,6 +104,7 @@ namespace LightGreen
             "Item crosshairs (railgun, rocket launcher, pistols and the like), the interact marker and lock-on markers. At 0 you aim " +
                 "those items without a crosshair.",
             "The Jumbo Burger giant-form countdown.",
+            "The game's tip pop-ups (\"Cancel Swing: press F to cancel a charged swing\") and the tutorial's objective box.",
         };
 
 
