@@ -845,3 +845,39 @@ line still counts every `.cube` file found).
 | L2 | Filters still work | F11 through a few `.cube` filters, and back to one used before | Each shows as before; the first time each is picked can take a moment (it's read then) |
 | L3 | A bad file | Put a broken `.cube` (a text file renamed) in the folder; pick it | A warning naming the file when picked; the picture unfiltered by it; nothing at start |
 | L4 | Play | Play a few holes as before | No hitching beyond what the network does |
+
+## Weather stutter and a growing hitch while hosting (after 0.3.0)
+
+**Report (2026-11-21):** hosting a lobby (up to 19 players, 19:25–21:57 UTC, 70 map changes), "major frame stutters
+with the weather effects on; with the weather off, only a consistent hitch". `LogOutput.log` with LightGreen 0.3.0
+(the released DLL, not the L1–L4 test one: the heap was 333 MB in the menu and LobbyEOS's census showed
+`LightGreen.Core.Rgb[]: 217 MB, 446`, the .cube tables), LobbyEOS, ReConfig, SliderSens and VCTextLobby. Found:
+
+- `Materials tuned:` went from 315 toon materials at the first hole to 32,686 at the last, and LobbyEOS's census
+  showed `LightGreen.Core.MaterialEdits.Stock` (with its four dictionaries) at 15,491, then 31,988. The game calls
+  `Renderer.materials` for each player on each hole (`PlayerShaderDataHelper.SetPlayerShaderIndexOnRenderers`) and
+  never destroys the copies; `MaterialTuner` found materials with `Resources.FindObjectsOfTypeAll<Material>()` and
+  kept every one in `_known`, `_toon` and its stock table, and the biome went None and back in the same frame at
+  each map change, so `Restore` never ran. Unity doesn't unload an asset a script still references.
+- The consistent hitch: one frame over 50 ms every 20 s exactly (the scan's interval after a hole's first ten
+  scans), growing from about 50 ms at 21:11 to 81 ms at 21:53. It doesn't follow the garbage collections.
+- The weather stutter: in the 10 s windows while F10 stepped through the weather and for about 20 s after (the
+  weather fading out), frames p95 33.5 ms against 4.5–5.6 ms otherwise. The shade colours follow the sky, so
+  `MaterialTuner.Apply` re-set all 32,000 materials every frame of the blend.
+- Not LightGreen's: `System.Byte[]` and `System.Int16[]` grew by about 50 MB an hour, and Mono's heap reached 625 MB;
+  the map-change frames (300–650 ms) are loading, as in every session.
+
+Changed: materials are found on renderers in the world (`FindObjectsByType<Renderer>`, inactive ones included,
+`GetSharedMaterials` into one list), not every material in memory; at each map change `MaterialTuner.Forget` puts
+them all back and lets go, and City night lighting does the same; later scans are every 10 s; a blend re-tunes at
+most ten times a second. The `Materials tuned` line now gives the scan's time and renderer count, and a scan over
+8 ms is logged once per map.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| M1 | Counts stay level | Host or play for an hour or more; read the `Materials tuned` lines | The toon count is about the same on each map (hundreds to a few thousand), not climbing by hundreds each map; each line says the scan took a few ms |
+| M2 | Weather | On a hole with 10+ players, F10 through rain, cartoon rain and snow, staying on each for a minute, then clear | No stutter while each fades in, stays or fades out |
+| M3 | No regular hitch | Play with the weather off for 20+ minutes | No hitch every 10–20 s; LobbyEOS's `frames:` lines without a regular frame over 50 ms |
+| M4 | Looks the same | Compare shadow tint on players, cosmetics and the course, water and snow glints, before and after a few map changes, and in City at night | As before; a newly put on cosmetic tinted within a few seconds |
+| M5 | F8 | F8 through HUD only and off and back on a hole | Materials back to the game's in HUD only and off, tinted again when on |
+| M6 | Memory | LobbyEOS's 30 s lines over the hour | `Unity allocated` and the process size don't climb as they did (1.06 → 1.87 GB and 4.3 → 9.2 GB in this log) |

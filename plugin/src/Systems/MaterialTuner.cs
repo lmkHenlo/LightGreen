@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using LightGreen.Core;
 using LightGreen.Presets;
 using UnityEngine;
@@ -10,6 +11,12 @@ namespace LightGreen.Systems
     /// (Effects.ShadowTint), sun highlights and time-of-day colour on water (Effects.WaterTuning), and glints on
     /// snow terrain (Effects.IceGlints). Every value is computed from the material's stock value, so applying again
     /// never compounds, and Restore puts every material back as the game had it.
+    ///
+    /// Only materials on renderers in the world are tuned, and all of them are let go at every map change
+    /// (<see cref="Forget"/>). The game makes a copy of a player's materials on each hole and never destroys it;
+    /// LightGreen used to look through every material in memory and keep each one it found, so over a long session
+    /// it held tens of thousands, which also kept Unity from freeing them. Its look every 20 s then hitched (50-80 ms
+    /// after two hours), and while the weather or the time of day changed, re-tuning them all took ~30 ms a frame.
     /// </summary>
     internal sealed class MaterialTuner : IFeature
     {
@@ -22,7 +29,10 @@ namespace LightGreen.Systems
         private readonly List<Material> _water = new List<Material>();
         private readonly List<Material> _terrain = new List<Material>();
         private readonly HashSet<Material> _known = new HashSet<Material>();
+        private readonly List<Material> _shared = new List<Material>();
         private float _nextScan;
+        private float _nextApply;
+        private bool _slowScanLogged;
         private int _scansSinceRescan;
         private bool _announce;
         private bool _forceApply = true;
@@ -56,6 +66,16 @@ namespace LightGreen.Systems
         /// Looks for new materials soon (a hole or cosmetics loaded). With announce, the next scan that finds
         /// materials logs the counts (once per biome change, not on hole changes or the ToggleKey).
         /// </summary>
+        /// <summary>
+        /// At a map change: every material back as the game had it, and all of them let go, so the ones the old
+        /// map's objects used can be freed. The new map's are found again by the scans that follow.
+        /// </summary>
+        internal void Forget()
+        {
+            Restore();
+            _slowScanLogged = false;
+        }
+
         internal void Rescan(bool announce = false)
         {
             _nextScan = 0f;
@@ -93,6 +113,10 @@ namespace LightGreen.Systems
                 Glints = glints,
             };
             if (!_forceApply && v.Same(_applied)) return;
+            // While the weather or the time of day blends, the values change every frame; ten times a second is
+            // smooth enough for shade colours and saves re-setting every material each frame.
+            if (!_forceApply && Time.unscaledTime < _nextApply) return;
+            _nextApply = Time.unscaledTime + 0.1f;
             _forceApply = false;
             _applied = v;
 
@@ -105,9 +129,10 @@ namespace LightGreen.Systems
 
         private void Scan()
         {
-            // Often while a hole loads in (players and cosmetics appear), then rarely: the search walks
-            // every material in memory.
-            _nextScan = Time.unscaledTime + (_scansSinceRescan++ < 10 ? 3f : 20f);
+            // Often while a hole loads in (players and cosmetics appear), then every 10 s for materials the game
+            // swaps in later (team colours, cosmetics).
+            _nextScan = Time.unscaledTime + (_scansSinceRescan++ < 10 ? 3f : 10f);
+            var watch = Stopwatch.StartNew();
             _edits.ForgetDestroyed();
             _known.RemoveWhere(m => m == null);
             _toon.RemoveAll(m => m == null);
@@ -116,23 +141,34 @@ namespace LightGreen.Systems
 
             bool found = false;
             int toon = 0, water = 0;
-            foreach (Material m in Resources.FindObjectsOfTypeAll<Material>())
+            // The materials on renderers in the world (inactive ones too, so pooled objects are ready when shown),
+            // not every material in memory: copies the game left behind with destroyed objects aren't drawn.
+            Renderer[] renderers = Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (Renderer r in renderers)
             {
-                if (m == null || m.shader == null || !_known.Add(m)) continue;
-                string shader = m.shader.name;
-                if (shader == ToonShader)
+                if (r == null) continue;
+                r.GetSharedMaterials(_shared);
+                foreach (Material m in _shared)
                 {
-                    AdoptToon(m);
-                    _toon.Add(m);
-                    toon++;
-                }
-                else if (shader == WaterShader)
-                {
-                    AdoptWater(m);
-                    _water.Add(m);
-                    water++;
+                    if (m == null || !_known.Add(m)) continue;
+                    Shader s = m.shader;
+                    if (s == null) continue;
+                    string shader = s.name;
+                    if (shader == ToonShader)
+                    {
+                        AdoptToon(m);
+                        _toon.Add(m);
+                        toon++;
+                    }
+                    else if (shader == WaterShader)
+                    {
+                        AdoptWater(m);
+                        _water.Add(m);
+                        water++;
+                    }
                 }
             }
+            _shared.Clear();
 
             foreach (Terrain t in Terrain.activeTerrains)
             {
@@ -149,11 +185,17 @@ namespace LightGreen.Systems
                 if (_announce)
                 {
                     _announce = false;
-                    // Counts include copies the game keeps loaded from earlier holes, so they grow over a session.
-                    Plugin.Log.LogInfo($"Materials tuned: {_toon.Count} toon, {_water.Count} water, {_terrain.Count} terrain.");
+                    Plugin.Log.LogInfo($"Materials tuned: {_toon.Count} toon, {_water.Count} water, {_terrain.Count} terrain " +
+                                       $"(found in {watch.Elapsed.TotalMilliseconds:0.0} ms on {renderers.Length} renderers).");
                 }
             }
             if (found) _forceApply = true;
+            if (!_slowScanLogged && watch.Elapsed.TotalMilliseconds > 8.0)
+            {
+                _slowScanLogged = true;
+                Plugin.Log.LogWarning($"Materials: looking for new materials took {watch.Elapsed.TotalMilliseconds:0.0} ms " +
+                                      $"({renderers.Length} renderers, {_known.Count} materials). Logged once per map.");
+            }
         }
 
         /// <summary>

@@ -130,7 +130,10 @@ namespace LightGreen
             {
                 Log.LogInfo($"Biome: {biome}.");
                 ForgetLogged("hole:");
+                // A new map: let go of the old map's materials (see MaterialTuner), then find the new ones.
+                _materials.Forget();
                 _materials.Rescan(announce: true);
+                _cityNight.Restore();
                 _cityNight.Rescan();
                 _rain.Rescan();
                 _hud.Rescan();
