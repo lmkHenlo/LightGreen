@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- HUD sizes: a `[HUD]` section with a size for each part of the HUD, from 0 (hidden) to 100 % (the game's size): the progress bar, stroke count, wind, hole and ball markers, restart prompt, item bar, power meter, swing wind, angle selector, control prompts, name tags, teammate and other markers, pop-up words, chat box, kill feed, scoreboard, voice chat icons, hole banner, objective message, team score, stamina wheel, spectator prompts, quick chat wheel, crosshairs and the giant-form timer. Screen elements shrink toward the side they sit at. The hole's beam and the aim line keep the game's size.
 - Cartoon rain (`Effects.CartoonRain`, off by default): bold, bright white streaks, easier to see than the rain but still rain, slanted with the wind, and a soft blue mist that keeps the colours bright. About 1,950 streaks, fewer than the rain's 2,800, with none passing right by the camera.
 - Snow (`Effects.Snow`, off by default): soft, round cartoon flakes drawn in code, swaying, turning and drifting with the wind, a few big soft ones passing close to the camera, a bright, pale blue sky, blue-white fog, and slightly colder, less saturated colours. About 4,850 flakes, against the rain's 2,800. Nothing settles on the ground.
 - Messages in the game's chat box: what F8–F11 or a config edit changed ("LightGreen: Filter: Noir", like a player's message) now shows as a line in your chat, seen only by you; nothing is sent. Quick presses are merged into one line per kind of change after `General.NoticeDelay` (0.5 s). With no chat box, the message shows in the top-left corner as before.
@@ -16,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **F8** (`Keys.ToggleKey`) steps through three views: LightGreen on, HUD only (the game's own look with the `[HUD]` sizes), and off (the game's own look and HUD). Its message reads `on`, `HUD only (the game's own look)` or `off (the game's own look)`.
 - **F10** (`Keys.RainKey`) steps the weather: clear, rain, cartoon rain, snow, then clear again. Only one weather shows at a time: turning one on turns the others off, and if more than one is on at start, snow is kept, then cartoon rain. Its message reads `Weather: rain (1)`, `Weather: cartoon rain (1)`, `Weather: snow (1)` or `Weather: clear`.
 - LightGreen's messages go to the chat box by default instead of the top-left corner; set `General.Notices = Screen` for the old behaviour.
 - `Filters.Filter`'s description no longer lists the filters' names; the dropdown does.

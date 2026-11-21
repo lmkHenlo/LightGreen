@@ -647,3 +647,55 @@ and R2 below), screenshots taken 15 s or more after switching.
 **Results (2026-11-20):** the user checked rain and cartoon rain with this build: "Looks good." Snow, rain and
 cartoon rain are signed off as they stand.
 
+
+## HUD sizes
+
+Asked for from two screenshots (walking and in the swing stance): every HUD group sized on its own, 0–100 %, 0 hiding
+it; built into LightGreen as a `[HUD]` section, not a separate mod. The hole's beam and the aim line were taken off the
+list at the user's request and are never changed. The user then asked for every other HUD part that could be scaled
+cleanly as well: 27 settings in all (the README's table). **F8** gains a third step: on → HUD only (the game's own look
+with the `[HUD]` sizes) → off (the game's own look and HUD) → on.
+
+How it works (`Systems/HudScaler.cs`, `Systems/HudPatches.cs`, `Core/HudMath.cs`):
+
+- **Screen elements** are found from the game's HUD components about once a second (`HoleProgressBarUi`,
+  `WindInfoUi`, `Hotkeys`' inventory and swing groups, `SwingPowerBarUi`, `SwingPitchUi`, `RestartPrompt`,
+  `ButtonPromptManager`'s corner and centre containers, `TextChatUi`, `InfoFeed`, `Scoreboard` and so on), and scaled
+  just before the HUD is drawn each frame (`Canvas.willRenderCanvases`), toward the side each is anchored to. What the
+  game set since the last frame is read back first, so its animations (the power meter's pop, the angle arc sliding to
+  the centre) carry on at the new size. Elements that follow something on screen (crosshairs, lock-on markers, the
+  angle arc, the giant-form timers) shrink about their own pivot.
+- **Groups inside groups** (the stroke count inside the progress bar, perhaps the wind too): the outer group is scaled
+  piece by piece round the inner one, about its own still point. **A container stretched over the screen** isn't
+  scaled; its children are, each toward its own side.
+- **Two wind readouts:** the higher one on screen is `Wind`, the lower one `SwingWind`.
+- **Markers, name tags, pop-up words** are sized by the game every frame from their distance; Harmony postfixes scale
+  them right after (`WorldspaceIconUi.OnPostPostLateBUpdate`, NameTagUi's `UpdateSize` local function,
+  `TextPopupUi.UpdateSize`). A marker's group comes from the game's settings for its kind (hole, ball, teammate, or
+  objective, ball dispenser and homing warning).
+- **0 %** is a scale of 0.0001, not 0, so the game's own maths on an element never divides by zero.
+- With `Chat` at 0, LightGreen's messages go to the top-left corner instead.
+- **For this test build only**, `BepInEx/LightGreen.hud.txt` is written five seconds into the first hole of each game:
+  every group's elements and the pieces scaled, with anchors, pivots and sizes, and the HUD's whole tree. It's for
+  checking which element is which (the two wind readouts, whether the angle triangle and arc are separate, the power
+  meter's container); it's taken out, or put behind a setting, before release.
+
+Offline: `/tmp/hudtest` checks `HudMath` (percent to scale, 0 → 0.0001, which edge stays still, an element anchored
+bottom right keeping its right edge at 50 % and shrinking into its corner at 0 %): all pass. The build compiles with no
+warnings.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| H1 | Log | Start the game | `[ok] Hook: HUD markers`, `[ok] Hook: HUD name tags`, `[ok] Hook: HUD pop-up words`; the load line says `F8 compares with the game's own look (on, HUD only, off)`; the config file has a `[HUD]` section of 27 settings at 100; no errors |
+| H2 | Layout file | Play a hole for 10 s | `HUD layout written to …LightGreen.hud.txt` in the log; send the file (and `LogOutput.log`, for its `HUD: … is …` lines) |
+| H3 | All at 50 | Every `[HUD]` setting at 50; walk, then take the swing stance (screenshot each, as before) | Every element from the two screenshots at half size, each at its own corner or side; nothing missing, nothing moved away from its place; the hole's beam and the aim line unchanged |
+| H4 | All at 0 | Every `[HUD]` setting at 0 | All of them gone; the beam and the aim line still there; F8's message shows top left, not in the hidden chat |
+| H5 | One at a time | Each setting to 0 alone, back to 100 before the next; most important: `ProgressBar` and `Strokes`, `Wind` and `SwingWind`, `ItemBar` and `AngleSelector`, `PowerMeter` | Only that group disappears |
+| H6 | Live | Change a size in a config editor (ReConfig) while playing | It shows within a second |
+| H7 | F8 | Sizes at 50; F8 three times | HUD only: the game's own look, HUD still at 50; off: the game's own look and its full-size HUD; on: both back. Chat: `on`, `HUD only (the game's own look)`, `off (the game's own look)`; F9, F10 and F11 work only at on |
+| H8 | Animations | Sizes at 50: swing and release; change the angle; change items; take a stroke | The power meter pops, the angle arc slides to the middle and back, the slots grow when selected, the stroke count fades in and out, all at half size; nothing jumps or creeps across the screen |
+| H9 | Other screens | Sizes at 50: Tab, quick chat, spectate after finishing, a golf cart, the next hole | Each at half size and in its place; the next hole keeps the sizes |
+| H10 | Markers | `HoleMarker`, `BallMarker`, `NameTags`, `PopupText` at 50, then 0 | The markers and their arrows at the screen's edge, the name tags and the pop-up words at half size, then gone |
+| H11 | Back | Everything back to 100; then `General.Enabled = false` with sizes at 50 | Exactly the game's HUD, in the same places |
+| H12 | VR | Sizes at 50 with SBGVR | The HUD in the headset at half size, nothing stuck to the view |
+| H13 | Frame rate | Sizes at 50 and 100, F8 between | No change in frame rate worth noting |

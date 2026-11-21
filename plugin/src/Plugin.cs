@@ -22,7 +22,8 @@ namespace LightGreen
     /// Phase 2 (light): ambient occlusion (the game's HTrace AO, grass left out), grass toggle, effect lights, ball
     /// glow, lightning, City night.
     /// Phase 3 (weather): footprints in snow, and rain without the wet look.
-    /// Then: photo filters (colour lookup tables built at runtime, and your own .cube files).
+    /// Then: photo filters (colour lookup tables built at runtime, and your own .cube files), and the [HUD] sizes,
+    /// which ToggleKey can keep with the game's own look (HUD only).
     /// </summary>
     [BepInPlugin(Guid, Name, Version)]
     public class Plugin : BaseUnityPlugin
@@ -52,9 +53,13 @@ namespace LightGreen
         private Snow _snow;
         private CartoonRain _cartoonRain;
         private readonly Footprints _footprints = new Footprints();
+        private readonly HudScaler _hud = new HudScaler();
         private Harmony _harmony;
 
-        private bool _comparing;
+        /// <summary>ToggleKey's steps: LightGreen on; the game's own look with the [HUD] sizes; the game's own look.</summary>
+        private enum View { On, HudOnly, Off }
+
+        private View _view = View.On;
         private float _lastRain = 1f;   // how heavy the rain comes back with RainKey
         private float _lastSnow = 1f;   // and the snow
         private float _lastCartoonRain = 1f;   // and the cartoon rain
@@ -116,6 +121,10 @@ namespace LightGreen
                 new PatchModule(typeof(GrassFreeDepth.GrassPatch), "Hook: Grass material").TryApply(_harmony, Log);
             GrassFreeDepth.HTraceHooked =
                 new PatchModule(typeof(GrassFreeDepth.HTracePatch), "Hook: Ambient occlusion depth").TryApply(_harmony, Log);
+            new PatchModule(typeof(HudPatches.MarkerPatch), "Hook: HUD markers").TryApply(_harmony, Log);
+            new PatchModule(typeof(HudPatches.NameTagPatch), "Hook: HUD name tags").TryApply(_harmony, Log);
+            new PatchModule(typeof(HudPatches.PopupPatch), "Hook: HUD pop-up words").TryApply(_harmony, Log);
+            _hud.Hook();
 
             GameEvents.BiomeChanged += biome =>
             {
@@ -124,9 +133,11 @@ namespace LightGreen
                 _materials.Rescan(announce: true);
                 _cityNight.Rescan();
                 _rain.Rescan();
+                _hud.Rescan();
             };
             GameEvents.HoleChanged += () =>
             {
+                _hud.Rescan();
                 _materials.Rescan();
                 _cityNight.Rescan();
                 _rain.Rescan();
@@ -167,7 +178,7 @@ namespace LightGreen
                 Log.LogInfo(Settings.Enabled.Value ? "Enabled." : "Disabled (General.Enabled = false): the game's own look.");
 
             Log.LogInfo($"{Name} {Version} loaded: {Application.productName} {Application.version}, Unity {Application.unityVersion}. " +
-                        $"{_features.Count} features. {Settings.ToggleKey.Value} compares with the game's own look, " +
+                        $"{_features.Count} features. {Settings.ToggleKey.Value} compares with the game's own look (on, HUD only, off), " +
                         $"{Settings.TimeKey.Value} changes the time of day, {Settings.RainKey.Value} steps the weather (clear, rain, cartoon rain, snow), " +
                         $"{Settings.FilterKey.Value} changes the photo filter." +
                         (Settings.Enabled.Value ? "" : " (Off: General.Enabled = false.)"));
@@ -183,8 +194,10 @@ namespace LightGreen
             Vr.Poll();
             ReadKeys();
 
-            if (Settings.Enabled.Value && !_comparing) _features.Apply();
+            if (Settings.Enabled.Value && _view == View.On) _features.Apply();
             else _features.Restore();
+            // The [HUD] sizes are applied just before the HUD is drawn (HudScaler); this says whether they apply.
+            HudScaler.Active = Settings.Enabled.Value && _view != View.Off;
         }
 
         private void ReadKeys()
@@ -193,19 +206,20 @@ namespace LightGreen
             if (keyboard == null || !Settings.Enabled.Value) return;
             if (Pressed(keyboard, Settings.ToggleKey.Value))
             {
-                _comparing = !_comparing;
-                string state = _comparing ? "off (the game's own look)" : "on";
+                // On, then HUD only (the game's own look with the [HUD] sizes), then off, then on again.
+                _view = _view == View.On ? View.HudOnly : _view == View.HudOnly ? View.Off : View.On;
+                string state = _view == View.On ? "on" : _view == View.HudOnly ? "HUD only (the game's own look)" : "off (the game's own look)";
                 Log.LogInfo(state);
                 Notify("toggle", state);
             }
-            if (Pressed(keyboard, Settings.TimeKey.Value) && !_comparing)
+            if (Pressed(keyboard, Settings.TimeKey.Value) && _view == View.On)
             {
                 EnvironmentController.StepTime();
                 // StepTime saves the config file; take that write as our own so it isn't reported as an edit.
                 _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
                 Log.LogInfo($"Time of day: {Settings.Time.Value}");
             }
-            if (Pressed(keyboard, Settings.RainKey.Value) && !_comparing)
+            if (Pressed(keyboard, Settings.RainKey.Value) && _view == View.On)
             {
                 // Clear, rain, cartoon rain, snow, clear: each comes back as heavy as it last was. Setting a value saves
                 // the config file, as TimeKey does; take that write as our own too. Turning one on turns the others off
@@ -217,7 +231,7 @@ namespace LightGreen
                 _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
                 Log.LogInfo($"{Weather.Notice()} (RainKey).");
             }
-            if (Pressed(keyboard, Settings.FilterKey.Value) && !_comparing)
+            if (Pressed(keyboard, Settings.FilterKey.Value) && _view == View.On)
             {
                 bool back = keyboard.shiftKey.isPressed;
                 // Setting the value saves the config file, as TimeKey does; take that write as our own too.
@@ -351,7 +365,8 @@ namespace LightGreen
             foreach (string kind in _pendingKinds)
             {
                 string text = _pendingNotices[kind];
-                if (!ChatNotices.TryPost(text)) onScreen.Add(text);
+                // With the chat box hidden ([HUD] Chat at 0), the corner instead.
+                if (HudScaler.Hides(HudPart.Chat) || !ChatNotices.TryPost(text)) onScreen.Add(text);
             }
             _pendingKinds.Clear();
             _pendingNotices.Clear();
@@ -389,6 +404,7 @@ namespace LightGreen
             _rain?.Destroy();
             _snow?.Destroy();
             _cartoonRain?.Destroy();
+            _hud.Unhook();
             _harmony?.UnpatchSelf();
             GameEvents.Unhook();
         }

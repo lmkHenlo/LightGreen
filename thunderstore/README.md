@@ -17,7 +17,8 @@ LightGreen changes how the game looks for you, using the game's own shaders and 
 - **Weather.** Footprints in snow last longer (45 seconds) and show as blue-grey dents. Rain, cartoon rain or snow (off by default; **F10** steps clear, rain, cartoon rain, snow): rain brings streaks, splashes and a grey overcast sky; cartoon rain brings bold white streaks and a soft blue mist; snow brings soft, round cartoon flakes, a few big ones drifting past the camera, a bright, pale blue sky and slightly colder colours.
 - **Lens effects.** A lens flare toward a low sun, a miniature (tilt-shift) look for the hole overview flyover, and depth of field in photo mode. Vignette and chromatic aberration are there too, off by default.
 - **Photo filters.** Mono, Sepia, Faded Film, Teal & Orange, Toy Camera and more, stepped through with **F11**, on top of the rest of the look. Your own `.cube` LUTs work too. The HUD isn't filtered.
-- **F8** switches LightGreen off and on while you play, to compare with the game's own look.
+- **HUD sizes.** Each part of the HUD (progress bar, wind, markers, item bar, power meter, chat, scoreboard, name tags and more) has its own size from 0 (hidden) to 100 %.
+- **F8** steps between LightGreen on, HUD only (the game's own look with your HUD sizes) and off, to compare with the game's own look.
 
 ## Table of Contents
 
@@ -54,7 +55,7 @@ Super Battle Golf/
 ## Usage
 
 1. Start a hole. LightGreen is on from the start.
-2. Press **F9** to change the time of day, **F8** to compare with the game's own look, **F10** to step the weather (clear, rain, cartoon rain, snow), and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen: Filter: Noir", like a player's message), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
+2. Press **F9** to change the time of day, **F8** to step between LightGreen on, HUD only and off, **F10** to step the weather (clear, rain, cartoon rain, snow), and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen: Filter: Noir", like a player's message), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
 3. Change anything else in `BepInEx/config/com.lightgreen.cfg` (in r2modman: **Config editor**). It's reloaded within a second when you save it, so you can tune while you play. For example, to turn rain on:
 
 ```ini
@@ -67,7 +68,7 @@ Rain = 1
 | `General.Enabled` | `true` | `false` turns LightGreen off: the game looks exactly as it does without the mod. |
 | `General.Notices` | `Chat` | Where LightGreen says what a key or a config edit changed. `Chat`: a line in the game's chat box, seen only by you (with no chat box, the top-left corner). `Screen`: the top-left corner. `Off`: nowhere. |
 | `General.NoticeDelay` | `0.5` | Chat only: seconds (0–2) to wait after the last change before posting, so stepping through filters posts one line. `0` posts each change at once. |
-| `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while you play. |
+| `Keys.ToggleKey` | `F8` | Steps LightGreen while you play: on, HUD only (the game's own look with your HUD sizes), off. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Steps the weather: clear, rain, cartoon rain, snow, then clear again, each as heavy as it last was (or 1). |
 | `Keys.FilterKey` | `F11` | Steps to the next photo filter (with Shift, the previous one). |
@@ -99,6 +100,42 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 2 | `TiltShift`, `Footprints` |
 
 The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first start. It's reloaded when you save it. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`.
+
+### HUD sizes
+
+Each part of the HUD has its own size in the `[HUD]` section, in percent: 100 (the default) is the game's size, 50 is half, 0 hides it. Screen elements shrink toward the side they sit at, so the item bar keeps its bottom-right corner and the progress bar its top-left. Changes show at once. Only you see them. The hole's beam and the aim line can't be changed.
+
+| Setting | What it sizes |
+|---|---|
+| `ProgressBar` | The hole progress bar, top left: the bar, the flag and the players' portraits |
+| `Strokes` | The stroke count by the progress bar |
+| `Wind` | The wind readout, top left |
+| `HoleMarker` | The marker over the hole, with its distance and its arrow at the screen's edge |
+| `BallMarker` | The marker over your ball, with its distance and arrow |
+| `RestartPrompt` | "Hold R to restart" |
+| `ItemBar` | The item bar, bottom right: the slots, the item's name and the angle badge |
+| `PowerMeter` | The swing power meter |
+| `SwingWind` | The wind readout beside the power meter while you swing |
+| `AngleSelector` | The swing angle, bottom right while you swing, and the angle arc shown while you change it |
+| `ControlPrompts` | Control prompts such as "Adjust Angle" |
+| `NameTags` | The names over other players |
+| `TeammateMarkers` | The team icons over your teammates |
+| `OtherMarkers` | Objective, ball dispenser and homing-missile warning icons |
+| `PopupText` | The words that pop up over players |
+| `Chat` | The chat box (at 0, LightGreen's own messages show in the top-left corner instead) |
+| `KillFeed` | The game's event messages: knockouts, chip-ins, players finishing |
+| `Scoreboard` | The scoreboard (Tab) |
+| `VoiceChat` | The icons of players speaking on voice chat |
+| `HoleBanner` | The hole's name, number and par at the start of a hole |
+| `ObjectiveMessage` | The title at the start of a match |
+| `TeamScore` | The team scores and pips in team modes |
+| `SpeedBoost` | The stamina wheel while sprinting |
+| `SpectatorPrompts` | The previous and next prompts while spectating |
+| `QuickChat` | The quick chat wheel |
+| `Reticles` | Item crosshairs, the interact marker and lock-on markers |
+| `GiantTimer` | The Jumbo Burger giant-form countdown |
+
+**F8** steps through three views: LightGreen on, then HUD only (the game's own look with your HUD sizes), then off (the game's own look and HUD).
 
 ### Photo filters
 

@@ -10,6 +10,14 @@ namespace LightGreen
     /// <summary>Where LightGreen's short messages go (General.Notices).</summary>
     internal enum NoticeTarget { Chat, Screen, Off }
 
+    /// <summary>The HUD groups the [HUD] section sizes, in its order. The names are the settings' keys.</summary>
+    internal enum HudPart
+    {
+        ProgressBar, Strokes, Wind, HoleMarker, BallMarker, RestartPrompt, ItemBar, PowerMeter, SwingWind, AngleSelector,
+        ControlPrompts, NameTags, TeammateMarkers, OtherMarkers, PopupText, Chat, KillFeed, Scoreboard, VoiceChat,
+        HoleBanner, ObjectiveMessage, TeamScore, SpeedBoost, SpectatorPrompts, QuickChat, Reticles, GiantTimer,
+    }
+
     /// <summary>LightGreen's settings (BepInEx/config/com.lightgreen.cfg). Each feature adds its own as it's built.</summary>
     internal static class Settings
     {
@@ -60,6 +68,43 @@ namespace LightGreen
         internal static ConfigEntry<float> SunShadowDistance;
         internal static ConfigEntry<AOQuality> AmbientOcclusionQuality;
 
+        /// <summary>Each HUD group's size in percent, indexed by <see cref="HudPart"/>.</summary>
+        internal static ConfigEntry<int>[] Hud;
+
+        /// <summary>What each HUD group is, for its setting's description, in <see cref="HudPart"/> order.</summary>
+        private static readonly string[] HudDescriptions =
+        {
+            "The hole progress bar, top left: the bar, the flag and the players' portraits.",
+            "The stroke count by the progress bar (\"Strokes 1\").",
+            "The wind readout, top left: its speed and arrow.",
+            "The marker over the hole: its distance, the flag ring, and its arrow at the screen's edge when the hole is out of view.",
+            "The marker over your ball: its distance, the ball ring, and its arrow at the screen's edge.",
+            "\"Hold R to restart\".",
+            "The item bar, bottom right: the four slots, the item's name and the angle badge (in a golf cart, its seats).",
+            "The swing power meter beside the player.",
+            "The wind readout beside the power meter while you swing.",
+            "The swing angle, bottom right while you swing (the angle and its steps 1 to 4), and the angle arc shown while you change it.",
+            "Control prompts in the bottom-left corner (\"Adjust Angle\") and in the middle of the screen.",
+            "The names over other players.",
+            "The team icons over your teammates (team modes).",
+            "The objective, ball dispenser and homing-missile warning icons.",
+            "The words that pop up over players (hits, knockouts and the like).",
+            "The chat box: new lines, history, the typing field and \"to open chat\". While it's at 0, LightGreen's own messages " +
+                "show in the top-left corner instead.",
+            "The game's event messages (knockouts, chip-ins, players finishing).",
+            "The scoreboard (Tab).",
+            "The icons of players speaking on voice chat.",
+            "The hole's name, number and par at the start of a hole.",
+            "The title at the start of a match.",
+            "The red and blue team scores and pips (team modes).",
+            "The stamina wheel while sprinting.",
+            "The previous and next prompts while spectating.",
+            "The quick chat wheel.",
+            "Item crosshairs (railgun, rocket launcher, pistols and the like), the interact marker and lock-on markers. At 0 you aim " +
+                "those items without a crosshair.",
+            "The Jumbo Burger giant-form countdown.",
+        };
+
 
         internal static void Bind(ConfigFile config)
         {
@@ -74,7 +119,8 @@ namespace LightGreen
                 new AcceptableValueRange<float>(0f, 2f)));
 
             ToggleKey = config.Bind("Keys", "ToggleKey", Key.F8,
-                "Switches LightGreen off and on while playing, to compare with the game's own look.");
+                "Steps LightGreen while playing, to compare with the game's own look: on, then HUD only (the game's own look " +
+                "with the [HUD] sizes), then off (the game's own look and HUD), then on again.");
             TimeKey = config.Bind("Keys", "TimeKey", Key.F9,
                 "Steps through the times of day (it changes TimeOfDay.Time).");
             RainKey = config.Bind("Keys", "RainKey", Key.F10,
@@ -181,6 +227,14 @@ namespace LightGreen
                     new AcceptableValueRange<float>(0f, 500f)));
             AmbientOcclusionQuality = config.Bind("Quality", "AmbientOcclusionQuality", AOQuality.Medium,
                 "Ambient occlusion detail. Low: quarter resolution, cheapest. Medium: half resolution. High: full resolution.");
+
+            var parts = (HudPart[])System.Enum.GetValues(typeof(HudPart));
+            Hud = new ConfigEntry<int>[parts.Length];
+            foreach (HudPart part in parts)
+                Hud[(int)part] = config.Bind("HUD", part.ToString(), 100, new ConfigDescription(
+                    HudDescriptions[(int)part] + " Its size in percent: 100 = the game's size, 0 = hidden. Only you see it; " +
+                    "Keys.ToggleKey's HUD only step keeps these sizes with the game's own look.",
+                    new AcceptableValueRange<int>(0, 100)));
 
             DropRemovedSettings(config);
         }

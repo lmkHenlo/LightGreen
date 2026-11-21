@@ -5,7 +5,7 @@
 
 Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
 
-LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, optional rain, cartoon rain or cartoon snow you step through with F10, and photo filters you step through with F11, your own .cube LUTs included. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** switches it off and on to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
+LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, longer-lasting footprints in snow, optional rain, cartoon rain or cartoon snow you step through with F10, photo filters you step through with F11, your own .cube LUTs included, and a size for each part of the HUD, from 0 (hidden) to 100 %. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** steps between LightGreen on, HUD only (the game's own look with your HUD sizes) and off, to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
 
 ## Table of Contents
 
@@ -68,7 +68,7 @@ To build it yourself, see [Building from source](#building-from-source).
 
 ## Usage
 
-Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to switch LightGreen off and on to compare with the game's own look, **F10** to step the weather (clear, rain, cartoon rain, snow), and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen: Filter: Noir", like a player's message), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
+Start a hole: LightGreen is on from the start. Press **F9** to step through the times of day (Dawn, Morning, Noon, Golden hour, Sunset, Blue hour, Night, and back to the hole's own), **F8** to step between LightGreen on, HUD only and off to compare with the game's own look, **F10** to step the weather (clear, rain, cartoon rain, snow), and **F11** to step through the photo filters (**Shift+F11** goes back). Each key says what it changed with a line in the game's chat box ("LightGreen: Filter: Noir", like a player's message), seen only by you; `General.Notices` moves it to the top-left corner or turns it off.
 
 The settings live in `BepInEx/config/com.lightgreen.cfg`, which is created on first launch; with r2modman you can also edit them under **Config editor**. The file is reloaded within a second of being saved, so changes show while you play. For example, to turn rain on and make ambient occlusion cheaper:
 
@@ -85,7 +85,7 @@ AmbientOcclusionQuality = Low
 | `General.Enabled` | `true` | LightGreen on. Off: the game looks exactly as it does without the mod. |
 | `General.Notices` | `Chat` | Where LightGreen says what a key or a config edit changed. `Chat`: a line in the game's chat box, seen only by you (nothing is sent; with no chat box, such as in some menus, the top-left corner). `Screen`: the top-left corner. `Off`: nowhere. |
 | `General.NoticeDelay` | `0.5` | Chat only: seconds (0–2) to wait after the last change before posting, so stepping through filters posts one line, not one per press. A time change then a filter change still post two lines. `0` posts each change at once. |
-| `Keys.ToggleKey` | `F8` | Switches LightGreen off and on while playing, to compare with the game's own look. |
+| `Keys.ToggleKey` | `F8` | Steps LightGreen while playing: on, HUD only (the game's own look with the `[HUD]` sizes), off (the game's own look and HUD). |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Steps the weather: clear, rain, cartoon rain, snow, then clear again. Each comes back as heavy as it last was (or 1). Saved to `Effects.Rain`, `Effects.CartoonRain` and `Effects.Snow`. |
 | `Keys.FilterKey` | `F11` | Steps to the next photo filter (with Shift, the previous one). Saved to `Filters.Filter`. |
@@ -117,6 +117,42 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 2 | `TiltShift`, `Footprints` |
 
 The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first launch and reloaded when saved. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`.
+
+### HUD sizes
+
+Each part of the HUD has its own size in the `[HUD]` section, in percent: 100 (the default) is the game's size, 50 is half, 0 hides it. Screen elements shrink toward the side they sit at, so the item bar keeps its bottom-right corner and the progress bar its top-left. Changes show at once. Only you see them. The hole's beam and the aim line can't be changed.
+
+| Setting | What it sizes |
+|---|---|
+| `ProgressBar` | The hole progress bar, top left: the bar, the flag and the players' portraits |
+| `Strokes` | The stroke count by the progress bar |
+| `Wind` | The wind readout, top left |
+| `HoleMarker` | The marker over the hole, with its distance and its arrow at the screen's edge |
+| `BallMarker` | The marker over your ball, with its distance and arrow |
+| `RestartPrompt` | "Hold R to restart" |
+| `ItemBar` | The item bar, bottom right: the slots, the item's name and the angle badge |
+| `PowerMeter` | The swing power meter |
+| `SwingWind` | The wind readout beside the power meter while you swing |
+| `AngleSelector` | The swing angle, bottom right while you swing, and the angle arc shown while you change it |
+| `ControlPrompts` | Control prompts such as "Adjust Angle" |
+| `NameTags` | The names over other players |
+| `TeammateMarkers` | The team icons over your teammates |
+| `OtherMarkers` | Objective, ball dispenser and homing-missile warning icons |
+| `PopupText` | The words that pop up over players |
+| `Chat` | The chat box (at 0, LightGreen's own messages show in the top-left corner instead) |
+| `KillFeed` | The game's event messages: knockouts, chip-ins, players finishing |
+| `Scoreboard` | The scoreboard (Tab) |
+| `VoiceChat` | The icons of players speaking on voice chat |
+| `HoleBanner` | The hole's name, number and par at the start of a hole |
+| `ObjectiveMessage` | The title at the start of a match |
+| `TeamScore` | The team scores and pips in team modes |
+| `SpeedBoost` | The stamina wheel while sprinting |
+| `SpectatorPrompts` | The previous and next prompts while spectating |
+| `QuickChat` | The quick chat wheel |
+| `Reticles` | Item crosshairs, the interact marker and lock-on markers |
+| `GiantTimer` | The Jumbo Burger giant-form countdown |
+
+**F8** steps through three views: LightGreen on, then HUD only (the game's own look with your HUD sizes), then off (the game's own look and HUD).
 
 ### Photo filters
 
@@ -188,6 +224,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Vr.cs` | Whether a headset is in use. |
 | `plugin/src/Core/Features.cs` | The feature interface and host. A feature that throws is put back and switched off until the game restarts; the rest carry on. |
 | `plugin/src/Core/ChatNotices.cs` | Posts LightGreen's messages to the game's chat box, on your screen only. |
+| `plugin/src/Core/HudMath.cs` | The arithmetic of HUD sizes: percent to scale, and which side an element shrinks toward. |
 | `plugin/src/Core/PatchModule.cs` | One Harmony patch class per feature, so a hook a game update breaks turns off only that feature. |
 | `plugin/src/Core/GameEvents.cs`, `Biome.cs` | Which biome the hole is, and the game's events LightGreen follows. |
 | `plugin/src/Core/MaterialEdits.cs` | Material changes that can be undone exactly. |
@@ -201,6 +238,8 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
 | `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom, the photo filter. |
 | `plugin/src/Systems/PhotoFilter.cs` | The photo filter and its colour table. |
+| `plugin/src/Systems/HudScaler.cs` | The `[HUD]` sizes for the screen's HUD, applied just before it's drawn; for now it also writes `BepInEx/LightGreen.hud.txt` once a game, the HUD's layout for checking. |
+| `plugin/src/Systems/HudPatches.cs` | The `[HUD]` sizes for the markers, name tags and pop-up words, which the game sizes every frame. |
 | `plugin/src/Systems/MaterialTuner.cs` | Shadow tint, water and ice. |
 | `plugin/src/Systems/SunShadows.cs` | Sharper, longer sun shadows. |
 | `plugin/src/Systems/AmbientOcclusion.cs`, `GrassFreeDepth.cs` | Ambient occlusion, worked out without the grass blades. |
