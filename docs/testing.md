@@ -804,3 +804,5 @@ side as before. H15 again.
 
 **Results (2026-11-21, H15 again):** the meter at half size, the swing wind at full size hanging just below the meter's
 bottom end, clear of it, its badge under the meter's corner. **H15 passes.** H16 (`Hints`) remains.
+
+**Results (2026-11-21, H16):** the user reports the tip pop-up at half size with `Hints` 50. **H16 passes.**
