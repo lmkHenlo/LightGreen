@@ -806,3 +806,7 @@ side as before. H15 again.
 bottom end, clear of it, its badge under the meter's corner. **H15 passes.** H16 (`Hints`) remains.
 
 **Results (2026-11-21, H16):** the user reports the tip pop-up at half size with `Hints` 50. **H16 passes.**
+
+**Results (2026-11-21):** the user reports **all H checks pass** on build edf4d42 (H1–H13, H15, H16; H14 no longer
+applies). The HUD sizes are done. Left before release: take out the layout file (`LightGreen.hud.txt`), a test-only
+diagnostic.
