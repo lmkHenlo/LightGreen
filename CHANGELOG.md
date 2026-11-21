@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-21
+
 ### Added
 
 - HUD sizes: a `[HUD]` section with a size for each part of the HUD, from 0 (hidden) to 100 % (the game's size): the top-left corner (progress bar, wind and stroke count), hole and ball markers, restart prompt, item bar, power meter, swing wind, angle selector, control prompts, name tags, teammate and other markers, pop-up words, chat box, kill feed, scoreboard, voice chat icons, hole banner, objective message, team score, stamina wheel, spectator prompts, quick chat wheel, crosshairs, the giant-form timer, and the game's tip pop-ups. Screen elements shrink toward the side they sit at. The hole's beam and the aim line keep the game's size.
@@ -76,7 +78,8 @@ The first release.
 - **F8** switches LightGreen off and on to compare with the game's own look (`Keys.ToggleKey`), and `General.Enabled` turns it off entirely.
 - The settings file is reloaded within a second of being saved.
 
-[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/lmkHenlo/LightGreen/releases/tag/v0.1.0
