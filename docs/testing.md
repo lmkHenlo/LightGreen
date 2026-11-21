@@ -450,6 +450,8 @@ returns false with one warning, then stays off for the session with no more warn
 | N11 | Others don't see it | In multiplayer, with a second player if you can | They see none of LightGreen's lines |
 | N12 | VR | With SBGVR, F9 | Note whether the chat line shows in the headset |
 
+**Results (2026-11-21):** the user reports **N1–N12 pass**.
+
 **Results (2026-11-20), first look:** the lines appear in the chat box and stay in its history alongside players'
 messages (`LightGreen · on`, `LightGreen · Rain: on (1)`, `LightGreen · Filter: Cyanotype`, then `lmkHenlo: asdf`).
 At the user's request they now match the game's own lines (`LightGreen: …`, the name in the game's highlight colour);
