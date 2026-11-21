@@ -403,6 +403,8 @@ missing name typed by hand survives a reload.
 | D4 | A name that isn't there | F11 to Invert, quit, delete `Invert.cube`, start | `Filters.Filter` still says Invert (not reset); no filter shows; the log says Invert isn't a filter; the dropdown no longer lists it |
 | D5 | An edit isn't lost | While playing, change `Effects.Rain` in the config file and save, then within a second copy a `.cube` into the folder | The rain change takes effect and stays in the file |
 
+**Results (2026-11-21):** the user reports **D1–D5 pass**.
+
 ## Messages in the chat box
 
 LightGreen's short messages (what F8–F11 or a config edit changed) went to the top-left corner, drawn with IMGUI. The
