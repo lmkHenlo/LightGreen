@@ -237,7 +237,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
 | `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom, the photo filter. |
 | `plugin/src/Systems/PhotoFilter.cs` | The photo filter and its colour table. |
-| `plugin/src/Systems/HudScaler.cs` | The `[HUD]` sizes for the screen's HUD, applied just before it's drawn; for now it also writes `BepInEx/LightGreen.hud.txt` once a game, the HUD's layout for checking. |
+| `plugin/src/Systems/HudScaler.cs` | The `[HUD]` sizes for the screen's HUD, applied just before it's drawn. |
 | `plugin/src/Systems/HudPatches.cs` | The `[HUD]` sizes for the markers, name tags and pop-up words, which the game sizes every frame. |
 | `plugin/src/Systems/MaterialTuner.cs` | Shadow tint, water and ice. |
 | `plugin/src/Systems/SunShadows.cs` | Sharper, longer sun shadows. |

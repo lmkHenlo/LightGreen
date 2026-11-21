@@ -810,3 +810,7 @@ bottom end, clear of it, its badge under the meter's corner. **H15 passes.** H16
 **Results (2026-11-21):** the user reports **all H checks pass** on build edf4d42 (H1–H13, H15, H16; H14 no longer
 applies). The HUD sizes are done. Left before release: take out the layout file (`LightGreen.hud.txt`), a test-only
 diagnostic.
+
+**Changed (2026-11-21):** the layout file is taken out (`HudScaler.WriteLayout` and its tree dump); the DLL no longer
+writes `BepInEx/LightGreen.hud.txt`. The `HUD: … is …` log lines stay, once per element. A `LightGreen.hud.txt` left
+from the test builds can be deleted by hand. Nothing else changed: the build that passed the H checks, less the file.

@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 using HarmonyLib;
 using LightGreen.Core;
 using UnityEngine;
@@ -76,8 +75,6 @@ namespace LightGreen.Systems
         private bool _wasActive;
         private bool _hooked;
         private bool _broken;
-        private bool _layoutWritten;
-        private float _layoutDueAt = -1f;
 
         internal void Hook()
         {
@@ -134,7 +131,6 @@ namespace LightGreen.Systems
                 }
                 // Something was destroyed: look again, at most every two seconds.
                 if (gone && _scansLeft == 0 && Time.unscaledTime >= _lastScan + 2f) _nextScan = 0f;
-                if (!_layoutWritten && _layoutDueAt > 0f && Time.unscaledTime >= _layoutDueAt) WriteLayout();
             }
             catch (Exception e)
             {
@@ -208,8 +204,6 @@ namespace LightGreen.Systems
             foreach (Root root in roots)
                 if (_logged.Add(root.Transform.GetInstanceID()))
                     Plugin.Log.LogInfo($"HUD: {root.Part} is {Path(root.Transform)}.");
-            if (!_layoutWritten && _layoutDueAt < 0f && GameEvents.InHole && roots.Count > 0)
-                _layoutDueAt = Time.unscaledTime + 5f;
         }
 
         /// <summary>
@@ -555,75 +549,6 @@ namespace LightGreen.Systems
             var parts = new List<string>();
             for (Transform t = transform; t != null; t = t.parent) parts.Insert(0, t.name);
             return string.Join("/", parts);
-        }
-
-        // ---- The layout file -------------------------------------------------------------------------------
-
-        /// <summary>
-        /// Once a game, a few seconds into the first hole: every HUD group's elements and the pieces scaled, with
-        /// their anchors, pivots and sizes, then the HUD's whole tree, to BepInEx/LightGreen.hud.txt. For checking
-        /// which element is which.
-        /// </summary>
-        private void WriteLayout()
-        {
-            _layoutWritten = true;
-            try
-            {
-                var text = new StringBuilder();
-                text.AppendLine($"LightGreen {Plugin.Version}: the HUD as found, {DateTime.Now:yyyy-MM-dd HH:mm}, {Screen.width}x{Screen.height}.");
-                text.AppendLine();
-                text.AppendLine("== Groups and their elements (element, inside: the other group's element it sits in)");
-                var canvases = new HashSet<Transform>();
-                foreach (Target target in _targets)
-                {
-                    if (target.Piece == null) continue;
-                    text.Append(target.Part).Append(": ").Append(Describe(target.Piece));
-                    if (target.Outer != null) text.Append("  inside: ").Append(Path(target.Outer));
-                    if (target.AboutPivot) text.Append("  (about its pivot)");
-                    text.AppendLine();
-                    Canvas canvas = target.Piece.GetComponentInParent<Canvas>(true);
-                    if (canvas != null) canvases.Add(canvas.rootCanvas.transform);
-                }
-                foreach (Transform canvas in canvases)
-                {
-                    text.AppendLine();
-                    text.AppendLine("== Tree of " + Path(canvas));
-                    Tree(text, canvas, 0);
-                }
-                string path = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "LightGreen.hud.txt");
-                System.IO.File.WriteAllText(path, text.ToString());
-                Plugin.Log.LogInfo($"HUD layout written to {path}.");
-            }
-            catch (Exception e)
-            {
-                Plugin.Log.LogWarning($"Couldn't write the HUD layout: {e.Message}");
-            }
-        }
-
-        private static void Tree(StringBuilder text, Transform transform, int depth)
-        {
-            if (depth > 9) return;
-            text.Append(' ', depth * 2).Append(transform.name);
-            if (!transform.gameObject.activeSelf) text.Append(" [off]");
-            var names = new List<string>();
-            foreach (Component component in transform.GetComponents<Component>())
-                if (component != null && !(component is Transform)) names.Add(component.GetType().Name);
-            if (names.Count > 0) text.Append(" {").Append(string.Join(", ", names)).Append('}');
-            if (transform is RectTransform rect)
-                text.Append($" a({rect.anchorMin.x:0.##},{rect.anchorMin.y:0.##})-({rect.anchorMax.x:0.##},{rect.anchorMax.y:0.##})" +
-                            $" p({rect.pivot.x:0.##},{rect.pivot.y:0.##}) {rect.rect.width:0}x{rect.rect.height:0}");
-            text.AppendLine();
-            foreach (Transform child in transform) Tree(text, child, depth + 1);
-        }
-
-        private static string Describe(Transform transform)
-        {
-            string text = Path(transform) + (transform.gameObject.activeInHierarchy ? "" : " [off]");
-            if (transform is RectTransform rect)
-                text += $" a({rect.anchorMin.x:0.##},{rect.anchorMin.y:0.##})-({rect.anchorMax.x:0.##},{rect.anchorMax.y:0.##})" +
-                        $" p({rect.pivot.x:0.##},{rect.pivot.y:0.##}) {rect.rect.width:0}x{rect.rect.height:0}" +
-                        $" scale {transform.localScale.x:0.###}";
-            return text;
         }
     }
 }
