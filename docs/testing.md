@@ -779,3 +779,9 @@ once. Two things changed after it, on the user's go-ahead:
 | H14 | Readouts follow | `ProgressBar` 50, `Strokes` 60, `Wind` 40; then `ProgressBar` 0 | At 50: the wind and stroke count just under the half-size bar, each at its own size; at 0: the bar gone, the two readouts where they are with a full-size bar |
 | H15 | Swing wind follows | `PowerMeter` 50, `SwingWind` 100, swing stance | The swing wind at full size, just under the half-size meter |
 | H16 | Hints | `Hints` 50 on the Driving Range until a tip pops up | The tip box at half size |
+
+**Results (2026-11-21, H14, two screenshots):** with `ProgressBar` 0 the bar is gone and the wind readout (40) stays
+where it sits with a full-size bar, top left under where the bar was; with `ProgressBar` 50 it sits just under the
+half-size bar, at its own size. **H14 passes for the wind.** The stroke count isn't on screen in either: the game shows
+it only for a few seconds after a stroke (`HoleProgressBarUi`'s strokes visibility time), so its half of H14 still
+wants a screenshot taken just after a stroke.
