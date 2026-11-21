@@ -22,8 +22,9 @@ namespace LightGreen.Systems
     /// own animations (the power meter's pop, the angle arc sliding to the centre) carry on, at the new size.
     /// </para>
     /// <para>
-    /// A group can sit inside another (the stroke count inside the progress bar, say). The outer one is then scaled
-    /// piece by piece round the inner one, about the outer one's still point, so each keeps its own size. A container
+    /// A group can sit inside another (the stroke count and wind inside the progress bar, the swing wind inside the power
+    /// meter). The outer one is scaled whole, its own graphics with it; the inner one is placed as if the outer one were
+    /// at the game's size, then set against the outer one as scaled, so each keeps its own size and place. A container
     /// stretched over the whole screen isn't scaled itself: its children are, each toward its own side.
     /// </para>
     /// <para>
@@ -44,13 +45,14 @@ namespace LightGreen.Systems
         /// <summary>Whether a HUD group is hidden now (its setting at 0 while active).</summary>
         internal static bool Hides(HudPart part) => Active && Settings.Hud[(int)part].Value <= 0;
 
-        /// <summary>One piece to scale, the group it belongs to, and the element whose still point it shrinks toward.</summary>
+        /// <summary>One element to scale, its group, and the other group's element it sits inside, if any.</summary>
         private struct Target
         {
             internal Transform Piece;
             internal HudPart Part;
-            internal Transform Frame;   // the group's element; the piece itself unless the group is split round another
+            internal Transform Outer;   // the nearest other group's element above it, scaled before it; null if none
             internal bool AboutPivot;   // shrinks about its own pivot (it follows something on screen)
+            internal int Depth;         // how deep in the hierarchy: outer elements are scaled first
         }
 
         /// <summary>A piece as the game last set it, and as LightGreen last set it.</summary>
@@ -127,7 +129,7 @@ namespace LightGreen.Systems
                 {
                     if (container.Value == null) { gone = true; continue; }
                     foreach (Transform child in container.Value)
-                        Apply(new Target { Piece = child, Part = container.Key, Frame = child, AboutPivot = true });
+                        Apply(new Target { Piece = child, Part = container.Key, AboutPivot = true });
                 }
                 // Something was destroyed: look again, at most every two seconds.
                 if (gone && _scansLeft == 0 && Time.unscaledTime >= _lastScan + 2f) _nextScan = 0f;
@@ -176,7 +178,14 @@ namespace LightGreen.Systems
             var targets = new List<Target>();
             var claimed = new HashSet<Transform>();
             foreach (Root root in roots) claimed.Add(root.Transform);
-            foreach (Root root in roots) Split(root, root.Transform, claimed, targets);
+            foreach (Root root in roots)
+                targets.Add(new Target
+                {
+                    Piece = root.Transform, Part = root.Part, AboutPivot = root.AboutPivot,
+                    Outer = Outer(root.Transform, claimed), Depth = Depth(root.Transform),
+                });
+            // Outer elements first: an inner one is placed against its outer one as scaled this frame.
+            targets.Sort((a, b) => a.Depth.CompareTo(b.Depth));
 
             // Pieces no longer scaled (a group split differently, or gone) go back as the game had them.
             var now = new HashSet<Transform>();
@@ -347,46 +356,45 @@ namespace LightGreen.Systems
             result.Add(new Root(part, transform, aboutPivot));
         }
 
-        /// <summary>
-        /// The pieces to scale for one element: itself, or, when other groups' elements sit inside it, its other
-        /// children round them (down to them), all about the element's own still point.
-        /// </summary>
-        private static void Split(Root root, Transform transform, HashSet<Transform> claimed, List<Target> targets)
+        /// <summary>The nearest other group's element above this one, or null.</summary>
+        private static Transform Outer(Transform transform, HashSet<Transform> claimed)
         {
-            if (!HoldsAnother(transform, root.Transform, claimed))
-            {
-                targets.Add(new Target { Piece = transform, Part = root.Part, Frame = root.Transform, AboutPivot = root.AboutPivot });
-                return;
-            }
-            foreach (Transform child in transform)
-                if (!claimed.Contains(child)) Split(root, child, claimed, targets);
+            for (Transform t = transform.parent; t != null; t = t.parent)
+                if (claimed.Contains(t)) return t;
+            return null;
         }
 
-        /// <summary>Whether another group's element is inside this transform (or is it, below the group's own element).</summary>
-        private static bool HoldsAnother(Transform transform, Transform own, HashSet<Transform> claimed)
+        private static int Depth(Transform transform)
         {
-            foreach (Transform other in claimed)
-                if (other != null && other != own && other != transform && other.IsChildOf(transform)) return true;
-            return false;
+            int depth = 0;
+            for (Transform t = transform.parent; t != null; t = t.parent) depth++;
+            return depth;
         }
 
         // ---- Scaling ---------------------------------------------------------------------------------------
 
+        /// <summary>
+        /// Scales one element toward its still point. An element inside another group's element (the stroke count
+        /// and wind inside the progress bar, the swing wind inside the power meter) is first placed as if the outer one
+        /// were at the game's size, then put back against the outer one as scaled, so each group keeps its own size and
+        /// place whatever the other's is: the outer one is scaled whole, its own graphics with it.
+        /// </summary>
         private void Apply(Target target)
         {
             Transform piece = target.Piece;
             if (piece == null) return;
             float k = Scale(target.Part);
+            bool outerScaled = target.Outer != null && _held.TryGetValue(target.Outer, out _);
 
             Vector3 position = piece.localPosition, scale = piece.localScale;
             bool known = _held.TryGetValue(piece, out Held held);
-            if (!known && Mathf.Approximately(k, 1f)) return;   // nothing to do and nothing to put back
+            if (!known && !outerScaled && Mathf.Approximately(k, 1f)) return;   // nothing to do and nothing to put back
 
             // What the game set since our last frame becomes the base.
             if (!known || !Same(position, held.Position)) held.BasePosition = position;
             if (!known || !Same(scale, held.Scale)) held.BaseScale = scale;
 
-            if (Mathf.Approximately(k, 1f))
+            if (!outerScaled && Mathf.Approximately(k, 1f))
             {
                 piece.localPosition = held.BasePosition;
                 piece.localScale = held.BaseScale;
@@ -394,11 +402,14 @@ namespace LightGreen.Systems
                 return;
             }
 
+            // As it would be with the outer element at the game's size.
             Vector3 newScale = held.BaseScale * k;
             Vector3 newPosition = held.BasePosition;
-            if (!target.AboutPivot && StillPoint(target, held, out Vector3 still))
+            if (!target.AboutPivot && StillPoint(piece, held, out Vector3 still))
                 newPosition = new Vector3(HudMath.Toward(held.BasePosition.x, still.x, k),
                     HudMath.Toward(held.BasePosition.y, still.y, k), HudMath.Toward(held.BasePosition.z, still.z, k));
+            if (outerScaled) AgainstOuter(target, ref newPosition, ref newScale);
+
             if (!Same(position, newPosition)) piece.localPosition = newPosition;
             if (!Same(scale, newScale)) piece.localScale = newScale;
             held.Position = piece.localPosition;
@@ -407,26 +418,40 @@ namespace LightGreen.Systems
         }
 
         /// <summary>
-        /// The point in the piece's parent that stays put: on the group element's own rectangle, at the side it's
-        /// anchored to.
+        /// Turns a position and scale in the piece's parent, worked out as if the outer element were at the game's
+        /// size, into the ones that give the same result with the outer element as scaled now. The outer element and
+        /// what lies between are taken as unrotated, as the HUD is.
         /// </summary>
-        private static bool StillPoint(Target target, Held held, out Vector3 still)
+        private void AgainstOuter(Target target, ref Vector3 position, ref Vector3 scale)
+        {
+            Transform outer = target.Outer, parent = target.Piece.parent;
+            Held o = _held[outer];
+            Vector3 now = outer.localPosition, nowScale = outer.localScale;
+            // The piece's parent in the outer element's own space: x_outer = a + b * x_parent (unchanged by its scale).
+            Vector3 a = parent == outer ? Vector3.zero : outer.InverseTransformPoint(parent.position);
+            Vector3 b = parent == outer ? Vector3.one : Divide(parent.lossyScale, outer.lossyScale);
+            // Where the piece's pivot lands in the outer element's parent with the outer element at the game's size …
+            Vector3 wanted = o.BasePosition + Vector3.Scale(o.BaseScale, a + Vector3.Scale(b, position));
+            // … and the local position that lands there with it as scaled now.
+            position = Divide(wanted - now - Vector3.Scale(nowScale, a), Vector3.Scale(nowScale, b));
+            scale = Vector3.Scale(scale, Divide(o.BaseScale, nowScale));
+        }
+
+        private static Vector3 Divide(Vector3 a, Vector3 b) =>
+            new Vector3(b.x != 0f ? a.x / b.x : a.x, b.y != 0f ? a.y / b.y : a.y, b.z != 0f ? a.z / b.z : a.z);
+
+        /// <summary>
+        /// The point in the piece's parent that stays put: on its own rectangle, at the side it's anchored to, from its
+        /// base (as the game set it), not as scaled.
+        /// </summary>
+        private static bool StillPoint(Transform piece, Held held, out Vector3 still)
         {
             still = default;
-            if (!(target.Frame is RectTransform frame)) return false;
-            Rect rect = frame.rect;
-            var local = new Vector3(rect.xMin + rect.width * HudMath.Edge(frame.anchorMin.x, frame.anchorMax.x),
-                rect.yMin + rect.height * HudMath.Edge(frame.anchorMin.y, frame.anchorMax.y), 0f);
-            if (target.Piece == target.Frame)
-            {
-                // The element itself, from its own base (as the game set it), not as scaled.
-                still = held.BasePosition + frame.localRotation * Vector3.Scale(held.BaseScale, local);
-                return true;
-            }
-            // A piece of a split element: the element isn't scaled, so its point in the world is where it is.
-            Transform parent = target.Piece.parent;
-            if (parent == null) return false;
-            still = parent.InverseTransformPoint(frame.TransformPoint(local));
+            if (!(piece is RectTransform rect)) return false;
+            Rect r = rect.rect;
+            var local = new Vector3(r.xMin + r.width * HudMath.Edge(rect.anchorMin.x, rect.anchorMax.x),
+                r.yMin + r.height * HudMath.Edge(rect.anchorMin.y, rect.anchorMax.y), 0f);
+            still = held.BasePosition + rect.localRotation * Vector3.Scale(held.BaseScale, local);
             return true;
         }
 
@@ -507,13 +532,13 @@ namespace LightGreen.Systems
                 var text = new StringBuilder();
                 text.AppendLine($"LightGreen {Plugin.Version}: the HUD as found, {DateTime.Now:yyyy-MM-dd HH:mm}, {Screen.width}x{Screen.height}.");
                 text.AppendLine();
-                text.AppendLine("== Groups and the pieces scaled (piece <- group element)");
+                text.AppendLine("== Groups and their elements (element, inside: the other group's element it sits in)");
                 var canvases = new HashSet<Transform>();
                 foreach (Target target in _targets)
                 {
                     if (target.Piece == null) continue;
                     text.Append(target.Part).Append(": ").Append(Describe(target.Piece));
-                    if (target.Frame != target.Piece) text.Append("  <- ").Append(Path(target.Frame));
+                    if (target.Outer != null) text.Append("  inside: ").Append(Path(target.Outer));
                     if (target.AboutPivot) text.Append("  (about its pivot)");
                     text.AppendLine();
                     Canvas canvas = target.Piece.GetComponentInParent<Canvas>(true);

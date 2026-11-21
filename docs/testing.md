@@ -665,8 +665,9 @@ How it works (`Systems/HudScaler.cs`, `Systems/HudPatches.cs`, `Core/HudMath.cs`
   game set since the last frame is read back first, so its animations (the power meter's pop, the angle arc sliding to
   the centre) carry on at the new size. Elements that follow something on screen (crosshairs, lock-on markers, the
   angle arc, the giant-form timers) shrink about their own pivot.
-- **Groups inside groups** (the stroke count inside the progress bar, perhaps the wind too): the outer group is scaled
-  piece by piece round the inner one, about its own still point. **A container stretched over the screen** isn't
+- **Groups inside groups** (the stroke count and wind inside the progress bar, the swing wind inside the power
+  meter): the outer group is scaled whole; the inner one is placed as if the outer one were at the game's size, then
+  set against the outer one as scaled (see the results below for why it isn't split any more). **A container stretched over the screen** isn't
   scaled; its children are, each toward its own side.
 - **Two wind readouts:** the higher one on screen is `Wind`, the lower one `SwingWind`.
 - **Markers, name tags, pop-up words** are sized by the game every frame from their distance; Harmony postfixes scale
@@ -728,3 +729,32 @@ The same log answers part of the layout question (the `HUD: … is …` lines):
   `Scoreboard/Container`; the reticles each about their own pivot.
 
 H13 (frame rate) is the check for this; H2's layout file still to send.
+
+
+**Results and change (2026-11-21, H2 and H3: `LightGreen.hud.txt` from the Driving Range, and four screenshots with
+every `[HUD]` setting at 50: Tab, walking, the swing stance, walking again):**
+
+- Right at half size and in place: the hole and ball markers, `Hold R to restart` (half as wide, its bottom edge kept),
+  the item bar with the angle badge and `Golf Club` (bottom-right corner kept), the `Swing Stance` and `Adjust Angle`
+  prompts (bottom-left kept), the power meter (about its centre, by the player), the swing wind, the angle selector
+  (bottom-right kept), and the scoreboard with its lobby name and course line (about the middle). The aim line and the
+  hole's beam unchanged. The scoreboard came out half as tall but about 60 % as wide: the game's own width rule on it
+  (`RectMaxWidth` on `Scoreboard/Container/Background`) gives it more room as it gets smaller; the rows and text are at
+  half size.
+- **Wrong: the progress bar.** The portraits and the flag shrank toward the top-left corner, but the green bar stayed
+  at full length, so the flag sat in the middle of it. The layout file shows why: the bar's graphic is on
+  `Hole progress bar/Container/Progress bar`, the parent of `Info`, which holds `Wind info` and `Strokes label`. Being
+  split round those two, the bar was scaled through its other children (the flag, the portraits' parent) and its own
+  graphic never.
+- The layout file also shows `SwingPitchUi` isn't in the gameplay HUD at all: the angle selector is only
+  `Hotkeys/Swing` (the triangle, its angle and the steps 1 to 4).
+
+Changed: a group inside another is no longer split round. The outer element is scaled whole, its own graphics with it,
+toward its still point; the inner one is worked out in its own parent as if the outer one were at the game's size, then
+mapped against the outer one as scaled (position and scale divided back through the outer one's change). Outer
+elements are scaled first each frame. Checked offline: 2,000 random cases of an outer element at 0.0001 to 0.9 and an
+inner one at 0.0001 to 1, the inner one lands where and at the size wanted to within 1e-13. So `Strokes` and `Wind`
+keep their own sizes and places at any `ProgressBar`, and can stay when the bar is hidden; likewise `SwingWind` with
+`PowerMeter`. Two levels only (an inner group inside an inner group isn't in the HUD).
+
+H3 again for the progress bar.
