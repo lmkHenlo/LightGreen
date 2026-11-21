@@ -658,7 +658,7 @@ with the `[HUD]` sizes) → off (the game's own look and HUD) → on.
 
 How it works (`Systems/HudScaler.cs`, `Systems/HudPatches.cs`, `Core/HudMath.cs`):
 
-- **Screen elements** are found from the game's HUD components about once a second (`HoleProgressBarUi`,
+- **Screen elements** are found from the game's HUD components (`HoleProgressBarUi`,
   `WindInfoUi`, `Hotkeys`' inventory and swing groups, `SwingPowerBarUi`, `SwingPitchUi`, `RestartPrompt`,
   `ButtonPromptManager`'s corner and centre containers, `TextChatUi`, `InfoFeed`, `Scoreboard` and so on), and scaled
   just before the HUD is drawn each frame (`Canvas.willRenderCanvases`), toward the side each is anchored to. What the
@@ -699,3 +699,32 @@ warnings.
 | H11 | Back | Everything back to 100; then `General.Enabled = false` with sizes at 50 | Exactly the game's HUD, in the same places |
 | H12 | VR | Sizes at 50 with SBGVR | The HUD in the headset at half size, nothing stuck to the view |
 | H13 | Frame rate | Sizes at 50 and 100, F8 between | No change in frame rate worth noting |
+
+**Results and change (2026-11-21, first test of the HUD build, LogOutput.log from a session):** the user noticed hitching
+with LightGreen on that the build before didn't have. LobbyEOS's frame statistics (every 10 s) in the same log show it:
+while the `[HUD]` sizes applied (on, and HUD only) the worst frame of each 10 s was 20–37 ms against an average of
+4.2 ms; after F8 to off (03:14:25, left there for the rest of the session) the worst frames were 5–12 ms, outside map
+loads. The average didn't move, so the cost wasn't the per-frame scaling: it was the search for the HUD, run once a
+second, 22 `FindObjectsByType(..., FindObjectsInactive.Include)` calls over the whole scene (about 89,000 Unity
+objects), with a log string built for each element each time.
+
+Changed: the HUD is found in one pass over the gameplay screen-space UI's own children (found by its
+`GameplayScreenspaceUiCanvas` component, one search), only after a scene or hole loads (0.2, 1, 3 and 6 s after, while
+the HUD is still building), when F8 or `General.Enabled` brings the sizes back, and when an element found before has
+been destroyed (at most every 2 s). Never on a timer. The lock-on markers and giant-form timers, which come and go, are
+the children of their managers (`Lock-on UI manager`, `Jumbo burger giant form timer manager`), looked at each frame.
+Each element is logged once.
+
+The same log answers part of the layout question (the `HUD: … is …` lines):
+
+- `Strokes` and `Wind` are both inside the progress bar (`Hole progress bar/Container/Progress bar/Info/…`), and
+  `SwingWind` inside the power meter (`Swing power bar/Wind info`): the outer groups are split round them, as planned.
+- The angle arc (`SwingPitchUi`) is inside `Hotkeys/Swing`, so it had been folded into that group and scaled with it,
+  toward the corner; it would then slide toward a point between the corner and the middle. Now it's its own piece,
+  about its own pivot, and `Hotkeys/Swing` is split round it.
+- The quick chat wheel's container stretches over the screen, so it had been taken apart and each option shrunk toward
+  its own side. Now the wheel is scaled whole, about the middle of the screen.
+- The item bar is `Hotkeys/Container`, the kill feed `Info feed/Message container`, the scoreboard
+  `Scoreboard/Container`; the reticles each about their own pivot.
+
+H13 (frame rate) is the check for this; H2's layout file still to send.
