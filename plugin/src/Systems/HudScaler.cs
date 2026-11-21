@@ -431,7 +431,7 @@ namespace LightGreen.Systems
             if (follow) factor = Vector3.Scale(factor, Divide(_held[target.Outer].BaseScale, target.Outer.localScale));
             Vector3 newScale = Vector3.Scale(held.BaseScale, factor);
             Vector3 newPosition = held.BasePosition;
-            if (!target.AboutPivot && StillPoint(piece, held, out Vector3 still))
+            if (!target.AboutPivot && StillPoint(piece, held, target.Outer != null, out Vector3 still))
                 newPosition = new Vector3(HudMath.Toward(held.BasePosition.x, still.x, factor.x),
                     HudMath.Toward(held.BasePosition.y, still.y, factor.y), HudMath.Toward(held.BasePosition.z, still.z, factor.z));
             // The outer element hidden: where it would be with the outer one at the game's size.
@@ -468,14 +468,27 @@ namespace LightGreen.Systems
             new Vector3(b.x != 0f ? a.x / b.x : a.x, b.y != 0f ? a.y / b.y : a.y, b.z != 0f ? a.z / b.z : a.z);
 
         /// <summary>
-        /// The point in the piece's parent that stays put: on its own rectangle, at the side it's anchored to, from its
-        /// base (as the game set it), not as scaled.
+        /// The point in the piece's parent that stays put, from its base (as the game set it), not as scaled. On the
+        /// screen: on its own rectangle, at the side it's anchored to. Inside another group's element: the point of its
+        /// rectangle nearest where it's attached (its anchor on the outer one), so a readout hanging below the power
+        /// meter's corner keeps its top edge there and grows downward, not up into the meter.
         /// </summary>
-        private static bool StillPoint(Transform piece, Held held, out Vector3 still)
+        private static bool StillPoint(Transform piece, Held held, bool inner, out Vector3 still)
         {
             still = default;
             if (!(piece is RectTransform rect)) return false;
             Rect r = rect.rect;
+            if (inner && rect.parent is RectTransform parent && rect.localRotation == Quaternion.identity)
+            {
+                Rect p = parent.rect;
+                Vector2 anchor = (rect.anchorMin + rect.anchorMax) * 0.5f;
+                var attach = new Vector2(p.xMin + p.width * anchor.x, p.yMin + p.height * anchor.y);
+                float x0 = held.BasePosition.x + held.BaseScale.x * r.xMin, x1 = held.BasePosition.x + held.BaseScale.x * r.xMax;
+                float y0 = held.BasePosition.y + held.BaseScale.y * r.yMin, y1 = held.BasePosition.y + held.BaseScale.y * r.yMax;
+                still = new Vector3(Mathf.Clamp(attach.x, Mathf.Min(x0, x1), Mathf.Max(x0, x1)),
+                    Mathf.Clamp(attach.y, Mathf.Min(y0, y1), Mathf.Max(y0, y1)), held.BasePosition.z);
+                return true;
+            }
             var local = new Vector3(r.xMin + r.width * HudMath.Edge(rect.anchorMin.x, rect.anchorMax.x),
                 r.yMin + r.height * HudMath.Edge(rect.anchorMin.y, rect.anchorMax.y), 0f);
             still = held.BasePosition + rect.localRotation * Vector3.Scale(held.BaseScale, local);

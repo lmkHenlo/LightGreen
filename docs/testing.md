@@ -791,3 +791,13 @@ wants a screenshot taken just after a stroke.
 two readouts sit inside the bar, so they simply scale with it). The two old keys are dropped from the config file on
 load (`Settings.Removed`). The swing wind beside the power meter keeps its own setting (`SwingWind`), and the nested
 handling stays for it. 26 `[HUD]` settings. H14 no longer applies; H3's top-left now means all of it at the one size.
+
+**Results and change (2026-11-21, H15: `PowerMeter` 50, `SwingWind` 100, swing stance):** the meter at half size, the
+swing wind at full size, and it followed the meter, but it overlapped the meter's bottom end. Its still point was its
+own bottom-right corner (from its anchors, `a(1,0)` on the meter), so at full size beside a half-size meter it grew
+upward into it. Changed: for a group inside another, the still point is the point of its rectangle nearest where it's
+attached (its anchor point on the outer element, clamped into its own rectangle). For the swing wind that's just under
+its top edge, below the meter's bottom-right corner: from the layout file (meter 51 × 422, wind 226 × 85, its top
+4.5 units above the meter's bottom at the game's size), at `SwingWind` 100 with `PowerMeter` 50 its top now sits where
+it does at the game's size, touching the meter's corner, and it grows downward. Screen-level groups keep the anchored
+side as before. H15 again.
