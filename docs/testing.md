@@ -818,3 +818,30 @@ diagnostic.
 **Changed (2026-11-21):** the layout file is taken out (`HudScaler.WriteLayout` and its tree dump); the DLL no longer
 writes `BepInEx/LightGreen.hud.txt`. The `HUD: … is …` log lines stay, once per element. A `LightGreen.hud.txt` left
 from the test builds can be deleted by hand. Nothing else changed: the build that passed the H checks, less the file.
+
+## Hitching with many .cube filters (after 0.3.0)
+
+**Report (2026-11-21):** slight hitching toward the end of a session, no crash; `LogOutput.log` (12:19–12:39 UTC) with
+LightGreen 0.3.0, LobbyEOS, ReConfig, SliderSens and VCTextLobby. Found:
+
+- `Photo filters: 27 in LightGreen.filters.json, 439 from .cube files`. Every `.cube` file was parsed at start and kept
+  (`FilterStore.ReadFolder`), and LobbyEOS's memory lines show the managed heap at 319–321 MB in the menu (the session
+  before, without the .cube files: 109 MB), 350–390 MB in play. Mono's collector goes over the whole heap each time,
+  so a heap three times the size means longer pauses: 1–9 collections every 10 s in this log, more while ReConfig was
+  saving the config.
+- The worst frames at the end (40–70 ms, 12:38:43–12:39:23) line up with network stalls: the longest wait for a ping
+  reply went to 2.7 and 3.5 s, the round trip's deviation to 299 ms and the time scale to 1.02 (catching up) as a
+  client, then a map change (249 ms). Those aren't LightGreen's; the map-change frames (250–425 ms) are loading, as in
+  every session.
+
+Changed: `.cube` files are only listed at start (name → path). A filter's colour part (`FilterEntry.Spec`) is built
+when it's first used, reading its `.cube` then, and the `.cube` of the filter used before is let go, so one is in
+memory. A file that can't be read is logged when its filter is picked and the filter is used without it (the summary
+line still counts every `.cube` file found).
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| L1 | Memory | With the 439 `.cube` files, start and wait in the menu for LobbyEOS's 30 s line | Managed heap near the 110 MB of before, not 320 MB; the log still says `439 from .cube files` |
+| L2 | Filters still work | F11 through a few `.cube` filters, and back to one used before | Each shows as before; the first time each is picked can take a moment (it's read then) |
+| L3 | A bad file | Put a broken `.cube` (a text file renamed) in the folder; pick it | A warning naming the file when picked; the picture unfiltered by it; nothing at start |
+| L4 | Play | Play a few holes as before | No hitching beyond what the network does |

@@ -170,7 +170,7 @@ F11 goes through them in this order. The last three show roughly how the world l
 | Deuteranopia | Roughly how it looks without green-sensitive cones |
 | Tritanopia | Roughly how it looks without blue-sensitive cones |
 
-The filters are in `BepInEx/config/LightGreen.filters.json`, which you can edit while you play. To use your own LUTs, put `.cube` files in `BepInEx/config/LightGreen.filters/`: each becomes a filter named after the file. In VR, filters keep their colours but not their vignette, distortion or fringes.
+The filters are in `BepInEx/config/LightGreen.filters.json`, which you can edit while you play. To use your own LUTs, put `.cube` files in `BepInEx/config/LightGreen.filters/`: each becomes a filter named after the file, read only when you pick it, so a big collection doesn't slow the game. In VR, filters keep their colours but not their vignette, distortion or fringes.
 
 ## Notes
 

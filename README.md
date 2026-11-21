@@ -189,7 +189,7 @@ F11 goes through them in this order. The last three show roughly how the world l
 | Deuteranopia | Roughly how it looks without green-sensitive cones |
 | Tritanopia | Roughly how it looks without blue-sensitive cones |
 
-The filters are in `BepInEx/config/LightGreen.filters.json`, written on first launch and reloaded when saved: each sets any of a `.cube` file, a channel mixer, warmth and tint, brightness, contrast, saturation, tone curves, split toning, a gradient map, fade and posterize, plus a vignette, lens distortion, colour fringes and bloom. To use your own LUTs, put `.cube` files (3D or 1D, as Lightroom, Photoshop and Resolve export them) in `BepInEx/config/LightGreen.filters/`. Each one becomes a filter named after the file. In VR, filters keep their colours but not their vignette, distortion or fringes.
+The filters are in `BepInEx/config/LightGreen.filters.json`, written on first launch and reloaded when saved: each sets any of a `.cube` file, a channel mixer, warmth and tint, brightness, contrast, saturation, tone curves, split toning, a gradient map, fade and posterize, plus a vignette, lens distortion, colour fringes and bloom. To use your own LUTs, put `.cube` files (3D or 1D, as Lightroom, Photoshop and Resolve export them) in `BepInEx/config/LightGreen.filters/`. Each one becomes a filter named after the file. A `.cube` file is read when its filter is picked, and only the one in use is kept in memory, so a folder of hundreds costs nothing until used; one that can't be read is reported in the log when picked. In VR, filters keep their colours but not their vignette, distortion or fringes.
 
 ## Known issues
 

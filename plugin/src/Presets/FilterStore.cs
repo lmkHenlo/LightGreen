@@ -10,17 +10,29 @@ using UnityEngine;
 
 namespace LightGreen.Presets
 {
-    /// <summary>A filter ready to use: its settings, and its colour part for building the lookup table.</summary>
+    /// <summary>
+    /// A filter ready to use: its settings, and its colour part for building the lookup table. A .cube file is read
+    /// only when the filter is used (<see cref="Spec"/>), and only the one in use is kept: with hundreds of .cube files
+    /// in the folder, reading them all at start held hundreds of MB, and the game hitched on its longer garbage
+    /// collections.
+    /// </summary>
     internal sealed class FilterEntry
     {
         internal string Name;
         internal PhotoFilterPreset Preset;
-        internal FilterSpec Spec;
+        internal string CubePath;   // the .cube file it uses, or null
+        private FilterSpec _spec;
+
+        internal FilterSpec Spec => _spec ?? (_spec = FilterStore.MakeSpec(this));
+
+        /// <summary>Lets go of the colour part (and its .cube), to be read again if used again.</summary>
+        internal void Forget() => _spec = null;
     }
 
     /// <summary>
     /// Loads the photo filters: LightGreen.filters.json (written with LightGreen's built-in filters the first time)
-    /// and every .cube file in the LightGreen.filters folder, each of which becomes a filter named after the file.
+    /// and every .cube file in the LightGreen.filters folder, each of which becomes a filter named after the file. The
+    /// .cube files are only listed here; one is read when its filter is used.
     /// Both are checked once a second, so edits and new files show in game as soon as they're saved.
     /// </summary>
     internal static class FilterStore
@@ -45,6 +57,7 @@ namespace LightGreen.Presets
         private static float _nextCheck;
         private static int _fromJson;
         private static ManualLogSource _log;
+        private static FilterEntry _withCube;   // the one filter whose .cube is in memory
 
         internal static void Load(ManualLogSource log)
         {
@@ -141,6 +154,7 @@ namespace LightGreen.Presets
             var cubes = ReadFolder();
             _names.Clear();
             _entries.Clear();
+            _withCube = null;
 
             foreach (PhotoFilterPreset preset in _file.filters)
             {
@@ -151,12 +165,12 @@ namespace LightGreen.Presets
                     _log.LogWarning($"Photo filters: skipped a second filter called \"{name}\".");
                     continue;
                 }
-                CubeLut cube = null;
+                string cube = null;
                 if (!string.IsNullOrWhiteSpace(preset.lut))
                 {
                     string file = Path.GetFileNameWithoutExtension(preset.lut.Trim());
                     if (!cubes.TryGetValue(file, out cube))
-                        _log.LogWarning($"Photo filter \"{name}\": there's no readable {file}.cube in {FolderPath}; using the filter without it.");
+                        _log.LogWarning($"Photo filter \"{name}\": there's no {file}.cube in {FolderPath}; using the filter without it.");
                 }
                 Add(name, preset, cube);
             }
@@ -164,7 +178,7 @@ namespace LightGreen.Presets
             _fromJson = _names.Count;
 
             // Each .cube file is a filter of its own too.
-            foreach (KeyValuePair<string, CubeLut> cube in cubes.OrderBy(c => c.Key, StringComparer.OrdinalIgnoreCase))
+            foreach (KeyValuePair<string, string> cube in cubes.OrderBy(c => c.Key, StringComparer.OrdinalIgnoreCase))
             {
                 string name = _entries.ContainsKey(cube.Key) || string.Equals(cube.Key, NoFilter, StringComparison.OrdinalIgnoreCase)
                     ? cube.Key + " (LUT)" : cube.Key;
@@ -179,16 +193,40 @@ namespace LightGreen.Presets
         private static string Summary() =>
             $"{_fromJson} in {Path.GetFileName(FilePath)}, {_names.Count - _fromJson} from .cube files in {Path.GetFileName(FolderPath)}";
 
-        private static void Add(string name, PhotoFilterPreset preset, CubeLut cube)
+        private static void Add(string name, PhotoFilterPreset preset, string cubePath)
         {
-            _entries[name] = new FilterEntry { Name = name, Preset = preset, Spec = ToSpec(preset, cube) };
+            _entries[name] = new FilterEntry { Name = name, Preset = preset, CubePath = cubePath };
             _names.Add(name);
         }
 
-        /// <summary>The .cube files in the folder, read, by file name without .cube. Unreadable ones are logged and left out.</summary>
-        private static Dictionary<string, CubeLut> ReadFolder()
+        /// <summary>
+        /// A filter's colour part, reading its .cube file now if it has one. The .cube of the filter used before is let
+        /// go, so only one is in memory. A .cube that can't be read is logged, and the filter is used without it.
+        /// </summary>
+        internal static FilterSpec MakeSpec(FilterEntry entry)
         {
-            var cubes = new Dictionary<string, CubeLut>(StringComparer.OrdinalIgnoreCase);
+            CubeLut cube = null;
+            if (entry.CubePath != null)
+            {
+                try
+                {
+                    cube = CubeLut.Parse(File.ReadAllText(entry.CubePath));
+                }
+                catch (Exception e)
+                {
+                    _log?.LogWarning($"Photo filter \"{entry.Name}\": couldn't read {Path.GetFileName(entry.CubePath)} ({e.Message}); " +
+                                     "using the filter without it.");
+                }
+                if (_withCube != null && _withCube != entry) _withCube.Forget();
+                _withCube = entry;
+            }
+            return ToSpec(entry.Preset, cube);
+        }
+
+        /// <summary>The .cube files in the folder, by file name without .cube: their paths, not read yet.</summary>
+        private static Dictionary<string, string> ReadFolder()
+        {
+            var cubes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             _folderFingerprint = FolderFingerprint();
             if (!Directory.Exists(FolderPath)) return cubes;
             string[] files;
@@ -201,18 +239,7 @@ namespace LightGreen.Presets
                 _log.LogWarning($"Couldn't list {FolderPath}: {e.Message}");
                 return cubes;
             }
-            foreach (string path in files)
-            {
-                string name = Path.GetFileNameWithoutExtension(path);
-                try
-                {
-                    cubes[name] = CubeLut.Parse(File.ReadAllText(path));
-                }
-                catch (Exception e)
-                {
-                    _log.LogWarning($"Skipped the photo filter {Path.GetFileName(path)}: {e.Message}.");
-                }
-            }
+            foreach (string path in files) cubes[Path.GetFileNameWithoutExtension(path)] = path;
             return cubes;
         }
 

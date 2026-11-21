@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Hitching with many `.cube` filters: every `.cube` file in `LightGreen.filters/` was read into memory at start (with 439 files, about 200 MB), and the game's garbage collections grew long enough to hitch. Now a `.cube` file is read when its filter is picked, and only the one in use is kept. A `.cube` file that can't be read is reported in the log when its filter is picked, not at start.
+
 ## [0.3.0] - 2026-11-21
 
 ### Added
