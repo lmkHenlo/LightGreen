@@ -13,7 +13,7 @@ namespace LightGreen
     /// <summary>The HUD groups the [HUD] section sizes, in its order. The names are the settings' keys.</summary>
     internal enum HudPart
     {
-        ProgressBar, Strokes, Wind, HoleMarker, BallMarker, RestartPrompt, ItemBar, PowerMeter, SwingWind, AngleSelector,
+        ProgressBar, HoleMarker, BallMarker, RestartPrompt, ItemBar, PowerMeter, SwingWind, AngleSelector,
         ControlPrompts, NameTags, TeammateMarkers, OtherMarkers, PopupText, Chat, KillFeed, Scoreboard, VoiceChat,
         HoleBanner, ObjectiveMessage, TeamScore, SpeedBoost, SpectatorPrompts, QuickChat, Reticles, GiantTimer,
         Hints,
@@ -75,9 +75,8 @@ namespace LightGreen
         /// <summary>What each HUD group is, for its setting's description, in <see cref="HudPart"/> order.</summary>
         private static readonly string[] HudDescriptions =
         {
-            "The hole progress bar, top left: the bar, the flag and the players' portraits.",
-            "The stroke count by the progress bar (\"Strokes 1\").",
-            "The wind readout, top left: its speed and arrow.",
+            "The top-left corner, all together: the hole progress bar (the bar, the flag and the players' portraits), the wind " +
+                "readout and the stroke count.",
             "The marker over the hole: its distance, the flag ring, and its arrow at the screen's edge when the hole is out of view.",
             "The marker over your ball: its distance, the ball ring, and its arrow at the screen's edge.",
             "\"Hold R to restart\".",
@@ -247,6 +246,8 @@ namespace LightGreen
             new ConfigDefinition("Effects", "FilmGrain"),
             new ConfigDefinition("Quality", "AmbientOcclusionIgnoresGrass"),   // always on now
             new ConfigDefinition("Effects", "Snowfall"),   // removed: not worth its cost
+            new ConfigDefinition("HUD", "Strokes"),        // merged into HUD.ProgressBar (the top-left corner)
+            new ConfigDefinition("HUD", "Wind"),           // merged into HUD.ProgressBar
         };
 
         /// <summary>

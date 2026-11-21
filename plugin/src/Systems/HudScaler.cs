@@ -230,14 +230,16 @@ namespace LightGreen.Systems
             }
 
             var winds = new List<WindInfoUi>();
+            var bars = new List<Transform>();
             foreach (Transform canvas in HudCanvases())
                 foreach (MonoBehaviour behaviour in canvas.GetComponentsInChildren<MonoBehaviour>(true))
                 {
                     switch (behaviour)
                     {
                         case HoleProgressBarUi bar:
+                            // The top-left corner: the bar, and the wind readout and stroke count inside it, as one.
                             Add(HudPart.ProgressBar, bar.transform);
-                            Add(HudPart.Strokes, Member(bar, "strokesLabel"));
+                            bars.Add(bar.transform);
                             break;
                         case WindInfoUi wind:
                             winds.Add(wind);
@@ -294,10 +296,15 @@ namespace LightGreen.Systems
                     }
                 }
 
-            // Two wind readouts: the top-left one, and the one beside the power meter, lower on the screen.
-            winds.Sort((a, b) => b.transform.position.y.CompareTo(a.transform.position.y));
-            for (int i = 0; i < winds.Count; i++)
-                Add(i == 0 ? HudPart.Wind : HudPart.SwingWind, winds[i].transform);
+            // Two wind readouts: the top-left one, inside the progress bar and sized with it, and the one beside the power
+            // meter.
+            foreach (WindInfoUi wind in winds)
+            {
+                bool inBar = false;
+                foreach (Transform bar in bars)
+                    if (wind.transform.IsChildOf(bar)) inBar = true;
+                if (!inBar) Add(HudPart.SwingWind, wind.transform);
+            }
             return roots;
         }
 

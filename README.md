@@ -124,9 +124,7 @@ Each part of the HUD has its own size in the `[HUD]` section, in percent: 100 (t
 
 | Setting | What it sizes |
 |---|---|
-| `ProgressBar` | The hole progress bar, top left: the bar, the flag and the players' portraits |
-| `Strokes` | The stroke count by the progress bar |
-| `Wind` | The wind readout, top left |
+| `ProgressBar` | The top-left corner as one: the hole progress bar (bar, flag, players' portraits), the wind readout and the stroke count |
 | `HoleMarker` | The marker over the hole, with its distance and its arrow at the screen's edge |
 | `BallMarker` | The marker over your ball, with its distance and arrow |
 | `RestartPrompt` | "Hold R to restart" |

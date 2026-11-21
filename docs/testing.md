@@ -653,7 +653,7 @@ cartoon rain are signed off as they stand.
 Asked for from two screenshots (walking and in the swing stance): every HUD group sized on its own, 0–100 %, 0 hiding
 it; built into LightGreen as a `[HUD]` section, not a separate mod. The hole's beam and the aim line were taken off the
 list at the user's request and are never changed. The user then asked for every other HUD part that could be scaled
-cleanly as well: 27 settings in all, 28 with `Hints` (added later; the README's table). **F8** gains a third step: on → HUD only (the game's own look
+cleanly as well: 27 settings in all, 28 with `Hints`, then 26 once the top-left corner became one (the README's table). **F8** gains a third step: on → HUD only (the game's own look
 with the `[HUD]` sizes) → off (the game's own look and HUD) → on.
 
 How it works (`Systems/HudScaler.cs`, `Systems/HudPatches.cs`, `Core/HudMath.cs`):
@@ -687,7 +687,7 @@ warnings.
 
 | # | Check | Steps | Expected |
 |---|---|---|---|
-| H1 | Log | Start the game | `[ok] Hook: HUD markers`, `[ok] Hook: HUD name tags`, `[ok] Hook: HUD pop-up words`; the load line says `F8 compares with the game's own look (on, HUD only, off)`; the config file has a `[HUD]` section of 28 settings at 100; no errors |
+| H1 | Log | Start the game | `[ok] Hook: HUD markers`, `[ok] Hook: HUD name tags`, `[ok] Hook: HUD pop-up words`; the load line says `F8 compares with the game's own look (on, HUD only, off)`; the config file has a `[HUD]` section of 26 settings at 100; no errors |
 | H2 | Layout file | Play a hole for 10 s | `HUD layout written to …LightGreen.hud.txt` in the log; send the file (and `LogOutput.log`, for its `HUD: … is …` lines) |
 | H3 | All at 50 | Every `[HUD]` setting at 50; walk, then take the swing stance (screenshot each, as before) | Every element from the two screenshots at half size, each at its own corner or side; nothing missing, nothing moved away from its place; the hole's beam and the aim line unchanged |
 | H4 | All at 0 | Every `[HUD]` setting at 0 | All of them gone; the beam and the aim line still there; F8's message shows top left, not in the hidden chat |
@@ -785,3 +785,9 @@ where it sits with a full-size bar, top left under where the bar was; with `Prog
 half-size bar, at its own size. **H14 passes for the wind.** The stroke count isn't on screen in either: the game shows
 it only for a few seconds after a stroke (`HoleProgressBarUi`'s strokes visibility time), so its half of H14 still
 wants a screenshot taken just after a stroke.
+
+**Changed (2026-11-21, at the user's request): the top-left corner is one setting.** `Strokes` and `Wind` are gone;
+`ProgressBar` now sizes the bar, the flag, the players' portraits, the wind readout and the stroke count together (the
+two readouts sit inside the bar, so they simply scale with it). The two old keys are dropped from the config file on
+load (`Settings.Removed`). The swing wind beside the power meter keeps its own setting (`SwingWind`), and the nested
+handling stays for it. 26 `[HUD]` settings. H14 no longer applies; H3's top-left now means all of it at the one size.
