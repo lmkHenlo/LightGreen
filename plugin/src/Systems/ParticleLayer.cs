@@ -8,7 +8,9 @@ namespace LightGreen.Systems
     /// built in code whose emitter follows the camera (the spectator and flyover cameras included); its
     /// particles live in world space, so they keep their place as the camera moves and drift with the wind.
     /// On a camera cut (a jump of more than 25 m in one frame) every layer is cleared and refilled at once,
-    /// so the new view never starts empty or pops in.
+    /// so the new view never starts empty or pops in. The refill places the particles straight into the layer's
+    /// box at random ages (<see cref="Fill"/>): running the system forward a whole fall instead took Unity hundreds
+    /// of small steps, 29-34 ms in one frame for snow.
     ///
     /// The particles are drawn with a copy of the game's own particle material ("ParticlesUnlit": URP's
     /// unlit particle shader with its soft round texture, the variant the game builds), so nothing is shipped
@@ -66,6 +68,9 @@ namespace LightGreen.Systems
         private Vector3 _lastCamera;
         private bool _running;
         private float _density = -1f;
+        private readonly List<int> _counts = new List<int>();   // each layer's particle count at the current density
+        private ParticleSystem.Particle[] _fill = new ParticleSystem.Particle[0];
+        private readonly System.Random _random = new System.Random();   // not UnityEngine.Random: that's the game's
 
         internal ParticleLayer(string rootName, params Spec[] specs)
         {
@@ -109,7 +114,7 @@ namespace LightGreen.Systems
                     ps.transform.position = eye + Vector3.up * spec.Lift;
                 }
 
-                if (densityChanged) SetDensity(ps, spec, density);
+                if (densityChanged) _counts[i] = SetDensity(ps, spec, density);
 
                 var velocity = ps.velocityOverLifetime;
                 velocity.x = new ParticleSystem.MinMaxCurve(wind.x * 0.8f, wind.x * 1.2f);
@@ -123,8 +128,7 @@ namespace LightGreen.Systems
                 if (cut)
                 {
                     // Fill the new view at once: as if it had been falling for a whole lifetime already.
-                    ps.Clear(true);
-                    ps.Simulate(Lifetime(spec), true, true, false);
+                    Fill(ps, _counts[i]);
                     ps.Play(true);
                 }
                 else if (!ps.isPlaying)
@@ -138,7 +142,25 @@ namespace LightGreen.Systems
 
         private static float Lifetime(Spec spec) => spec.Height / Mathf.Max(0.1f, spec.Fall);
 
-        private static void SetDensity(ParticleSystem ps, Spec spec, float density)
+        /// <summary>
+        /// Clears a layer and fills its box with <paramref name="count"/> particles at once, each part-way through its
+        /// life (a random share of it left), as if they had been falling for a while: the box is evenly filled and
+        /// they don't all fade at the same moment. One emit and one write, instead of simulating a whole fall.
+        /// </summary>
+        private void Fill(ParticleSystem ps, int count)
+        {
+            ps.Clear(true);
+            if (count <= 0) return;
+            ps.Emit(count);   // in the shape (the layer's box or hollow cylinder), with the layer's own start values
+            if (_fill.Length < count) _fill = new ParticleSystem.Particle[count];
+            int n = ps.GetParticles(_fill, count);
+            for (int k = 0; k < n; k++)
+                _fill[k].remainingLifetime = _fill[k].startLifetime * (float)(0.02 + 0.98 * _random.NextDouble());
+            ps.SetParticles(_fill, n);
+        }
+
+        /// <summary>Sets a layer's particle cap and emission for this density; returns its steady particle count.</summary>
+        private static int SetDensity(ParticleSystem ps, Spec spec, float density)
         {
             float lifetime = Lifetime(spec);
             float outer = spec.Width * 0.5f, inner = Mathf.Min(spec.Clearance, outer * 0.9f);
@@ -149,6 +171,7 @@ namespace LightGreen.Systems
             var emission = ps.emission;
             // Born anywhere in the box with up to a full fall's life: the box stays evenly filled.
             emission.rateOverTime = count / (lifetime * 0.75f);
+            return Mathf.RoundToInt(count);
         }
 
         private bool EnsureBuilt()
@@ -160,7 +183,12 @@ namespace LightGreen.Systems
             _root = new GameObject(_rootName) { hideFlags = HideFlags.DontSave };
             Object.DontDestroyOnLoad(_root);
             _root.SetActive(false);
-            foreach (Spec spec in _specs) _systems.Add(Build(spec, source));
+            foreach (Spec spec in _specs)
+            {
+                _systems.Add(Build(spec, source));
+                _counts.Add(0);
+            }
+            _density = -1f;   // set each new layer's count on its first frame
             return true;
         }
 
@@ -289,6 +317,8 @@ namespace LightGreen.Systems
             _root = null;
             _systems.Clear();
             _materials.Clear();
+            _counts.Clear();
+            _fill = new ParticleSystem.Particle[0];
             _density = -1f;
         }
 

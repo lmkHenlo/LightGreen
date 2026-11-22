@@ -918,3 +918,51 @@ frame and 6 ms more) with LightGreen's share of the longest.
 | T4 | F8 off | Same map, 2 minutes on, then 2 minutes with F8 off, TimingLog on | The long frames with F8 off show what the game does alone; compare their count and size with on |
 | T5 | Looks | City at night: windows light within a second of the hole starting; players and cosmetics tinted as before; balls glow at night | As before |
 | T6 | Quiet log | Play with TimingLog off | `Timing` lines only around map changes (if any), not every 10 s |
+
+
+## Crash: footprint gradients (memory dump, 2026-11-21)
+
+**Report:** the game closed without warning at 00:55:55 UTC, 1 min into a Coast hole as a client (8 players, snow
+weather on), with the T-test build (`89facd4`). Neither log has an error; Unity wrote no crash report. A full memory
+dump (`Super Battle Golf.exe.19844.dmp`, 7.2 GB, Windows Error Reporting) was taken.
+
+Found in the dump:
+
+- `EXCEPTION_ACCESS_VIOLATION`, executing address 0, on `Job.Worker 4`. The stack word just below the stack pointer,
+  where the last return address was, is 0, and the 0x1f0 bytes below it are zeroed: a function returned to a
+  return address that had been overwritten.
+- The live frames (from the return addresses that line up with each function's frame size): the job worker loop
+  (`UnityPlayer+0x56c966`, `call r15` per index) → `+0x15338f0` (writes particle quad indices: index 35 of 36 in the
+  batch) → `+0x1534050` → `+0xf59e40` → `+0xf7a8b0` (a 0x128-byte frame, its stack pointer exactly the crash's) →
+  the function that returned to 0. The code round these is Unity's particle system (strings: "Unexpected Particle
+  System vertex stream", "Precision issue while prewarming particle system"); Job.Worker 3 was in the same job.
+- The particle system of that batch entry belongs to a GameObject named `Footprint Particle` (runtime instance id
+  -142288). There are 12 `Footprint Particle` objects (10 active clones, 1 pooled, the prefab). The colour over
+  lifetime gradient (the module's pointer at +0x840) is 2 colour and 3 alpha keys in the prefab and in 9 prints;
+  in 3 it's garbage: 64/62, 0/0, and 120/115 keys in the one being built when it crashed. Unity's gradients hold at
+  most 8 keys; 120 overran the job's stack.
+- Unity 6's `MinMaxGradientBlittable.ToMinMaxGradient` wraps the module's native gradient in `new Gradient(IntPtr)`,
+  whose constructor sets `m_RequiresNativeCleanup = false` (IL `16 7d ca 08 00 04`): a view of that system's own
+  memory, not a copy (curves likewise, `MinMaxCurveBlittable.ToMinMaxCurve`). `Footprints.Capture` kept
+  `colorOverLifetime.color`, `main.startColor` and `main.startLifetime` of the first print, and every footprint off
+  snow was given them back (`fade.color = o.Fade`). Once that first print's gradient was freed, those reads were of
+  freed memory.
+- Gradient layout read from LightGreen's own fade gradient in the dump: 8 × RGBA float keys, 8 colour times and
+  8 alpha times (UInt16), then the colour and alpha key counts.
+
+Not related: RTSS (`RTSSHooks64.dll`) and the Steam and NVIDIA overlays are loaded, but no thread was in them.
+
+Changed: `ParticleValues.Copy` makes gradients and curves LightGreen owns (`new Gradient()` + `SetKeys`, `new
+AnimationCurve(keys)`), and `Capture` keeps those; `Configure` puts the game's values back only on prints it gave the
+snow look (`Changed`), so off snow LightGreen doesn't touch prints at all. Also in this build: the `.cube` folder
+check on a background thread every 2 s (`FilterStore.FolderChanged`), and the weather refill by `ParticleLayer.Fill`
+(one `Emit` of the layer's steady count, then each particle given a random share of its life left) instead of
+`Simulate` over a whole fall.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| C1 | Prints off snow | Play two Coast or Grass holes with 8+ players walking about | No crash; prints look as without LightGreen |
+| C2 | Prints on snow | A Snow hole: walk, wait 45 s, then walk off the snow onto other ground | Blue-grey prints that last and fade; prints off the snow the game's own |
+| C3 | Map changes | Snow, then another biome, then Snow again | Prints right on each; no crash |
+| C4 | Filter folder | Add, rename and delete a `.cube` in `LightGreen.filters` while playing | `Photo filters reloaded` within about 2 s each time; no `Keys and config` lines in `Timing` |
+| C5 | Weather refill | Snow, rain and cartoon rain: start each, and spectate a far player | The view filled at once, no empty patch and no wave fading together; no `Snow`/`Rain` part over 3 ms in `Timing` lines |

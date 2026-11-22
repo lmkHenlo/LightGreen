@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using BepInEx;
 using BepInEx.Logging;
 using LightGreen.Core;
@@ -55,6 +56,10 @@ namespace LightGreen.Presets
         private static DateTime _loadedWriteTime;
         private static string _folderFingerprint = "";
         private static float _nextCheck;
+        // The .cube folder is looked at on a worker thread: listing it and reading each file's size and time took
+        // 10-15 ms with 439 files, once a second, which was a steady hitch.
+        private static Task<string> _folderCheck;
+        private static float _nextFolderCheck;
         private static int _fromJson;
         private static ManualLogSource _log;
         private static FilterEntry _withCube;   // the one filter whose .cube is in memory
@@ -126,7 +131,7 @@ namespace LightGreen.Presets
                 _log.LogError($"Couldn't reload the photo filters ({e.Message}); keeping the previous ones.");
             }
 
-            if (FolderFingerprint() != _folderFingerprint) changed = true;
+            if (FolderChanged()) changed = true;
             if (!changed) return;
             Rebuild(announce: false);
             _log.LogInfo($"Photo filters reloaded: {Summary()}.");
@@ -243,8 +248,31 @@ namespace LightGreen.Presets
             return cubes;
         }
 
+        /// <summary>
+        /// Whether the last look at the folder (on a worker thread, every 2 s) found it changed; starts the next look.
+        /// Only file names, sizes and times are read there, nothing of Unity's.
+        /// </summary>
+        private static bool FolderChanged()
+        {
+            if (_folderCheck != null)
+            {
+                if (!_folderCheck.IsCompleted) return false;
+                string found = _folderCheck.Status == TaskStatus.RanToCompletion ? _folderCheck.Result : _folderFingerprint;
+                _folderCheck = null;
+                return found != _folderFingerprint;
+            }
+            if (Time.unscaledTime < _nextFolderCheck) return false;
+            _nextFolderCheck = Time.unscaledTime + 2f;
+            string previous = _folderFingerprint;
+            _folderCheck = Task.Run(() => FolderFingerprint(previous));
+            return false;
+        }
+
         /// <summary>The .cube files' names, sizes and times, to notice a file added, removed or saved.</summary>
-        private static string FolderFingerprint()
+        private static string FolderFingerprint() => FolderFingerprint(_folderFingerprint);
+
+        /// <param name="fallback">What to return when the folder can't be read (the last fingerprint).</param>
+        private static string FolderFingerprint(string fallback)
         {
             try
             {
@@ -259,7 +287,7 @@ namespace LightGreen.Presets
             }
             catch
             {
-                return _folderFingerprint;
+                return fallback;
             }
         }
 

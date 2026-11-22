@@ -23,6 +23,14 @@ namespace LightGreen.Systems
     /// colour and fade before it plays. Prints that aren't on snow (or with the effect off) get the game's
     /// own values back, since the effects are pooled and reused. On in VR.
     /// </para>
+    /// <para>
+    /// The game's values are kept as copies LightGreen owns (<see cref="ParticleValues"/>), and are only put back on a
+    /// print LightGreen changed. Unity's getters for a module's curves and gradients hand out wrappers around that
+    /// particle system's own native data; 0.1.0 to 0.3.0 kept the first print's, and once that print was destroyed every
+    /// sand print copied a freed gradient back into the game's prints. A gradient with garbage key counts overran
+    /// the stack in Unity's particle render job and crashed the game (a memory dump, 2026-11-21: Job.Worker,
+    /// "Footprint Particle", 3 of 12 prints with corrupt gradients).
+    /// </para>
     /// </summary>
     internal sealed class Footprints : IFeature
     {
@@ -70,6 +78,8 @@ namespace LightGreen.Systems
         private static readonly Action<PoolableParticleSystem> Callback = Configure;
 
         private static List<Original> _originals;
+        /// <summary>Print particle systems (instance ids) given the snow look, to put back as the game had them.</summary>
+        private static readonly HashSet<int> Changed = new HashSet<int>();
         private static readonly List<ParticleSystem> Children = new List<ParticleSystem>();
         private static readonly Queue<Entry> Live = new Queue<Entry>();
         private static readonly Dictionary<int, int> Generations = new Dictionary<int, int>();
@@ -147,6 +157,9 @@ namespace LightGreen.Systems
                 for (int i = 0; i < Children.Count && i < _originals.Count; i++)
                 {
                     ParticleSystem ps = Children[i];
+                    int psId = ps.GetInstanceID();
+                    // A print LightGreen never changed keeps the game's values as they are: nothing to put back.
+                    if (!snow && !Changed.Remove(psId)) continue;
                     Original o = _originals[i];
                     ParticleSystem.MainModule main = ps.main;
                     ParticleSystem.ColorOverLifetimeModule fade = ps.colorOverLifetime;
@@ -156,6 +169,7 @@ namespace LightGreen.Systems
                         main.startColor = _snowColor;
                         fade.enabled = true;
                         fade.color = HoldGradient;
+                        Changed.Add(psId);
                     }
                     else
                     {
@@ -165,6 +179,8 @@ namespace LightGreen.Systems
                         fade.color = o.Fade;
                     }
                 }
+                // Prints the game destroyed leave their ids behind; they're only ids, so trimming is enough.
+                if (Changed.Count > 4096) Changed.Clear();
                 if (snow) Track(effect, id, generation);
             }
             catch
@@ -182,7 +198,10 @@ namespace LightGreen.Systems
             Children.RemoveAll(ps => ps == root);
         }
 
-        /// <summary>The game's own values, from the first print seen (every print comes from one prefab).</summary>
+        /// <summary>
+        /// The game's own values, from the first print seen (every print comes from one prefab), copied: the getters'
+        /// curves and gradients belong to that print and go when it's destroyed.
+        /// </summary>
         private static void Capture()
         {
             _originals = new List<Original>();
@@ -192,10 +211,10 @@ namespace LightGreen.Systems
                 ParticleSystem.ColorOverLifetimeModule fade = ps.colorOverLifetime;
                 _originals.Add(new Original
                 {
-                    Lifetime = main.startLifetime,
-                    StartColor = main.startColor,
+                    Lifetime = ParticleValues.Copy(main.startLifetime),
+                    StartColor = ParticleValues.Copy(main.startColor),
                     FadeEnabled = fade.enabled,
-                    Fade = fade.color,
+                    Fade = ParticleValues.Copy(fade.color),
                 });
             }
         }
