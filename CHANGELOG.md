@@ -6,11 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `General.TimingLog` (off by default), for finding hitches: every 10 s, the log notes the frames that took much longer than usual, whatever caused them, and how much of the longest one was LightGreen's own work. Frames where LightGreen's own work takes over 2 ms are noted even with it off, with the time each part took.
+
 ### Fixed
 
 - Hitching with many `.cube` filters: every `.cube` file in `LightGreen.filters/` was read into memory at start (with 439 files, about 200 MB), and the game's garbage collections grew long enough to hitch. Now a `.cube` file is read when its filter is picked, and only the one in use is kept. A `.cube` file that can't be read is reported in the log when its filter is picked, not at start.
 - Stutter with weather on, and a regular hitch that grew over a long session. The game copies each player's materials on every hole and leaves the copies behind; LightGreen looked through every material in memory and kept each one it tuned, so after two hours of hosting it held about 32,000. That could keep Unity from freeing them, and it made LightGreen's look for new materials every 20 s hitch (50 to 80 ms), and made re-tuning while the weather or time of day blended take about 30 ms a frame. Now only materials on objects in the world are tuned, all of them are let go at each map change, and a blend re-tunes them at most ten times a second.
 - Ball glow let go of the last balls it lit only when they glowed again: after dark ended, the destroyed ball of a player who had left stayed referenced. It now lets go of every ball and material when the glow stops and at each map change.
+- A slight hitch every 10 s: looking for new materials went through every renderer in one frame (3–5 ms on a City map), and at night on City maps the search for glowing windows did the same every 15 s. Both now go through the renderers a little each frame (at most 0.5 ms), and ball glow no longer makes a new list for each ball every frame.
 
 ## [0.3.0] - 2026-11-21
 

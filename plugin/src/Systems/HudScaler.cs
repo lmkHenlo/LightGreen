@@ -98,9 +98,12 @@ namespace LightGreen.Systems
             _nextScan = Time.unscaledTime + ScanDelays[0];
         }
 
+        private static readonly int Timing = WorkTiming.Part("HUD sizes");
+
         private void OnWillRenderCanvases()
         {
             if (_broken) return;
+            long start = WorkTiming.Now;
             try
             {
                 if (!Active)
@@ -137,6 +140,10 @@ namespace LightGreen.Systems
                 _broken = true;
                 Plugin.Log.LogError($"[FAILED] HUD sizes: {e}\nThe HUD is back at the game's size until the game restarts.");
                 try { RestoreAll(); } catch { /* nothing more to do */ }
+            }
+            finally
+            {
+                WorkTiming.Add(Timing, start);
             }
         }
 

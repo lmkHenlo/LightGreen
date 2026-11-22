@@ -78,6 +78,10 @@ namespace LightGreen.Systems
         private readonly List<Material> _glowing = new List<Material>();
         private readonly HashSet<Material> _checked = new HashSet<Material>();
         private readonly List<Lamp> _lamps = new List<Lamp>();
+        private readonly List<Material> _shared = new List<Material>();
+        private readonly RendererSweep _sweep = new RendererSweep();
+        private bool _sweepFirst;
+        private int _added;
         private float _nextScan;
         private bool _scanned;
         private float _appliedLevel = -1f;
@@ -102,7 +106,7 @@ namespace LightGreen.Systems
                 return;
             }
 
-            if (!_scanned || Time.unscaledTime >= _nextScan) Scan();
+            if (!_scanned || _sweep.Running || Time.unscaledTime >= _nextScan) Scan();
             ApplyGlow(level);
 
             foreach (Lamp lamp in _lamps)
@@ -120,28 +124,40 @@ namespace LightGreen.Systems
             }
         }
 
+        /// <summary>
+        /// Looks through the renderers in the world for materials that should glow, a few frames at a time
+        /// (<see cref="RendererSweep"/>); what's found glows when the sweep ends.
+        /// </summary>
         private void Scan()
         {
-            bool first = !_scanned;
-            _scanned = true;
-            _nextScan = Time.unscaledTime + 15f;   // vehicles and props can appear after the hole loads
-            _edits.ForgetDestroyed();
-            _glowing.RemoveAll(m => m == null);
-
-            int added = 0;
-            foreach (Renderer r in Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            if (!_sweep.Running)
             {
-                foreach (Material m in r.sharedMaterials)
+                _sweepFirst = !_scanned;
+                _scanned = true;
+                _nextScan = Time.unscaledTime + 15f;   // vehicles and props can appear after the hole loads
+                _edits.ForgetDestroyed();
+                _glowing.RemoveAll(m => m == null);
+                _added = 0;
+                _sweep.Start(FindObjectsInactive.Exclude);
+            }
+
+            _sweep.BeginFrame();
+            while (_sweep.Next(out Renderer r))
+            {
+                r.GetSharedMaterials(_shared);
+                foreach (Material m in _shared)
                 {
                     if (m == null || !_checked.Add(m)) continue;
                     if (!ShouldGlow(m)) continue;
                     _glowing.Add(m);
-                    added++;
+                    _added++;
                 }
             }
-            if (added > 0) _appliedLevel = -1f;
+            _shared.Clear();
+            if (!_sweep.EndFrame()) return;
+            if (_added > 0) _appliedLevel = -1f;
 
-            if (first)
+            if (_sweepFirst)
             {
                 FindLamps();
                 if (!_logged)
@@ -221,6 +237,7 @@ namespace LightGreen.Systems
 
         public void Restore()
         {
+            _sweep.Stop();
             if (_glowing.Count == 0 && !_scanned && _checked.Count == 0) return;
             _edits.Restore();
             _glowing.Clear();

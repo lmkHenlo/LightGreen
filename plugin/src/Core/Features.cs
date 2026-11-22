@@ -25,20 +25,27 @@ namespace LightGreen.Core
     internal sealed class FeatureHost
     {
         private readonly List<IFeature> _features = new List<IFeature>();
+        private readonly List<int> _timing = new List<int>();   // each feature's part in WorkTiming
         private readonly HashSet<IFeature> _failed = new HashSet<IFeature>();
         private bool _applied;
 
         internal int Count => _features.Count;
 
-        internal void Add(IFeature feature) => _features.Add(feature);
+        internal void Add(IFeature feature)
+        {
+            _features.Add(feature);
+            _timing.Add(WorkTiming.Part(feature.Name));
+        }
 
         /// <summary>Each working feature, once a frame while LightGreen is on.</summary>
         internal void Apply()
         {
             _applied = true;
-            foreach (IFeature feature in _features)
+            for (int i = 0; i < _features.Count; i++)
             {
+                IFeature feature = _features[i];
                 if (_failed.Contains(feature)) continue;
+                long start = WorkTiming.Now;
                 try
                 {
                     feature.Apply();
@@ -50,6 +57,7 @@ namespace LightGreen.Core
                                         "the rest of LightGreen carries on.");
                     Restore(feature);
                 }
+                WorkTiming.Add(_timing[i], start);
             }
         }
 

@@ -40,6 +40,7 @@ namespace LightGreen.Systems
         private readonly HashSet<Renderer> _thisFrame = new HashSet<Renderer>();
         private readonly List<Renderer> _done = new List<Renderer>();
         private readonly HashSet<Material> _cantGlow = new HashSet<Material>();
+        private readonly List<Renderer> _ballRenderers = new List<Renderer>();
 
         private GolfBall[] _balls = System.Array.Empty<GolfBall>();
         private float _nextScan;
@@ -70,9 +71,11 @@ namespace LightGreen.Systems
                 if (ownOnly && !own) continue;
 
                 float glow = (own ? OwnGlow : OtherGlow) * strength * dark;
-                foreach (Renderer r in ball.GetComponentsInChildren<Renderer>())
+                ball.GetComponentsInChildren(false, _ballRenderers);
+                foreach (Renderer r in _ballRenderers)
                     if (Glow(r, glow)) _thisFrame.Add(r);
             }
+            _ballRenderers.Clear();
 
             // Balls gone, hidden or no longer wanted: their renderers back as they were.
             _done.Clear();
@@ -148,6 +151,7 @@ namespace LightGreen.Systems
             _thisFrame.Clear();
             _done.Clear();
             _cantGlow.Clear();
+            _ballRenderers.Clear();
             _balls = System.Array.Empty<GolfBall>();
             _nextScan = 0f;
         }

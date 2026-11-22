@@ -891,3 +891,30 @@ renderer and material list, and it runs at each map change too.
 |---|---|---|---|
 | M7 | Ball glow | At night, see balls glow; change the time to day with F9, then back to night; play into the next map at night | Balls glow again each time; no ball keeps a glow by day |
 | M8 | Heap paths | In LobbyEOS's heap paths after an hour or more | No `BallGlow.` or `MaterialTuner.` lines under "held through" (or only a few, from the current map) |
+
+## Slight regular hitch (after the material fix)
+
+**Report (2026-11-21):** "slight consistent hitching". `LogOutput.log` 00:41–00:45 UTC as a client (6 players, two
+City maps, snow on the whole time) with the test DLL: the weather stutter is gone (p95 4.5–5.6 ms with snow), the heap
+was 120 MB in the menu and the toon count 129 and 178. Every 10 s window's longest frame was 13–17 ms against a
+4.2 ms median; the 0.3.0 log had the same, also in windows without a garbage collection, so part of it is the game's.
+LightGreen's part: the material search every 10 s (3 s for a hole's first 30 s), 3.4–4.8 ms on 5,253–6,326
+renderers in one frame; at night on City maps the window search every 15 s, which also made an array per renderer
+(`sharedMaterials`); and ball glow at night made an array per ball per frame. A few 25–35 ms frames (about one a
+minute) can't be placed from the log.
+
+Changed: `RendererSweep` finds the renderers in one call and hands them out at most 0.5 ms a frame; the material
+search and the City night search use it (materials found are tuned, and windows lit, when the sweep ends);
+`GetSharedMaterials` into one list and `GetComponentsInChildren` into one list for ball glow. `WorkTiming` times each
+feature, the HUD sizes and the per-frame key and config checks; frames with over 2 ms of LightGreen's work are logged
+with their parts (at most once every 10 s), and with `General.TimingLog` the long frames (over 2.5 times the usual
+frame and 6 ms more) with LightGreen's share of the longest.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| T1 | Search | Load a City map; read the `Materials tuned` line | `looked through N renderers in X ms over F frames`, F above 1 (about X / 0.5) |
+| T2 | Hitch | Play 5 minutes on one map | No hitch every 10 s; LobbyEOS's `frames:` windows' max lower than 13–17 ms, or the same with F8 off (T4) |
+| T3 | Timing lines | With `General.TimingLog = true`, play a few minutes | `Timing (last 10 s): …` lines only when something was long; LightGreen's share of the long frames small (under 1 ms) |
+| T4 | F8 off | Same map, 2 minutes on, then 2 minutes with F8 off, TimingLog on | The long frames with F8 off show what the game does alone; compare their count and size with on |
+| T5 | Looks | City at night: windows light within a second of the hole starting; players and cosmetics tinted as before; balls glow at night | As before |
+| T6 | Quiet log | Play with TimingLog off | `Timing` lines only around map changes (if any), not every 10 s |

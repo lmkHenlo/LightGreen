@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 using LightGreen.Core;
 using LightGreen.Presets;
 using UnityEngine;
@@ -30,6 +29,8 @@ namespace LightGreen.Systems
         private readonly List<Material> _terrain = new List<Material>();
         private readonly HashSet<Material> _known = new HashSet<Material>();
         private readonly List<Material> _shared = new List<Material>();
+        private readonly RendererSweep _sweep = new RendererSweep();
+        private int _sweepToon, _sweepWater;
         private float _nextScan;
         private float _nextApply;
         private bool _slowScanLogged;
@@ -63,10 +64,6 @@ namespace LightGreen.Systems
         }
 
         /// <summary>
-        /// Looks for new materials soon (a hole or cosmetics loaded). With announce, the next scan that finds
-        /// materials logs the counts (once per biome change, not on hole changes or the ToggleKey).
-        /// </summary>
-        /// <summary>
         /// At a map change: every material back as the game had it, and all of them let go, so the ones the old
         /// map's objects used can be freed. The new map's are found again by the scans that follow.
         /// </summary>
@@ -76,6 +73,10 @@ namespace LightGreen.Systems
             _slowScanLogged = false;
         }
 
+        /// <summary>
+        /// Looks for new materials soon (a hole or cosmetics loaded). With announce, the next scan that finds
+        /// materials logs the counts (once per biome change, not on hole changes or the ToggleKey).
+        /// </summary>
         internal void Rescan(bool announce = false)
         {
             _nextScan = 0f;
@@ -90,7 +91,7 @@ namespace LightGreen.Systems
                 Restore();
                 return;
             }
-            if (Time.unscaledTime >= _nextScan) Scan();
+            if (_sweep.Running || Time.unscaledTime >= _nextScan) Scan();
 
             BiomePreset biome = PresetStore.ForBiome(GameEvents.CurrentBiome);
             TimePreset time = _env.Current;
@@ -127,26 +128,32 @@ namespace LightGreen.Systems
 
         // ---- Finding materials --------------------------------------------------------------------
 
+        /// <summary>
+        /// Looks for new materials on the renderers in the world (inactive ones too, so pooled objects are ready
+        /// when shown), not every material in memory: copies the game left behind with destroyed objects aren't
+        /// drawn. The renderers are gone through a few frames at a time (<see cref="RendererSweep"/>), so no
+        /// frame carries the whole 3-5 ms; what's found is tuned when the sweep ends.
+        /// </summary>
         private void Scan()
         {
-            // Often while a hole loads in (players and cosmetics appear), then every 10 s for materials the game
-            // swaps in later (team colours, cosmetics).
-            _nextScan = Time.unscaledTime + (_scansSinceRescan++ < 10 ? 3f : 10f);
-            var watch = Stopwatch.StartNew();
-            _edits.ForgetDestroyed();
-            _known.RemoveWhere(m => m == null);
-            _toon.RemoveAll(m => m == null);
-            _water.RemoveAll(m => m == null);
-            _terrain.RemoveAll(m => m == null);
-
-            bool found = false;
-            int toon = 0, water = 0;
-            // The materials on renderers in the world (inactive ones too, so pooled objects are ready when shown),
-            // not every material in memory: copies the game left behind with destroyed objects aren't drawn.
-            Renderer[] renderers = Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            foreach (Renderer r in renderers)
+            if (!_sweep.Running)
             {
-                if (r == null) continue;
+                // Often while a hole loads in (players and cosmetics appear), then every 10 s for materials the
+                // game swaps in later (team colours, cosmetics).
+                _nextScan = Time.unscaledTime + (_scansSinceRescan++ < 10 ? 3f : 10f);
+                _edits.ForgetDestroyed();
+                _known.RemoveWhere(m => m == null);
+                _toon.RemoveAll(m => m == null);
+                _water.RemoveAll(m => m == null);
+                _terrain.RemoveAll(m => m == null);
+                _sweepToon = 0;
+                _sweepWater = 0;
+                _sweep.Start(FindObjectsInactive.Include);
+            }
+
+            _sweep.BeginFrame();
+            while (_sweep.Next(out Renderer r))
+            {
                 r.GetSharedMaterials(_shared);
                 foreach (Material m in _shared)
                 {
@@ -158,17 +165,20 @@ namespace LightGreen.Systems
                     {
                         AdoptToon(m);
                         _toon.Add(m);
-                        toon++;
+                        _sweepToon++;
                     }
                     else if (shader == WaterShader)
                     {
                         AdoptWater(m);
                         _water.Add(m);
-                        water++;
+                        _sweepWater++;
                     }
                 }
             }
             _shared.Clear();
+            if (!_sweep.EndFrame()) return;
+
+            bool found = false;
 
             foreach (Terrain t in Terrain.activeTerrains)
             {
@@ -179,22 +189,24 @@ namespace LightGreen.Systems
                 found = true;
             }
 
-            if (toon + water > 0)
+            if (_sweepToon + _sweepWater > 0)
             {
                 found = true;
                 if (_announce)
                 {
                     _announce = false;
                     Plugin.Log.LogInfo($"Materials tuned: {_toon.Count} toon, {_water.Count} water, {_terrain.Count} terrain " +
-                                       $"(found in {watch.Elapsed.TotalMilliseconds:0.0} ms on {renderers.Length} renderers).");
+                                       $"(looked through {_sweep.Count} renderers in {_sweep.TotalMs:0.0} ms over {_sweep.Frames} frames).");
                 }
             }
             if (found) _forceApply = true;
-            if (!_slowScanLogged && watch.Elapsed.TotalMilliseconds > 8.0)
+            // Each frame's share is capped; a sweep that took this long in all means the finding call itself
+            // is slow (it can't be split).
+            if (!_slowScanLogged && _sweep.TotalMs > 8.0)
             {
                 _slowScanLogged = true;
-                Plugin.Log.LogWarning($"Materials: looking for new materials took {watch.Elapsed.TotalMilliseconds:0.0} ms " +
-                                      $"({renderers.Length} renderers, {_known.Count} materials). Logged once per map.");
+                Plugin.Log.LogWarning($"Materials: looking for new materials took {_sweep.TotalMs:0.0} ms over {_sweep.Frames} frames " +
+                                      $"({_sweep.Count} renderers, {_known.Count} materials). Logged once per map.");
             }
         }
 
@@ -298,6 +310,7 @@ namespace LightGreen.Systems
         /// <summary>Puts every material back as the game had it.</summary>
         public void Restore()
         {
+            _sweep.Stop();
             if (_edits.Count == 0 && _toon.Count == 0 && _water.Count == 0 && _terrain.Count == 0) return;
             _edits.Restore();
             _toon.Clear();

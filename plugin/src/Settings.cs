@@ -25,6 +25,7 @@ namespace LightGreen
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<NoticeTarget> Notices;
         internal static ConfigEntry<float> NoticeDelay;
+        internal static ConfigEntry<bool> TimingLog;
         internal static ConfigEntry<Key> ToggleKey;
         internal static ConfigEntry<Key> TimeKey;
         internal static ConfigEntry<Key> RainKey;
@@ -118,6 +119,9 @@ namespace LightGreen
                 "Chat only: seconds to wait after the last key press before posting, so stepping through filters posts one line, " +
                 "not one per press. 0 posts every change at once.",
                 new AcceptableValueRange<float>(0f, 2f)));
+            TimingLog = config.Bind("General", "TimingLog", false,
+                "For finding hitches: every 10 s, logs the frames that took much longer than usual (whatever the cause) and how much " +
+                "of each was LightGreen's own work. Frames where LightGreen's work took over 2 ms are logged even when this is off.");
 
             ToggleKey = config.Bind("Keys", "ToggleKey", Key.F8,
                 "Steps LightGreen while playing, to compare with the game's own look: on, then HUD only (the game's own look " +

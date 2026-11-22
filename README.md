@@ -85,6 +85,7 @@ AmbientOcclusionQuality = Low
 | `General.Enabled` | `true` | LightGreen on. Off: the game looks exactly as it does without the mod. |
 | `General.Notices` | `Chat` | Where LightGreen says what a key or a config edit changed. `Chat`: a line in the game's chat box, seen only by you (nothing is sent; with no chat box, such as in some menus, the top-left corner). `Screen`: the top-left corner. `Off`: nowhere. |
 | `General.NoticeDelay` | `0.5` | Chat only: seconds (0–2) to wait after the last change before posting, so stepping through filters posts one line, not one per press. A time change then a filter change still post two lines. `0` posts each change at once. |
+| `General.TimingLog` | `false` | For finding hitches: every 10 s, logs the frames that took much longer than usual (whatever the cause) and how much of each was LightGreen's own work. Frames where LightGreen's work takes over 2 ms are logged even when this is off. |
 | `Keys.ToggleKey` | `F8` | Steps LightGreen while playing: on, HUD only (the game's own look with the `[HUD]` sizes), off (the game's own look and HUD). |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Steps the weather: clear, rain, cartoon rain, snow, then clear again. Each comes back as heavy as it last was (or 1). Saved to `Effects.Rain`, `Effects.CartoonRain` and `Effects.Snow`. |

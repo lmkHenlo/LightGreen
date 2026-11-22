@@ -190,8 +190,12 @@ namespace LightGreen
                         (Settings.Enabled.Value ? "" : " (Off: General.Enabled = false.)"));
         }
 
+        private static readonly int HousekeepingTiming = WorkTiming.Part("Keys and config");
+
         private void Update()
         {
+            WorkTiming.NextFrame();
+            long start = WorkTiming.Now;
             if (_pendingKinds.Count > 0 && Time.unscaledTime >= _noticesDueAt) FlushNotices();
             ReloadConfigIfEdited();
             PresetStore.Poll();
@@ -199,6 +203,7 @@ namespace LightGreen
             if (FilterStore.Revision != _filterRevisionSeen) SyncFilterChoices();
             Vr.Poll();
             ReadKeys();
+            WorkTiming.Add(HousekeepingTiming, start);
 
             if (Settings.Enabled.Value && _view == View.On) _features.Apply();
             else _features.Restore();
