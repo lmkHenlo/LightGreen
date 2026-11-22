@@ -966,3 +966,5 @@ check on a background thread every 2 s (`FilterStore.FolderChanged`), and the we
 | C3 | Map changes | Snow, then another biome, then Snow again | Prints right on each; no crash |
 | C4 | Filter folder | Add, rename and delete a `.cube` in `LightGreen.filters` while playing | `Photo filters reloaded` within about 2 s each time; no `Keys and config` lines in `Timing` |
 | C5 | Weather refill | Snow, rain and cartoon rain: start each, and spectate a far player | The view filled at once, no empty patch and no wave fading together; no `Snow`/`Rain` part over 3 ms in `Timing` lines |
+
+**Results (2026-11-21):** C1–C5 passed. Released as 0.3.1.

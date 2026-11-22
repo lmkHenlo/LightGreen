@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-21
+
 ### Added
 
 - `General.TimingLog` (off by default), for finding hitches: every 10 s, the log notes the frames that took much longer than usual, whatever caused them, and how much of the longest one was LightGreen's own work. Frames where LightGreen's own work takes over 2 ms are noted even with it off, with the time each part took.
@@ -92,7 +94,8 @@ The first release.
 - **F8** switches LightGreen off and on to compare with the game's own look (`Keys.ToggleKey`), and `General.Enabled` turns it off entirely.
 - The settings file is reloaded within a second of being saved.
 
-[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/lmkHenlo/LightGreen/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.0...v0.1.1

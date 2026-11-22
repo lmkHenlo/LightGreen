@@ -4,7 +4,7 @@
 
 Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
 
-Version 0.3.0, tested on Super Battle Golf 1.4.0-798 with BepInEx 5.4.23.5.
+Version 0.3.1, tested on Super Battle Golf 1.4.0-798 with BepInEx 5.4.23.5.
 
 LightGreen changes how the game looks for you, using the game's own shaders and effects so it keeps the bright cel-shaded style:
 
