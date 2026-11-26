@@ -53,6 +53,9 @@ namespace LightGreen.Core
 
         internal static long Now => Stopwatch.GetTimestamp();
 
+        /// <summary>General.TimingLog: also log frames much longer than usual, whatever caused them. Set by the plugin.</summary>
+        internal static bool LogLongFrames;
+
         /// <summary>Adds the time since <paramref name="start"/> (from <see cref="Now"/>) to a part.</summary>
         internal static void Add(int part, long start) => Ticks[part] += Stopwatch.GetTimestamp() - start;
 
@@ -78,7 +81,7 @@ namespace LightGreen.Core
             // Long next to the usual frame: 4 ms frames hitch at 10 ms, 16.7 ms ones at 42 ms. The average follows
             // slowly (about 2 s at 240 fps) and isn't pulled up by the long frames themselves.
             double longOver = Math.Max(_usualMs * 2.5, _usualMs + 6.0);
-            bool isLong = frame > longOver && Settings.TimingLog.Value;
+            bool isLong = frame > longOver && LogLongFrames;
             if (frame <= longOver && frame > 0) _usualMs += (frame - _usualMs) * 0.002;
             if (isLong)
             {
@@ -95,7 +98,7 @@ namespace LightGreen.Core
 
             if (Time.unscaledTime < _nextReport) return;
             _nextReport = Time.unscaledTime + ReportEvery;
-            if (_over > 0 || _long > 0) Plugin.Log.LogInfo(Report());
+            if (_over > 0 || _long > 0) CoreLog.Source?.LogInfo(Report());
             _worstMs = 0;
             _over = 0;
             _long = 0;

@@ -370,19 +370,17 @@ namespace LightGreen.Systems
         private static Texture2D SoftDot()
         {
             const int size = 64;
-            var tex = new Texture2D(size, size, TextureFormat.RGBA32, true) { name = "LightGreen soft dot", hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp };
-            var pixels = new Color32[size * size];
+            var rgba = new float[size * size * 4];
             for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
                 float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
                 float a = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy));
-                a = a * a * (3f - 2f * a);
-                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                int i = (y * size + x) * 4;
+                rgba[i] = rgba[i + 1] = rgba[i + 2] = 1f;
+                rgba[i + 3] = a * a * (3f - 2f * a);
             }
-            tex.SetPixels32(pixels);
-            tex.Apply(true, true);
-            return tex;
+            return TextureArt.Make("LightGreen soft dot", rgba, size);
         }
     }
 }

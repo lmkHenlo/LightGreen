@@ -129,8 +129,10 @@ namespace LightGreen.Systems
                 foreach (KeyValuePair<HudPart, Transform> container in _containers)
                 {
                     if (container.Value == null) { gone = true; continue; }
-                    foreach (Transform child in container.Value)
-                        Apply(new Target { Piece = child, Part = container.Key, AboutPivot = true });
+                    // By index: a foreach over a Transform makes a new enumerator each frame.
+                    Transform holder = container.Value;
+                    for (int c = 0; c < holder.childCount; c++)
+                        Apply(new Target { Piece = holder.GetChild(c), Part = container.Key, AboutPivot = true });
                 }
                 // Something was destroyed: look again, at most every two seconds.
                 if (gone && _scansLeft == 0 && Time.unscaledTime >= _lastScan + 2f) _nextScan = 0f;

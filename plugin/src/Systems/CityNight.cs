@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using LightGreen.Core;
@@ -172,7 +173,7 @@ namespace LightGreen.Systems
         private bool ShouldGlow(Material m)
         {
             string name = m.name.Replace(" (Instance)", "");
-            if (!GlowPrefixes.Any(p => name.StartsWith(p)) || NoGlow.Any(p => name.StartsWith(p))) return false;
+            if (!StartsWithAny(name, GlowPrefixes) || StartsWithAny(name, NoGlow)) return false;
             if (!m.HasProperty(EmissiveTex) || m.GetTexture(EmissiveTex) == null || !m.HasProperty(EmissiveColor)) return false;
             if (m.IsKeywordEnabled(Emissive)) return false;   // already glowing: the game's own night copies
             if (!ToonEmissive.HasVariant(m)) { _skipped++; return false; }
@@ -245,8 +246,18 @@ namespace LightGreen.Systems
             }
         }
 
-        private static bool IsLamppost(Transform t) =>
-            t.name.StartsWith("Lamppost") || t.name.StartsWith("Lampost");
+        private static bool IsLamppost(Transform t)
+        {
+            string name = t.name;
+            return name.StartsWith("Lamppost", StringComparison.Ordinal) || name.StartsWith("Lampost", StringComparison.Ordinal);
+        }
+
+        private static bool StartsWithAny(string name, string[] prefixes)
+        {
+            foreach (string prefix in prefixes)
+                if (name.StartsWith(prefix, StringComparison.Ordinal)) return true;
+            return false;
+        }
 
         public void Restore()
         {

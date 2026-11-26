@@ -114,7 +114,7 @@ namespace LightGreen.Core
 
         private static IEnumerable<FieldInfo> Fields(Type t) =>
             t.GetFields(BindingFlags.Instance | BindingFlags.Public)
-             .Where(f => !f.IsNotSerialized && !f.IsInitOnly && !f.IsLiteral)
+             .Where(f => !f.IsDefined(typeof(NonSerializedAttribute), false) && !f.IsInitOnly && !f.IsLiteral)
              .OrderBy(f => f.MetadataToken);
 
         private static bool IsColor(Type t) => t.FullName == "UnityEngine.Color";
@@ -311,10 +311,17 @@ namespace LightGreen.Core
             return value;
         }
 
+        /// <summary>
+        /// The deepest nesting of objects and lists read. LightGreen's files go 4 deep; the limit keeps a broken or
+        /// hostile file from recursing until the stack overflows, which can't be caught and would close the game.
+        /// </summary>
+        internal const int MaxDepth = 64;
+
         private sealed class Reader
         {
             private readonly string _s;
             private int _i;
+            private int _depth;
 
             internal Reader(string s) => _s = s;
 
@@ -360,8 +367,13 @@ namespace LightGreen.Core
                 SkipSpace();
                 if (AtEnd) throw Error("the JSON ends too soon");
                 char c = _s[_i];
-                if (c == '{') return Object();
-                if (c == '[') return List();
+                if (c == '{' || c == '[')
+                {
+                    if (++_depth > MaxDepth) throw Error($"nested more than {MaxDepth} deep");
+                    object nested = c == '{' ? (object)Object() : List();
+                    _depth--;
+                    return nested;
+                }
                 if (c == '"') return String();
                 if (c == '-' || c == '+' || c == '.' || char.IsDigit(c)) return Number();
                 if (Word("true")) return true;

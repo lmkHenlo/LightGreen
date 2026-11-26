@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LightGreen.Core;
 using LightGreen.Presets;
@@ -249,7 +250,8 @@ namespace LightGreen.Systems
             if (!_edits.StockKeyword(m, "_ALPHACUTOFFENABLE_ON")) return true;
             // Cut-out with camera fade is mostly foliage, except the face parts.
             string name = m.name;
-            return name.StartsWith("Eyes") || name.StartsWith("Eyebrows") || name.StartsWith("Mouth") || name.StartsWith("Cheeks");
+            return name.StartsWith("Eyes", StringComparison.Ordinal) || name.StartsWith("Eyebrows", StringComparison.Ordinal) ||
+                   name.StartsWith("Mouth", StringComparison.Ordinal) || name.StartsWith("Cheeks", StringComparison.Ordinal);
         }
 
         /// <summary>Moves a shade colour's hue toward the tint while keeping the material's own brightness.</summary>

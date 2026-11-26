@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using LightGreen.Core;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -158,12 +159,21 @@ namespace LightGreen.Systems
             private static MethodBase TargetMethod() =>
                 GrassType == null ? null : AccessTools.Method(GrassType, "UpdateRenderParams");
 
+            private static readonly PatchGuard Guard = new PatchGuard("Grass material hook");
+
             private static void Postfix(object __instance)
             {
-                if (GrassMaterialField == null) return;
-                if (!(GrassMaterialField.GetValue(__instance) is Material m) || m == null) return;
-                Grass.Add(m);
-                if (_active) Mark(m);
+                if (GrassMaterialField == null || Guard.Broken) return;
+                try
+                {
+                    if (!(GrassMaterialField.GetValue(__instance) is Material m) || m == null) return;
+                    Grass.Add(m);
+                    if (_active) Mark(m);
+                }
+                catch (Exception e)
+                {
+                    Guard.Fail(e);
+                }
             }
         }
 

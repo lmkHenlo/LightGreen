@@ -93,8 +93,11 @@ namespace LightGreen.Systems
             new[] { typeof(VfxType), typeof(Vector3), typeof(Quaternion), typeof(Vector3), typeof(Transform), typeof(bool), typeof(float), typeof(Action<PoolableParticleSystem>) })]
         internal static class PlayedPatch
         {
+            private static readonly PatchGuard Guard = new PatchGuard("Effect lights hook");
+
             private static void Postfix(VfxType vfxType, float delay, PoolableParticleSystem __result)
             {
+                if (Guard.Broken) return;
                 try
                 {
                     if (!_listening || __result == null || !Looks.TryGetValue(vfxType, out EffectLook look)) return;
@@ -107,9 +110,9 @@ namespace LightGreen.Systems
                         Start = Time.time + Mathf.Max(0f, delay),
                     });
                 }
-                catch
+                catch (Exception e)
                 {
-                    // Never let a light break the game's effect.
+                    Guard.Fail(e);   // never let a light break the game's effect
                 }
             }
         }

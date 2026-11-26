@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using HarmonyLib;
+using LightGreen.Core;
 using UnityEngine;
 
 namespace LightGreen.Systems
@@ -16,7 +17,7 @@ namespace LightGreen.Systems
         /// <summary>Which [HUD] group a marker belongs to, from the game's settings for its kind; null for others.</summary>
         private static HudPart? MarkerPart(WorldspaceIconUi icon)
         {
-            if (!WorldspaceIconManager.HasInstance) return null;
+            if (!WorldspaceIconManager.HasInstance || IconSettings == null) return null;
             WorldspaceIconUiSettings settings = IconSettings(icon);
             if (settings == null) return null;
             if (settings == WorldspaceIconManager.HoleIconSettings) return HudPart.HoleMarker;
@@ -27,8 +28,22 @@ namespace LightGreen.Systems
             return null;
         }
 
-        private static readonly AccessTools.FieldRef<WorldspaceIconUi, WorldspaceIconUiSettings> IconSettings =
-            AccessTools.FieldRefAccess<WorldspaceIconUi, WorldspaceIconUiSettings>("settings");
+        // Looked up without throwing: a game update that renames the field leaves the markers at the game's size
+        // (and says so once), rather than failing this class's static setup and every marker with it.
+        private static readonly AccessTools.FieldRef<WorldspaceIconUi, WorldspaceIconUiSettings> IconSettings = FindIconSettings();
+
+        private static AccessTools.FieldRef<WorldspaceIconUi, WorldspaceIconUiSettings> FindIconSettings()
+        {
+            FieldInfo field = AccessTools.Field(typeof(WorldspaceIconUi), "settings");
+            if (field != null && typeof(WorldspaceIconUiSettings).IsAssignableFrom(field.FieldType))
+                return AccessTools.FieldRefAccess<WorldspaceIconUi, WorldspaceIconUiSettings>(field);
+            CoreLog.Source?.LogWarning("HUD: WorldspaceIconUi.settings isn't in this game version; markers keep the game's size.");
+            return null;
+        }
+
+        private static readonly PatchGuard MarkerGuard = new PatchGuard("HUD markers");
+        private static readonly PatchGuard NameTagGuard = new PatchGuard("HUD name tags");
+        private static readonly PatchGuard PopupGuard = new PatchGuard("HUD pop-up words");
 
         /// <summary>The markers: the game sizes them by their rectangle and keeps their scale at 1; this sets the scale.</summary>
         [HarmonyPatch(typeof(WorldspaceIconUi), nameof(WorldspaceIconUi.OnPostPostLateBUpdate))]
@@ -36,11 +51,19 @@ namespace LightGreen.Systems
         {
             private static void Postfix(WorldspaceIconUi __instance)
             {
-                HudPart? part = MarkerPart(__instance);
-                if (part == null) return;
-                float k = HudScaler.Scale(part.Value);
-                Transform transform = __instance.transform;
-                if (transform.localScale.x != k || transform.localScale.y != k) transform.localScale = new Vector3(k, k, k);
+                if (MarkerGuard.Broken) return;
+                try
+                {
+                    HudPart? part = MarkerPart(__instance);
+                    if (part == null) return;
+                    float k = HudScaler.Scale(part.Value);
+                    Transform transform = __instance.transform;
+                    if (transform.localScale.x != k || transform.localScale.y != k) transform.localScale = new Vector3(k, k, k);
+                }
+                catch (Exception e)
+                {
+                    MarkerGuard.Fail(e);
+                }
             }
         }
 
@@ -70,8 +93,16 @@ namespace LightGreen.Systems
 
             private static void Postfix(NameTagUi __instance)
             {
-                float k = HudScaler.Scale(HudPart.NameTags);
-                if (k != 1f) __instance.transform.localScale *= k;
+                if (NameTagGuard.Broken) return;
+                try
+                {
+                    float k = HudScaler.Scale(HudPart.NameTags);
+                    if (k != 1f) __instance.transform.localScale *= k;
+                }
+                catch (Exception e)
+                {
+                    NameTagGuard.Fail(e);
+                }
             }
         }
 
@@ -81,8 +112,16 @@ namespace LightGreen.Systems
         {
             private static void Postfix(TextPopupUi __instance)
             {
-                float k = HudScaler.Scale(HudPart.PopupText);
-                if (k != 1f) __instance.transform.localScale *= k;
+                if (PopupGuard.Broken) return;
+                try
+                {
+                    float k = HudScaler.Scale(HudPart.PopupText);
+                    if (k != 1f) __instance.transform.localScale *= k;
+                }
+                catch (Exception e)
+                {
+                    PopupGuard.Fail(e);
+                }
             }
         }
     }

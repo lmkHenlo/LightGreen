@@ -78,7 +78,7 @@ namespace LightGreen.Core
             }
             catch (Exception e)
             {
-                _log.LogError($"[FAILED] Hook: {label}: {e.GetType().Name}: {e.Message}");
+                _log.LogError($"[FAILED] Hook: {label}: {e}");
             }
         }
 

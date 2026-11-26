@@ -243,7 +243,11 @@ namespace LightGreen.Systems
                 photo = PhotoCameraModule.Active;
                 overview = CameraModuleController.CurrentModuleType == CameraModuleType.Overview;
             }
-            catch { /* the camera system isn't up yet */ }
+            catch (System.Exception e)
+            {
+                // Normal for a moment while a scene loads; on a hole it means the game changed it.
+                if (GameEvents.InHole) CoreLog.FailedOnce("volumes:camera", "Photo mode depth of field and tilt-shift: couldn't read the camera mode", e);
+            }
 
             if (!vrComfort && photo && Settings.PhotoDepthOfField.Value > 0f)
             {
@@ -328,7 +332,11 @@ namespace LightGreen.Systems
                     profile = holes[index].ParentCourse.VolumeProfile;
                 if (LightGreen.Core.GameEvents.CurrentBiome == LightGreen.Core.Biome.DrivingRange) profile = null;
             }
-            catch { profile = null; }
+            catch (System.Exception e)
+            {
+                profile = null;
+                if (GameEvents.InHole) CoreLog.FailedOnce("volumes:course", "Colour grading: couldn't read the course's own volume profile, so it's graded from neutral", e);
+            }
 
             if (_courseRead && profile == _courseProfile) return;
             _courseProfile = profile;

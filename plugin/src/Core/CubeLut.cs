@@ -21,12 +21,22 @@ namespace LightGreen.Core
         private Rgb[] _data;
         private Rgb _min = Rgb.Grey(0f), _max = Rgb.Grey(1f);
 
+        private static readonly char[] Separators = { ' ', '\t' };
+
         /// <summary>Reads a .cube file's text. Throws <see cref="InvalidDataException"/> saying what's wrong.</summary>
         internal static CubeLut Parse(string text)
         {
+            using (var reader = new StringReader(text ?? "")) return Parse(reader);
+        }
+
+        /// <summary>
+        /// Reads a .cube file line by line (a 65-point cube has 274,625 lines). Touches nothing of Unity's, so it can run
+        /// on a worker thread. Throws <see cref="InvalidDataException"/> saying what's wrong.
+        /// </summary>
+        internal static CubeLut Parse(TextReader reader)
+        {
             var lut = new CubeLut();
             int size3 = 0, size1 = 0, count = 0, lineNumber = 0;
-            using (var reader = new StringReader(text ?? ""))
             {
                 string line;
                 while ((line = reader.ReadLine()) != null)
@@ -35,7 +45,16 @@ namespace LightGreen.Core
                     line = line.Trim();
                     if (line.Length == 0 || line[0] == '#') continue;
 
-                    string[] parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    // Colour lines, nearly all of the file, are read in place: no split, no strings per number.
+                    if (IsNumberStart(line[0]))
+                    {
+                        if (lut._data == null) throw Bad(lineNumber, "colour values before LUT_3D_SIZE or LUT_1D_SIZE");
+                        if (count >= lut._data.Length) throw Bad(lineNumber, $"more than the {lut._data.Length} entries the size gives");
+                        lut._data[count++] = ParseRgb(line, lineNumber);
+                        continue;
+                    }
+
+                    string[] parts = line.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
                     string key = parts[0].ToUpperInvariant();
                     if (key == "TITLE")
                     {
@@ -120,6 +139,30 @@ namespace LightGreen.Core
         }
 
         private static float Channel(Rgb c, int channel) => channel == 0 ? c.R : channel == 1 ? c.G : c.B;
+
+        private static bool IsNumberStart(char c) => (c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.';
+
+        /// <summary>The first three numbers of a colour line, read where they stand in it.</summary>
+        private static Rgb ParseRgb(string text, int line)
+        {
+            float r = 0f, g = 0f, b = 0f;
+            int at = 0;
+            for (int n = 0; n < 3; n++)
+            {
+                while (at < text.Length && (text[at] == ' ' || text[at] == '\t')) at++;
+                int start = at;
+                while (at < text.Length && text[at] != ' ' && text[at] != '\t') at++;
+                if (at == start ||
+                    !float.TryParse(text.AsSpan(start, at - start), NumberStyles.Float, CultureInfo.InvariantCulture, out float v))
+                    throw Bad(line, "a missing or unreadable number");
+                if (float.IsNaN(v) || float.IsInfinity(v))
+                    throw Bad(line, $"\"{text.Substring(start, at - start)}\" isn't a usable number");
+                if (n == 0) r = v;
+                else if (n == 1) g = v;
+                else b = v;
+            }
+            return new Rgb(r, g, b);
+        }
 
         private static Rgb ParseRgb(string[] parts, int at, int line) =>
             new Rgb(ParseFloat(parts, at, line), ParseFloat(parts, at + 1, line), ParseFloat(parts, at + 2, line));

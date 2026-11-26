@@ -114,19 +114,7 @@ namespace LightGreen.Systems
         private static Texture2D Atlas(string name, float softness, int seed)
         {
             const int Tile = 64, Tiles = 2, Size = Tile * Tiles;
-            float[] rgba = FlakeArt.Atlas(Tile, Tiles, softness, seed);
-            var pixels = new Color32[Size * Size];
-            for (int i = 0; i < pixels.Length; i++)
-                pixels[i] = new Color32(Byte(rgba[i * 4]), Byte(rgba[i * 4 + 1]), Byte(rgba[i * 4 + 2]), Byte(rgba[i * 4 + 3]));
-            var texture = new Texture2D(Size, Size, TextureFormat.RGBA32, true)
-            {
-                name = name, hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Trilinear,
-            };
-            texture.SetPixels32(pixels);
-            texture.Apply(true, true);
-            return texture;
+            return TextureArt.Make(name, FlakeArt.Atlas(Tile, Tiles, softness, seed), Size);
         }
-
-        private static byte Byte(float v) => (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
     }
 }

@@ -53,7 +53,7 @@ namespace LightGreen.Core
                 catch (Exception e)
                 {
                     _failed.Add(feature);
-                    Plugin.Log.LogError($"[FAILED] {feature.Name}: {e}\n{feature.Name} is off until the game restarts; " +
+                    CoreLog.Source?.LogError($"[FAILED] {feature.Name}: {e}\n{feature.Name} is off until the game restarts; " +
                                         "the rest of LightGreen carries on.");
                     Restore(feature);
                 }
@@ -84,7 +84,7 @@ namespace LightGreen.Core
             }
             catch (Exception e)
             {
-                Plugin.Log.LogError($"{feature.Name} couldn't put the game back as it was: {e.Message}");
+                CoreLog.Source?.LogError($"{feature.Name} couldn't put the game back as it was: {e}");
             }
         }
     }

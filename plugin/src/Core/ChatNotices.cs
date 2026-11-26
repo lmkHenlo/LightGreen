@@ -26,7 +26,7 @@ namespace LightGreen.Core
             {
                 // A game update renamed or changed the chat: the caller shows the message on screen instead.
                 _broken = true;
-                Plugin.Log.LogWarning($"Couldn't post to the game's chat ({e.GetType().Name}: {e.Message}); " +
+                CoreLog.Source?.LogWarning($"Couldn't post to the game's chat ({e.GetType().Name}: {e.Message}); " +
                                       "LightGreen's messages show in the top-left corner instead.");
                 return false;
             }

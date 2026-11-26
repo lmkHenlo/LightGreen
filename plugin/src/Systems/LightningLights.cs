@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using LightGreen.Core;
@@ -85,8 +86,11 @@ namespace LightGreen.Systems
         [HarmonyPatch(typeof(ThunderstormLightningStrike), "PlayLightningStrikeEffectsInternal")]
         internal static class StrikePatch
         {
+            private static readonly PatchGuard Guard = new PatchGuard("Lightning lights hook");
+
             private static void Postfix(ThunderstormLightningStrike __instance)
             {
+                if (Guard.Broken) return;
                 try
                 {
                     if (!_listening || __instance == null) return;
@@ -97,9 +101,9 @@ namespace LightGreen.Systems
                         : ground + Vector3.up * FallbackCloudHeight;
                     Incoming.Add(NewStrike(ground, cloud));
                 }
-                catch
+                catch (Exception e)
                 {
-                    // Never let a light break the game's effect.
+                    Guard.Fail(e);   // never let a light break the game's effect
                 }
             }
         }

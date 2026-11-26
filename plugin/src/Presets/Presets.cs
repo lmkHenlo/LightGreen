@@ -75,41 +75,45 @@ namespace LightGreen.Presets
         [Tooltip("How much the water takes on the sun's colour (0 to 1).")]
         public float waterTint;
 
-        internal static TimePreset Lerp(TimePreset a, TimePreset b, float t)
+        /// <summary>
+        /// The blend of two presets, <paramref name="t"/> 0 to 1. Written into <paramref name="into"/> when given (reused
+        /// each frame by a blend, so it makes no garbage; it may be <paramref name="a"/> or <paramref name="b"/>), else a
+        /// new preset.
+        /// </summary>
+        internal static TimePreset Lerp(TimePreset a, TimePreset b, float t, TimePreset into = null)
         {
             t = Mathf.Clamp01(t);
             // Sun height only blends meaningfully between presets that both set it.
             float elevationA = a.sunWeight > 0f ? a.sunElevation : b.sunElevation;
             float elevationB = b.sunWeight > 0f ? b.sunElevation : a.sunElevation;
-            return new TimePreset
-            {
-                name = t < 0.5f ? a.name : b.name,
-                sunWeight = Mathf.Lerp(a.sunWeight, b.sunWeight, t),
-                sunElevation = Mathf.Lerp(elevationA, elevationB, t),
-                sunColor = Color.Lerp(a.sunColor, b.sunColor, t),
-                sunIntensity = Mathf.Lerp(a.sunIntensity, b.sunIntensity, t),
-                moonElevation = Mathf.Lerp(a.moonElevation, b.moonElevation, t),
-                moonColor = Color.Lerp(a.moonColor, b.moonColor, t),
-                moonIntensity = Mathf.Lerp(a.moonIntensity, b.moonIntensity, t),
-                skyBlend = Mathf.Lerp(a.skyBlend, b.skyBlend, t),
-                skyColor = Color.Lerp(a.skyColor, b.skyColor, t),
-                horizonColor = Color.Lerp(a.horizonColor, b.horizonColor, t),
-                sunGlowColor = Color.Lerp(a.sunGlowColor, b.sunGlowColor, t),
-                ambientIntensity = Mathf.Lerp(a.ambientIntensity, b.ambientIntensity, t),
-                ambientTint = Color.Lerp(a.ambientTint, b.ambientTint, t),
-                night = Mathf.Lerp(a.night, b.night, t),
-                moonPhase = Mathf.Lerp(a.moonPhase, b.moonPhase, t),
-                fogColorBlend = Mathf.Lerp(a.fogColorBlend, b.fogColorBlend, t),
-                fogDistance = Mathf.Lerp(a.fogDistance, b.fogDistance, t),
-                rimColor = Color.Lerp(a.rimColor, b.rimColor, t),
-                temperature = Mathf.Lerp(a.temperature, b.temperature, t),
-                tint = Mathf.Lerp(a.tint, b.tint, t),
-                saturation = Mathf.Lerp(a.saturation, b.saturation, t),
-                contrast = Mathf.Lerp(a.contrast, b.contrast, t),
-                exposure = Mathf.Lerp(a.exposure, b.exposure, t),
-                lensFlare = Mathf.Lerp(a.lensFlare, b.lensFlare, t),
-                waterTint = Mathf.Lerp(a.waterTint, b.waterTint, t),
-            };
+            TimePreset result = into ?? new TimePreset();
+            result.name = t < 0.5f ? a.name : b.name;
+            result.sunWeight = Mathf.Lerp(a.sunWeight, b.sunWeight, t);
+            result.sunElevation = Mathf.Lerp(elevationA, elevationB, t);
+            result.sunColor = Color.Lerp(a.sunColor, b.sunColor, t);
+            result.sunIntensity = Mathf.Lerp(a.sunIntensity, b.sunIntensity, t);
+            result.moonElevation = Mathf.Lerp(a.moonElevation, b.moonElevation, t);
+            result.moonColor = Color.Lerp(a.moonColor, b.moonColor, t);
+            result.moonIntensity = Mathf.Lerp(a.moonIntensity, b.moonIntensity, t);
+            result.skyBlend = Mathf.Lerp(a.skyBlend, b.skyBlend, t);
+            result.skyColor = Color.Lerp(a.skyColor, b.skyColor, t);
+            result.horizonColor = Color.Lerp(a.horizonColor, b.horizonColor, t);
+            result.sunGlowColor = Color.Lerp(a.sunGlowColor, b.sunGlowColor, t);
+            result.ambientIntensity = Mathf.Lerp(a.ambientIntensity, b.ambientIntensity, t);
+            result.ambientTint = Color.Lerp(a.ambientTint, b.ambientTint, t);
+            result.night = Mathf.Lerp(a.night, b.night, t);
+            result.moonPhase = Mathf.Lerp(a.moonPhase, b.moonPhase, t);
+            result.fogColorBlend = Mathf.Lerp(a.fogColorBlend, b.fogColorBlend, t);
+            result.fogDistance = Mathf.Lerp(a.fogDistance, b.fogDistance, t);
+            result.rimColor = Color.Lerp(a.rimColor, b.rimColor, t);
+            result.temperature = Mathf.Lerp(a.temperature, b.temperature, t);
+            result.tint = Mathf.Lerp(a.tint, b.tint, t);
+            result.saturation = Mathf.Lerp(a.saturation, b.saturation, t);
+            result.contrast = Mathf.Lerp(a.contrast, b.contrast, t);
+            result.exposure = Mathf.Lerp(a.exposure, b.exposure, t);
+            result.lensFlare = Mathf.Lerp(a.lensFlare, b.lensFlare, t);
+            result.waterTint = Mathf.Lerp(a.waterTint, b.waterTint, t);
+            return result;
         }
     }
 

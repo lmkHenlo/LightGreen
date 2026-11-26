@@ -13,9 +13,10 @@ namespace LightGreen.Presets
 {
     /// <summary>
     /// A filter ready to use: its settings, and its colour part for building the lookup table. A .cube file is read
-    /// only when the filter is used (<see cref="Spec"/>), and only the one in use is kept: with hundreds of .cube files
-    /// in the folder, reading them all at start held hundreds of MB, and the game hitched on its longer garbage
-    /// collections.
+    /// only when the filter is used (<see cref="TryGetSpec"/>), and only the one in use is kept: with hundreds of .cube
+    /// files in the folder, reading them all at start held hundreds of MB, and the game hitched on its longer garbage
+    /// collections. The read runs on a worker thread (a 65-point cube takes a tenth of a second or more), so picking a
+    /// filter never stops the game; until it's ready, the filter before stays on screen.
     /// </summary>
     internal sealed class FilterEntry
     {
@@ -23,11 +24,44 @@ namespace LightGreen.Presets
         internal PhotoFilterPreset Preset;
         internal string CubePath;   // the .cube file it uses, or null
         private FilterSpec _spec;
+        private Task<CubeLut> _reading;
 
-        internal FilterSpec Spec => _spec ?? (_spec = FilterStore.MakeSpec(this));
+        /// <summary>
+        /// The colour part, or false while its .cube is still being read (call again next frame). A .cube that can't be
+        /// read is logged once it's done, and the filter is used without it.
+        /// </summary>
+        internal bool TryGetSpec(out FilterSpec spec)
+        {
+            spec = _spec;
+            if (spec != null) return true;
+            if (CubePath == null)
+            {
+                spec = _spec = FilterStore.ToSpec(Preset, null);
+                return true;
+            }
+            if (_reading == null)
+            {
+                string path = CubePath;
+                _reading = Task.Run(() => FilterStore.ReadCube(path));
+                return false;
+            }
+            if (!_reading.IsCompleted) return false;
+
+            CubeLut cube = null;
+            if (_reading.Status == TaskStatus.RanToCompletion) cube = _reading.Result;
+            else FilterStore.CubeFailed(this, _reading.Exception?.GetBaseException());
+            _reading = null;
+            spec = _spec = FilterStore.ToSpec(Preset, cube);
+            FilterStore.CubeInUse(this);
+            return true;
+        }
 
         /// <summary>Lets go of the colour part (and its .cube), to be read again if used again.</summary>
-        internal void Forget() => _spec = null;
+        internal void Forget()
+        {
+            _spec = null;
+            _reading = null;   // a read still going finishes on its own and is dropped
+        }
     }
 
     /// <summary>
@@ -51,14 +85,15 @@ namespace LightGreen.Presets
 
         private static readonly List<string> _names = new List<string>();
         private static readonly Dictionary<string, FilterEntry> _entries = new Dictionary<string, FilterEntry>(StringComparer.OrdinalIgnoreCase);
+        private static JsonFile _disk;
+        private static JsonFile Disk => _disk ?? (_disk = new JsonFile(FilePath));
         private static FilterFile _file = DefaultFilters.Create();
         private static bool _fileWasEmpty;
-        private static DateTime _loadedWriteTime;
         private static string _folderFingerprint = "";
-        private static float _nextCheck;
         // The .cube folder is looked at on a worker thread: listing it and reading each file's size and time took
         // 10-15 ms with 439 files, once a second, which was a steady hitch.
         private static Task<string> _folderCheck;
+        private static volatile Exception _folderError;
         private static float _nextFolderCheck;
         private static int _fromJson;
         private static ManualLogSource _log;
@@ -78,24 +113,23 @@ namespace LightGreen.Presets
 
             try
             {
-                if (!File.Exists(FilePath))
+                if (!Disk.Exists)
                 {
-                    File.WriteAllText(FilePath, Json.Serialize(DefaultFilters.Create()));
+                    Disk.Write(DefaultFilters.Create());
                     _log.LogInfo($"Wrote the built-in photo filters to {FilePath}. Edit it while the game runs to change them.");
                 }
                 ReadFile();
                 if (_fileWasEmpty)
                 {
                     // A test build wrote this file with JsonUtility, which saved only "version".
-                    File.WriteAllText(FilePath, Json.Serialize(DefaultFilters.Create()));
+                    Disk.Write(DefaultFilters.Create());
                     ReadFile();
                     _log.LogInfo($"Wrote the built-in photo filters to {FilePath} (the file had only a version number).");
                 }
                 if (_file.version < DefaultFilters.Version)
                 {
-                    string backup = FilePath + $".v{_file.version}.bak";
-                    File.Copy(FilePath, backup, true);
-                    File.WriteAllText(FilePath, Json.Serialize(DefaultFilters.Create()));
+                    string backup = Disk.Backup(_file.version);
+                    Disk.Write(DefaultFilters.Create());
                     ReadFile();
                     _log.LogInfo($"Updated the photo filters to LightGreen's new built-in ones (version {DefaultFilters.Version}). " +
                                  $"Your previous file is at {backup}.");
@@ -113,13 +147,10 @@ namespace LightGreen.Presets
         /// <summary>Reloads the file or the folder if either changed. Call once a frame.</summary>
         internal static void Poll()
         {
-            if (Time.unscaledTime < _nextCheck) return;
-            _nextCheck = Time.unscaledTime + 1f;
-
             bool changed = false;
             try
             {
-                if (File.Exists(FilePath) && File.GetLastWriteTimeUtc(FilePath) != _loadedWriteTime)
+                if (Disk.Edited())
                 {
                     ReadFile();
                     changed = true;
@@ -127,7 +158,7 @@ namespace LightGreen.Presets
             }
             catch (Exception e)
             {
-                _loadedWriteTime = File.Exists(FilePath) ? File.GetLastWriteTimeUtc(FilePath) : default;
+                Disk.Seen();
                 _log.LogError($"Couldn't reload the photo filters ({e.Message}); keeping the previous ones.");
             }
 
@@ -146,8 +177,7 @@ namespace LightGreen.Presets
 
         private static void ReadFile()
         {
-            _loadedWriteTime = File.GetLastWriteTimeUtc(FilePath);
-            object tree = Json.Parse(File.ReadAllText(FilePath));
+            object tree = Disk.Read();
             var loaded = (FilterFile)Json.FromTree(typeof(FilterFile), tree, "");
             _fileWasEmpty = !Json.HasKey(tree, "filters");
             loaded.filters = loaded.filters ?? Array.Empty<PhotoFilterPreset>();
@@ -204,28 +234,21 @@ namespace LightGreen.Presets
             _names.Add(name);
         }
 
-        /// <summary>
-        /// A filter's colour part, reading its .cube file now if it has one. The .cube of the filter used before is let
-        /// go, so only one is in memory. A .cube that can't be read is logged, and the filter is used without it.
-        /// </summary>
-        internal static FilterSpec MakeSpec(FilterEntry entry)
+        /// <summary>Reads and parses a .cube file, line by line and size-capped. Runs on a worker thread: nothing of Unity's.</summary>
+        internal static CubeLut ReadCube(string path)
         {
-            CubeLut cube = null;
-            if (entry.CubePath != null)
-            {
-                try
-                {
-                    cube = CubeLut.Parse(File.ReadAllText(entry.CubePath));
-                }
-                catch (Exception e)
-                {
-                    _log?.LogWarning($"Photo filter \"{entry.Name}\": couldn't read {Path.GetFileName(entry.CubePath)} ({e.Message}); " +
-                                     "using the filter without it.");
-                }
-                if (_withCube != null && _withCube != entry) _withCube.Forget();
-                _withCube = entry;
-            }
-            return ToSpec(entry.Preset, cube);
+            using (StreamReader reader = SafeFile.OpenText(path, SafeFile.MaxCubeBytes)) return CubeLut.Parse(reader);
+        }
+
+        internal static void CubeFailed(FilterEntry entry, Exception e) =>
+            _log?.LogWarning($"Photo filter \"{entry.Name}\": couldn't read {Path.GetFileName(entry.CubePath)} ({e?.Message}); " +
+                             "using the filter without it.");
+
+        /// <summary>The .cube of the filter used before is let go, so only one is in memory.</summary>
+        internal static void CubeInUse(FilterEntry entry)
+        {
+            if (_withCube != null && _withCube != entry) _withCube.Forget();
+            _withCube = entry;
         }
 
         /// <summary>The .cube files in the folder, by file name without .cube: their paths, not read yet.</summary>
@@ -259,6 +282,12 @@ namespace LightGreen.Presets
                 if (!_folderCheck.IsCompleted) return false;
                 string found = _folderCheck.Status == TaskStatus.RanToCompletion ? _folderCheck.Result : _folderFingerprint;
                 _folderCheck = null;
+                Exception error = _folderError;
+                if (error != null)
+                {
+                    _folderError = null;
+                    CoreLog.FailedOnce("filters:folder", $"Photo filters: couldn't look through {FolderPath} for changes", error);
+                }
                 return found != _folderFingerprint;
             }
             if (Time.unscaledTime < _nextFolderCheck) return false;
@@ -285,8 +314,9 @@ namespace LightGreen.Presets
                 }
                 return sb.ToString();
             }
-            catch
+            catch (Exception e)
             {
+                _folderError = e;   // logged on the game's thread (FolderChanged)
                 return fallback;
             }
         }

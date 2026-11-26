@@ -79,7 +79,8 @@ Write-Host "Built $out"
 # UnityEngine.CoreModule (only its plain structs and maths are used), then run here.
 if ($Test) {
     $tested = @('Core/CubeLut.cs', 'Core/LutBuilder.cs', 'Core/Json.cs', 'Core/HudMath.cs', 'Core/FlakeArt.cs', 'Core/RainArt.cs',
-                'Core/LocalRandom.cs', 'Core/MaterialEdits.cs', 'Presets/Presets.cs', 'Presets/Filters.cs', 'Presets/FilterStore.cs') |
+                'Core/LocalRandom.cs', 'Core/MaterialEdits.cs', 'Core/SafeFile.cs', 'Core/CoreLog.cs', 'Core/TextureArt.cs',
+                'Presets/Presets.cs', 'Presets/Filters.cs', 'Presets/FilterStore.cs', 'Presets/JsonFile.cs') |
               ForEach-Object { Join-Path $PSScriptRoot "plugin/src/$_" }
     $testFiles = @(Get-ChildItem -Filter *.cs (Join-Path $PSScriptRoot 'tests') | ForEach-Object FullName) + $tested
     $testTrees = [Microsoft.CodeAnalysis.SyntaxTree[]]@($testFiles | ForEach-Object {
@@ -94,19 +95,25 @@ if ($Test) {
         [Microsoft.CodeAnalysis.MetadataReference]::CreateFromFile($_) })
     $testDir = Join-Path ([IO.Path]::GetTempPath()) ("LightGreen-tests-" + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $testDir | Out-Null
-    Copy-Item $unity, $bepinex $testDir
-    $testDll = Join-Path $testDir 'LightGreen.Tests.dll'
-    $testComp = [Microsoft.CodeAnalysis.CSharp.CSharpCompilation]::Create('LightGreen.Tests', $testTrees, $testRefs, $opts)
-    $fs = [IO.File]::Create($testDll)
-    try { $testRes = $testComp.Emit($fs) } finally { $fs.Dispose() }
-    # CS1701/CS1702: UnityEngine and BepInEx reference the older mscorlib; SYSLIB0050: Json.cs reads [NonSerialized],
-    # which newer .NET marks obsolete. Normal here.
-    $testRes.Diagnostics | Where-Object { $_.Severity -ge [Microsoft.CodeAnalysis.DiagnosticSeverity]::Warning -and $_.Id -notin 'CS1701', 'CS1702', 'SYSLIB0050' } |
-        ForEach-Object { Write-Host $_.ToString() }
-    if (-not $testRes.Success) { throw "The offline checks failed to build." }
-    # LoadFrom finds UnityEngine.CoreModule and BepInEx beside the checks.
-    $failed = [Reflection.Assembly]::LoadFrom($testDll).GetType('LightGreen.Tests.Tests').GetMethod('Run').Invoke($null, @())
-    if ($failed -ne 0) { throw "$failed offline check(s) failed." }
+    try {
+        Copy-Item $unity, $bepinex $testDir
+        $testDll = Join-Path $testDir 'LightGreen.Tests.dll'
+        $testComp = [Microsoft.CodeAnalysis.CSharp.CSharpCompilation]::Create('LightGreen.Tests', $testTrees, $testRefs, $opts)
+        $fs = [IO.File]::Create($testDll)
+        try { $testRes = $testComp.Emit($fs) } finally { $fs.Dispose() }
+        # CS1701/CS1702: UnityEngine and BepInEx reference the older mscorlib. Normal here.
+        $testRes.Diagnostics | Where-Object { $_.Severity -ge [Microsoft.CodeAnalysis.DiagnosticSeverity]::Warning -and $_.Id -notin 'CS1701', 'CS1702' } |
+            ForEach-Object { Write-Host $_.ToString() }
+        if (-not $testRes.Success) { throw "The offline checks failed to build." }
+        # Run in a PowerShell of their own, so each run loads a fresh copy and nothing stays loaded (or locked) in this one.
+        # LoadFrom finds UnityEngine.CoreModule and BepInEx beside the checks. The exit code is the number that failed.
+        $run = "exit [Reflection.Assembly]::LoadFrom('$testDll').GetType('LightGreen.Tests.Tests').GetMethod('Run').Invoke(`$null, @())"
+        & (Get-Process -Id $PID).Path -NoProfile -NonInteractive -Command $run
+        if ($LASTEXITCODE -ne 0) { throw "$LASTEXITCODE offline check(s) failed." }
+    }
+    finally {
+        Remove-Item $testDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 if ($InstallTo) {

@@ -79,6 +79,7 @@ namespace LightGreen
         private void Awake()
         {
             Log = Logger;
+            CoreLog.Source = Logger;
             Settings.Bind(Config);
             _filterChoicesWritten = string.Join(", ", FilterChoices.Current());   // Bind just wrote these
             PresetStore.Load(Log);
@@ -194,6 +195,7 @@ namespace LightGreen
 
         private void Update()
         {
+            WorkTiming.LogLongFrames = Settings.TimingLog.Value;
             WorkTiming.NextFrame();
             long start = WorkTiming.Now;
             if (_pendingKinds.Count > 0 && Time.unscaledTime >= _noticesDueAt) FlushNotices();
@@ -281,16 +283,29 @@ namespace LightGreen
                 if (key.StartsWith(prefix, StringComparison.Ordinal)) Logged.Remove(key);
         }
 
+        // Keys the keyboard in use doesn't have (the Input System throws for them), found once and then skipped, so a
+        // wrong key in the config costs nothing each frame. Looked at again when the keyboard changes.
+        private static readonly HashSet<Key> MissingKeys = new HashSet<Key>();
+        private static Keyboard _keysFor;
+
         private static bool Pressed(Keyboard keyboard, Key key)
         {
             if (key == Key.None) return false;
+            if (keyboard != _keysFor)
+            {
+                _keysFor = keyboard;
+                MissingKeys.Clear();
+            }
+            if (MissingKeys.Contains(key)) return false;
             try
             {
                 return keyboard[key].wasPressedThisFrame;
             }
             catch (ArgumentException)
             {
-                return false;   // a key this keyboard doesn't have
+                MissingKeys.Add(key);
+                Log.LogWarning($"The key {key} isn't on this keyboard ({keyboard.displayName}); pick another in the [Keys] settings.");
+                return false;
             }
         }
 
@@ -318,7 +333,7 @@ namespace LightGreen
             }
             catch (Exception e)
             {
-                Log.LogWarning($"Couldn't update the photo filter list in the config file: {e.Message}");
+                Log.LogWarning($"Couldn't update the photo filter list in the config file: {e}");
             }
         }
 
@@ -344,7 +359,7 @@ namespace LightGreen
             }
             catch (Exception e)
             {
-                Log.LogWarning($"Couldn't reload the config: {e.Message}");
+                Log.LogWarning($"Couldn't reload the config: {e}");
             }
         }
 

@@ -40,13 +40,23 @@ namespace LightGreen.Systems
                 Plugin.LogChange("filter:missing", $"Photo filter \"{wanted}\" isn't in {System.IO.Path.GetFileName(FilterStore.FilePath)} " +
                                                    $"or the {System.IO.Path.GetFileName(FilterStore.FolderPath)} folder; showing none.");
 
-            Active = entry?.Preset;
             Strength = Mathf.Clamp01(Settings.FilterStrength.Value);
-            if (entry == null) return;
+            if (entry == null)
+            {
+                Active = null;
+                return;
+            }
 
             int size = LutSize();
-            if (_lut != null && entry.Name == _builtName && FilterStore.Revision == _builtRevision && size == _lutSize) return;
-            Build(entry, size);
+            if (_lut != null && entry.Name == _builtName && FilterStore.Revision == _builtRevision && size == _lutSize)
+            {
+                Active = entry.Preset;
+                return;
+            }
+            // A .cube still being read: the filter shown before (or none) stays until it's ready, a frame or so later.
+            if (!entry.TryGetSpec(out FilterSpec spec)) return;
+            Active = entry.Preset;
+            Build(entry, spec, size);
         }
 
         /// <summary>Nothing to put back: the volume layer hands the picture back to the game.</summary>
@@ -65,7 +75,7 @@ namespace LightGreen.Systems
             return names[next];
         }
 
-        private void Build(FilterEntry entry, int size)
+        private void Build(FilterEntry entry, FilterSpec spec, int size)
         {
             if (_lut == null || _lutSize != size)
             {
@@ -84,11 +94,11 @@ namespace LightGreen.Systems
                 _pixels = new Color32[_strip.Length];
             }
 
-            LutBuilder.Fill(entry.Spec, size, _strip);
+            LutBuilder.Fill(spec, size, _strip);
             for (int i = 0; i < _strip.Length; i++)
             {
                 Rgb c = _strip[i];
-                _pixels[i] = new Color32(ToByte(c.R), ToByte(c.G), ToByte(c.B), 255);
+                _pixels[i] = new Color32(TextureArt.ToByte(c.R), TextureArt.ToByte(c.G), TextureArt.ToByte(c.B), 255);
             }
             _lut.SetPixels32(_pixels);
             _lut.Apply(false, false);
@@ -98,7 +108,6 @@ namespace LightGreen.Systems
             Plugin.LogChange("filter", $"Photo filter: {entry.Name} ({size}³ colour table).");
         }
 
-        private static byte ToByte(float v) => (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
 
         /// <summary>The colour table size the current pipeline grades with (its Grading LUT size, 32 by default).</summary>
         private static int LutSize()
@@ -108,9 +117,9 @@ namespace LightGreen.Systems
                 UniversalRenderPipelineAsset asset = UniversalRenderPipeline.asset;
                 if (asset != null && asset.colorGradingLutSize >= 16) return asset.colorGradingLutSize;
             }
-            catch
+            catch (Exception e)
             {
-                // Not up yet.
+                CoreLog.FailedOnce("filter:lutsize", "Photo filter: couldn't read the pipeline's colour table size, so 32 is used", e);
             }
             return 32;
         }

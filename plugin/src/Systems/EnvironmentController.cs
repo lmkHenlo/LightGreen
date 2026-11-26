@@ -73,6 +73,8 @@ namespace LightGreen.Systems
         private float _clearSunIntensity = 1f;
 
         internal TimePreset Current { get; private set; } = new TimePreset();
+        // The blend shown during a change of time or a day cycle: written in place each frame, so it makes no garbage.
+        private readonly TimePreset _blended = new TimePreset();
         /// <summary>The scene's sun, once found.</summary>
         internal Light Sun => _sun;
         internal Color SunColor { get; private set; } = Color.white;
@@ -273,7 +275,7 @@ namespace LightGreen.Systems
                 float position = _dayPhase * DayCycle.Length;
                 int i = Mathf.FloorToInt(position) % DayCycle.Length;
                 float t = Mathf.SmoothStep(0f, 1f, position - Mathf.Floor(position));
-                Current = TimePreset.Lerp(PresetStore.ForTime(DayCycle[i]), PresetStore.ForTime(DayCycle[(i + 1) % DayCycle.Length]), t);
+                Current = TimePreset.Lerp(PresetStore.ForTime(DayCycle[i]), PresetStore.ForTime(DayCycle[(i + 1) % DayCycle.Length]), t, _blended);
                 _target = (TimeOfDay)(-1);
                 return;
             }
@@ -282,7 +284,8 @@ namespace LightGreen.Systems
             if (wanted != _target)
             {
                 bool first = _target == (TimeOfDay)(-1) && _from == null;
-                _from = first ? PresetStore.ForTime(wanted) : Current;
+                // From what's showing: a copy when that's the blend, which the next frames write over.
+                _from = first ? PresetStore.ForTime(wanted) : Current == _blended ? TimePreset.Lerp(Current, Current, 0f) : Current;
                 _to = PresetStore.ForTime(wanted);
                 _target = wanted;
                 _blend = first ? 1f : 0f;
@@ -290,7 +293,7 @@ namespace LightGreen.Systems
 
             float seconds = Settings.TransitionSeconds.Value;
             _blend = seconds <= 0f ? 1f : Mathf.Min(1f, _blend + Time.deltaTime / seconds);
-            Current = _blend >= 1f ? _to : TimePreset.Lerp(_from, _to, Mathf.SmoothStep(0f, 1f, _blend));
+            Current = _blend >= 1f ? _to : TimePreset.Lerp(_from, _to, Mathf.SmoothStep(0f, 1f, _blend), _blended);
         }
 
         /// <summary>Moves the time-of-day setting to the next preset.</summary>

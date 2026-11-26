@@ -34,7 +34,7 @@ namespace LightGreen.Systems
         internal CartoonRain(EnvironmentController environment)
         {
             _environment = environment;
-            _disc = Picture("LightGreen cartoon rain: streak", RainArt.Disc(32), 32);
+            _disc = TextureArt.Make("LightGreen cartoon rain: streak", RainArt.Disc(32), 32);
             _layer = new ParticleLayer("LightGreen cartoon rain",
                 new ParticleLayer.Spec
                 {
@@ -88,20 +88,5 @@ namespace LightGreen.Systems
             if (_disc != null) Object.Destroy(_disc);
         }
 
-        private static Texture2D Picture(string name, float[] rgba, int size)
-        {
-            var pixels = new Color32[size * size];
-            for (int i = 0; i < pixels.Length; i++)
-                pixels[i] = new Color32(Byte(rgba[i * 4]), Byte(rgba[i * 4 + 1]), Byte(rgba[i * 4 + 2]), Byte(rgba[i * 4 + 3]));
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true)
-            {
-                name = name, hideFlags = HideFlags.HideAndDontSave, wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Trilinear,
-            };
-            texture.SetPixels32(pixels);
-            texture.Apply(true, true);
-            return texture;
-        }
-
-        private static byte Byte(float v) => (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
     }
 }

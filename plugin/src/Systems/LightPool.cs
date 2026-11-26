@@ -17,6 +17,8 @@ namespace LightGreen.Systems
         internal float Priority;
         /// <summary>0 for a point light; otherwise a spot light this wide (degrees), pointing straight down.</summary>
         internal float SpotAngle;
+        /// <summary>Set by the pool before it sorts: how much this light wins (see LightPool.Score).</summary>
+        internal float Rank;
     }
 
     /// <summary>
@@ -61,8 +63,14 @@ namespace LightGreen.Systems
 
             Camera camera = GameManager.Camera;
             Vector3 eye = camera != null ? camera.transform.position : Vector3.zero;
-            // Most important first: priority, then how near and how bright.
-            _requests.Sort((a, b) => Score(b, eye).CompareTo(Score(a, eye)));
+            // Most important first: priority, then how near and how bright. Each scored once, then sorted without garbage.
+            for (int i = 0; i < _requests.Count; i++)
+            {
+                LightRequest request = _requests[i];
+                request.Rank = Score(request, eye);
+                _requests[i] = request;
+            }
+            _requests.Sort(ByRank);
 
             int shadows = 0;
             _anyOn = false;
@@ -97,6 +105,8 @@ namespace LightGreen.Systems
             }
             _requests.Clear();
         }
+
+        private static readonly System.Comparison<LightRequest> ByRank = (a, b) => b.Rank.CompareTo(a.Rank);
 
         private static float Score(LightRequest r, Vector3 eye) =>
             r.Priority * 1000f + r.Intensity * r.Range / (1f + Vector3.Distance(r.Position, eye) / 30f);

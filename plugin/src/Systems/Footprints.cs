@@ -87,7 +87,9 @@ namespace LightGreen.Systems
         private static readonly List<ParticleSystem> Children = new List<ParticleSystem>();
         private static readonly Queue<Entry> Live = new Queue<Entry>();
         private static readonly Dictionary<int, int> Generations = new Dictionary<int, int>();
-        private static readonly ParticleSystem.Particle[] Buffer = new ParticleSystem.Particle[8];
+        // The particles of one print system while its fade is shortened; grows to the most a print has had, so every one
+        // of them is faded, whatever the game's prints hold.
+        private static ParticleSystem.Particle[] _buffer = new ParticleSystem.Particle[8];
         private static bool _loggedFirst;
         private static bool _loggedCap;
 
@@ -95,10 +97,12 @@ namespace LightGreen.Systems
         [HarmonyPatch(typeof(PlayerMovementVfx), "ShowFootprint")]
         internal static class StepPatch
         {
+            private static readonly PatchGuard Guard = new PatchGuard("Footsteps hook");
+
             private static void Prefix(PlayerVfx ___playerVfx)
             {
                 _step = false;
-                if (!_active) return;
+                if (!_active || Guard.Broken) return;
                 try
                 {
                     PlayerInfo player = ___playerVfx != null ? ___playerVfx.PlayerInfo : null;
@@ -107,9 +111,10 @@ namespace LightGreen.Systems
                     if (local != null && local != player && !local.CanDetectSmokeBombInvisiblePlayer(player)) return;
                     _step = IsSnow(player.Movement.GroundTerrainDominantGlobalLayer);
                 }
-                catch
+                catch (Exception e)
                 {
                     _step = false;
+                    Guard.Fail(e);
                 }
             }
 
@@ -146,8 +151,11 @@ namespace LightGreen.Systems
         }
 
         /// <summary>Runs just before a footprint effect plays: snow look on snow steps, the game's otherwise.</summary>
+        private static readonly PatchGuard EffectGuard = new PatchGuard("Footprint effects hook");
+
         private static void Configure(PoolableParticleSystem effect)
         {
+            if (EffectGuard.Broken) return;
             try
             {
                 if (effect == null) return;
@@ -188,9 +196,9 @@ namespace LightGreen.Systems
                 if (Changed.Count > _pruneAt) PruneChanged();
                 if (snow) Track(effect, id, generation);
             }
-            catch
+            catch (Exception e)
             {
-                // Never let a footprint break the game's effect.
+                EffectGuard.Fail(e);   // never let a footprint break the game's effect
             }
         }
 
@@ -294,18 +302,20 @@ namespace LightGreen.Systems
             float life = seconds / (1f - Hold);
             foreach (ParticleSystem ps in Children)
             {
-                int n = ps.GetParticles(Buffer);
+                if (_buffer.Length < ps.particleCount) _buffer = new ParticleSystem.Particle[Mathf.NextPowerOfTwo(ps.particleCount)];
+                ParticleSystem.Particle[] buffer = _buffer;
+                int n = ps.GetParticles(buffer);
                 for (int i = 0; i < n; i++)
                 {
-                    ParticleSystem.Particle p = Buffer[i];
+                    ParticleSystem.Particle p = buffer[i];
                     if (p.startLifetime <= 0f) continue;
                     float visible = Mathf.Min(1f, p.remainingLifetime / p.startLifetime / (1f - Hold));
                     if (p.remainingLifetime <= seconds * visible) continue;   // already going sooner
                     p.startLifetime = life;
                     p.remainingLifetime = seconds * visible;
-                    Buffer[i] = p;
+                    buffer[i] = p;
                 }
-                ps.SetParticles(Buffer, n);
+                ps.SetParticles(buffer, n);
             }
         }
 

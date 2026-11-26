@@ -97,7 +97,7 @@ namespace LightGreen.Systems
                 if (!ToonEmissive.HasVariant(m) || stockEmission.maxColorComponent > 0.001f)
                 {
                     _cantGlow.Add(m);
-                    Plugin.LogChange("ballglow:" + m.name,
+                    Plugin.LogChange("hole:ballglow:" + m.name,
                         $"Ball glow: {m.name} doesn't glow (it can't be switched to glow without changing how it's drawn).");
                     return false;
                 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -72,7 +73,7 @@ namespace LightGreen.Core
             {
                 _stock[m] = s = new Stock();
                 string name = m.name;
-                if (!name.EndsWith(InstanceSuffix) && (!_byName.TryGetValue(name, out Material known) || known == null))
+                if (!name.EndsWith(InstanceSuffix, StringComparison.Ordinal) && (!_byName.TryGetValue(name, out Material known) || known == null))
                     _byName[name] = m;
             }
             return s;
@@ -84,8 +85,8 @@ namespace LightGreen.Core
         private Material OriginalMaterialOf(Material copy)
         {
             string name = copy.name;
-            if (!name.EndsWith(InstanceSuffix)) return null;
-            while (name.EndsWith(InstanceSuffix)) name = name.Substring(0, name.Length - InstanceSuffix.Length);
+            if (!name.EndsWith(InstanceSuffix, StringComparison.Ordinal)) return null;
+            while (name.EndsWith(InstanceSuffix, StringComparison.Ordinal)) name = name.Substring(0, name.Length - InstanceSuffix.Length);
             if (!_byName.TryGetValue(name, out Material original) || original == null || original == copy) return null;
             return _stock.ContainsKey(original) ? original : null;
         }
