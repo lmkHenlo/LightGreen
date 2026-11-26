@@ -12,6 +12,8 @@
                      -InstallTo   "$env:APPDATA\r2modmanPlus-local\SuperBattleGolf\profiles\Default\BepInEx\plugins"
     pwsh ./build.ps1 -BepInExCore "<...>\BepInEx\core" -Package
       (writes build/lmkHenlo-LightGreen-<version>.zip: manifest.json, README.md, icon.png, CHANGELOG.md, LightGreen.dll, LICENSE)
+    pwsh ./build.ps1 -BepInExCore "<...>\BepInEx\core" -Test
+      (also runs the offline checks in tests/; the build fails if one fails)
 #>
 param(
     # Kept for the familiar command line: plugin is the only project.
@@ -21,7 +23,8 @@ param(
     [string]$BepInExCore = "",
     [string]$OutDir = (Join-Path $PSScriptRoot "build/plugins"),
     [string]$InstallTo = "",
-    [switch]$Package
+    [switch]$Package,
+    [switch]$Test
 )
 $ErrorActionPreference = 'Stop'
 
@@ -70,6 +73,41 @@ $diags = @($res.Diagnostics | Where-Object { $_.Severity -ge [Microsoft.CodeAnal
 $diags | ForEach-Object { Write-Host $_.ToString() }
 if (-not $res.Success) { Remove-Item $out -ErrorAction SilentlyContinue; throw "$name failed to build." }
 Write-Host "Built $out"
+
+# ---- Offline checks ------------------------------------------------------------------------------
+# The parts that run without the game, compiled with tests/*.cs against this PowerShell's own .NET and the game's
+# UnityEngine.CoreModule (only its plain structs and maths are used), then run here.
+if ($Test) {
+    $tested = @('Core/CubeLut.cs', 'Core/LutBuilder.cs', 'Core/Json.cs', 'Core/HudMath.cs', 'Core/FlakeArt.cs', 'Core/RainArt.cs',
+                'Core/LocalRandom.cs', 'Core/MaterialEdits.cs', 'Presets/Presets.cs', 'Presets/Filters.cs', 'Presets/FilterStore.cs') |
+              ForEach-Object { Join-Path $PSScriptRoot "plugin/src/$_" }
+    $testFiles = @(Get-ChildItem -Filter *.cs (Join-Path $PSScriptRoot 'tests') | ForEach-Object FullName) + $tested
+    $testTrees = [Microsoft.CodeAnalysis.SyntaxTree[]]@($testFiles | ForEach-Object {
+        [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText([IO.File]::ReadAllText($_), $parse, $_) })
+    $unity = Join-Path $ManagedDir 'UnityEngine.CoreModule.dll'
+    $bepinex = Join-Path $BepInExCore 'BepInEx.dll'
+    # .NET's own class library only: PowerShell ships its own libraries beside it (a "Json" namespace among them),
+    # which would clash with LightGreen's names.
+    $platform = @(([AppContext]::GetData('TRUSTED_PLATFORM_ASSEMBLIES')) -split [IO.Path]::PathSeparator |
+                  Where-Object { $_ -and (Split-Path -Leaf $_) -match '^(System\..+|System|mscorlib|netstandard)\.dll$' })
+    $testRefs = [Microsoft.CodeAnalysis.MetadataReference[]]@(($platform + @($unity, $bepinex)) | ForEach-Object {
+        [Microsoft.CodeAnalysis.MetadataReference]::CreateFromFile($_) })
+    $testDir = Join-Path ([IO.Path]::GetTempPath()) ("LightGreen-tests-" + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $testDir | Out-Null
+    Copy-Item $unity, $bepinex $testDir
+    $testDll = Join-Path $testDir 'LightGreen.Tests.dll'
+    $testComp = [Microsoft.CodeAnalysis.CSharp.CSharpCompilation]::Create('LightGreen.Tests', $testTrees, $testRefs, $opts)
+    $fs = [IO.File]::Create($testDll)
+    try { $testRes = $testComp.Emit($fs) } finally { $fs.Dispose() }
+    # CS1701/CS1702: UnityEngine and BepInEx reference the older mscorlib; SYSLIB0050: Json.cs reads [NonSerialized],
+    # which newer .NET marks obsolete. Normal here.
+    $testRes.Diagnostics | Where-Object { $_.Severity -ge [Microsoft.CodeAnalysis.DiagnosticSeverity]::Warning -and $_.Id -notin 'CS1701', 'CS1702', 'SYSLIB0050' } |
+        ForEach-Object { Write-Host $_.ToString() }
+    if (-not $testRes.Success) { throw "The offline checks failed to build." }
+    # LoadFrom finds UnityEngine.CoreModule and BepInEx beside the checks.
+    $failed = [Reflection.Assembly]::LoadFrom($testDll).GetType('LightGreen.Tests.Tests').GetMethod('Run').Invoke($null, @())
+    if ($failed -ne 0) { throw "$failed offline check(s) failed." }
+}
 
 if ($InstallTo) {
     $dest = Join-Path $InstallTo $name

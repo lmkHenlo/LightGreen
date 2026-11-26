@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LightGreen.Core;
 using UnityEngine;
 
 namespace LightGreen.Systems
@@ -70,7 +71,6 @@ namespace LightGreen.Systems
         private float _density = -1f;
         private readonly List<int> _counts = new List<int>();   // each layer's particle count at the current density
         private ParticleSystem.Particle[] _fill = new ParticleSystem.Particle[0];
-        private readonly System.Random _random = new System.Random();   // not UnityEngine.Random: that's the game's
 
         internal ParticleLayer(string rootName, params Spec[] specs)
         {
@@ -155,7 +155,7 @@ namespace LightGreen.Systems
             if (_fill.Length < count) _fill = new ParticleSystem.Particle[count];
             int n = ps.GetParticles(_fill, count);
             for (int k = 0; k < n; k++)
-                _fill[k].remainingLifetime = _fill[k].startLifetime * (float)(0.02 + 0.98 * _random.NextDouble());
+                _fill[k].remainingLifetime = _fill[k].startLifetime * (0.02f + 0.98f * LocalRandom.Value);
             ps.SetParticles(_fill, n);
         }
 

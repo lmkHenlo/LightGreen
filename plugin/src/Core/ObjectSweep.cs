@@ -5,26 +5,27 @@ using Object = UnityEngine.Object;
 namespace LightGreen.Core
 {
     /// <summary>
-    /// Goes through every renderer in the world a few frames at a time: the renderers are found in one call, then
-    /// handed out until this frame's time is spent (<see cref="Budget"/>), and the rest wait for the next frame.
-    /// Looking at the materials of 5,000-6,000 renderers takes 3-5 ms, a hitch when done in one frame.
+    /// Goes through every object of one kind in the world a few frames at a time: the objects are found in one call,
+    /// then handed out until this frame's time is spent (<see cref="Budget"/>), and the rest wait for the next frame.
+    /// Looking at the materials of 5,000-6,000 renderers takes 3-5 ms, a hitch when done in one frame; so does
+    /// looking at the names of every transform on a City map.
     /// </summary>
-    internal sealed class RendererSweep
+    internal sealed class ObjectSweep<T> where T : Object
     {
-        /// <summary>Time per frame for handing out renderers.</summary>
+        /// <summary>Time per frame for handing out objects (all sweeps running in a frame get this each).</summary>
         internal const double BudgetMs = 0.5;
 
         private static readonly long Budget = (long)(BudgetMs * Stopwatch.Frequency / 1000.0);
 
-        private Renderer[] _renderers;
+        private T[] _objects;
         private int _next;
         private long _deadline;
         private long _spent;
         private long _frameStart;
 
-        internal bool Running => _renderers != null;
+        internal bool Running => _objects != null;
 
-        /// <summary>Renderers in the sweep in progress, or the last one.</summary>
+        /// <summary>Objects in the sweep in progress, or the last one.</summary>
         internal int Count { get; private set; }
 
         /// <summary>Frames the last sweep took, and its time in all (finding included), for the log.</summary>
@@ -35,9 +36,9 @@ namespace LightGreen.Core
         internal void Start(FindObjectsInactive inactive)
         {
             long start = Stopwatch.GetTimestamp();
-            _renderers = Object.FindObjectsByType<Renderer>(inactive, FindObjectsSortMode.None);
+            _objects = Object.FindObjectsByType<T>(inactive, FindObjectsSortMode.None);
             _next = 0;
-            Count = _renderers.Length;
+            Count = _objects.Length;
             Frames = 0;
             _spent = Stopwatch.GetTimestamp() - start;
         }
@@ -50,31 +51,31 @@ namespace LightGreen.Core
             Frames++;
         }
 
-        /// <summary>The next renderer, or false when this frame's time is spent or the sweep is done.</summary>
-        internal bool Next(out Renderer renderer)
+        /// <summary>The next object, or false when this frame's time is spent or the sweep is done.</summary>
+        internal bool Next(out T item)
         {
-            renderer = null;
-            if (_renderers == null) return false;
-            // The clock is read every 16 renderers; each takes well under a microsecond to a few.
+            item = null;
+            if (_objects == null) return false;
+            // The clock is read every 16 objects; each takes well under a microsecond to a few.
             if ((_next & 15) == 0 && _next > 0 && Stopwatch.GetTimestamp() > _deadline) return false;
-            while (_next < _renderers.Length)
+            while (_next < _objects.Length)
             {
-                renderer = _renderers[_next++];
-                if (renderer != null) return true;
+                item = _objects[_next++];
+                if (item != null) return true;
             }
             return false;
         }
 
-        /// <summary>Ends this frame's share; true when the whole sweep is done (and its renderers let go).</summary>
+        /// <summary>Ends this frame's share; true when the whole sweep is done (and its objects let go).</summary>
         internal bool EndFrame()
         {
             _spent += Stopwatch.GetTimestamp() - _frameStart;
-            if (_renderers == null || _next < _renderers.Length) return false;
-            _renderers = null;
+            if (_objects == null || _next < _objects.Length) return false;
+            _objects = null;
             return true;
         }
 
         /// <summary>Drops a sweep in progress (a map change, or the feature restored).</summary>
-        internal void Stop() => _renderers = null;
+        internal void Stop() => _objects = null;
     }
 }

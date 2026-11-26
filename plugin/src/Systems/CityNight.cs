@@ -79,7 +79,9 @@ namespace LightGreen.Systems
         private readonly HashSet<Material> _checked = new HashSet<Material>();
         private readonly List<Lamp> _lamps = new List<Lamp>();
         private readonly List<Material> _shared = new List<Material>();
-        private readonly RendererSweep _sweep = new RendererSweep();
+        private readonly ObjectSweep<Renderer> _sweep = new ObjectSweep<Renderer>();
+        private readonly ObjectSweep<Transform> _lampSweep = new ObjectSweep<Transform>();
+        private readonly List<Lamp> _foundLamps = new List<Lamp>();
         private bool _sweepFirst;
         private int _added;
         private float _nextScan;
@@ -91,6 +93,7 @@ namespace LightGreen.Systems
         /// <summary>Called on a new hole: look for lampposts and materials again.</summary>
         internal void Rescan()
         {
+            _lampSweep.Stop();
             _scanned = false;
             _logged = false;
             _skipped = 0;
@@ -107,6 +110,7 @@ namespace LightGreen.Systems
             }
 
             if (!_scanned || _sweep.Running || Time.unscaledTime >= _nextScan) Scan();
+            if (_lampSweep.Running) FindLamps();
             ApplyGlow(level);
 
             foreach (Lamp lamp in _lamps)
@@ -126,7 +130,7 @@ namespace LightGreen.Systems
 
         /// <summary>
         /// Looks through the renderers in the world for materials that should glow, a few frames at a time
-        /// (<see cref="RendererSweep"/>); what's found glows when the sweep ends.
+        /// (<see cref="ObjectSweep{T}"/>); what's found glows when the sweep ends.
         /// </summary>
         private void Scan()
         {
@@ -157,16 +161,11 @@ namespace LightGreen.Systems
             if (!_sweep.EndFrame()) return;
             if (_added > 0) _appliedLevel = -1f;
 
+            // The lampposts are looked for once a hole, after the first look for materials, also a few frames at a time.
             if (_sweepFirst)
             {
-                FindLamps();
-                if (!_logged)
-                {
-                    _logged = true;
-                    Plugin.Log.LogInfo($"City night: {_glowing.Count} materials glow ({string.Join(", ", _glowing.Take(8).Select(m => m.name))}" +
-                                       $"{(_glowing.Count > 8 ? ", …" : "")}); {_lamps.Count} lampposts lit" +
-                                       (_skipped > 0 ? $"; {_skipped} left dark (no glowing variant in the game's toon shader)." : "."));
-                }
+                _foundLamps.Clear();
+                _lampSweep.Start(FindObjectsInactive.Exclude);
             }
         }
 
@@ -203,8 +202,8 @@ namespace LightGreen.Systems
         /// </summary>
         private void FindLamps()
         {
-            _lamps.Clear();
-            foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            _lampSweep.BeginFrame();
+            while (_lampSweep.Next(out Transform t))
             {
                 if (!IsLamppost(t) || (t.parent != null && IsLamppost(t.parent))) continue;
                 if (t.GetComponentInChildren<Light>(true) != null) continue;   // the game's own lit lampposts
@@ -223,12 +222,26 @@ namespace LightGreen.Systems
                 if (reach == Vector3.zero) head = new Vector3(b.center.x, b.max.y - 0.8f, b.center.z);
                 float drop = Mathf.Max(2f, head.y - b.min.y);
 
-                _lamps.Add(new Lamp
+                _foundLamps.Add(new Lamp
                 {
                     Position = head,
                     Intensity = Mathf.Clamp(LampGroundBrightness * drop * drop, 5f, 200f),
                     Range = Mathf.Clamp(drop * 1.8f, 8f, 30f),
                 });
+            }
+            if (!_lampSweep.EndFrame()) return;
+
+            // Swapped in whole, so the lamps of the last look stay lit until this one is done.
+            _lamps.Clear();
+            _lamps.AddRange(_foundLamps);
+            _foundLamps.Clear();
+            if (!_logged)
+            {
+                _logged = true;
+                Plugin.Log.LogInfo($"City night: {_glowing.Count} materials glow ({string.Join(", ", _glowing.Take(8).Select(m => m.name))}" +
+                                   $"{(_glowing.Count > 8 ? ", …" : "")}); {_lamps.Count} lampposts lit" +
+                                   (_skipped > 0 ? $"; {_skipped} left dark (no glowing variant in the game's toon shader)." : ".") +
+                                   $" Looked through {_sweep.Count} renderers and {_lampSweep.Count} objects in {_sweep.Frames + _lampSweep.Frames} frames.");
             }
         }
 
@@ -238,6 +251,8 @@ namespace LightGreen.Systems
         public void Restore()
         {
             _sweep.Stop();
+            _lampSweep.Stop();
+            _foundLamps.Clear();
             if (_glowing.Count == 0 && !_scanned && _checked.Count == 0) return;
             _edits.Restore();
             _glowing.Clear();

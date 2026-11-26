@@ -968,3 +968,39 @@ check on a background thread every 2 s (`FilterStore.FolderChanged`), and the we
 | C5 | Weather refill | Snow, rain and cartoon rain: start each, and spectate a far player | The view filled at once, no empty patch and no wave fading together; no `Snow`/`Rain` part over 3 ms in `Timing` lines |
 
 **Results (2026-11-21):** C1–C5 passed. Released as 0.3.1.
+
+## Audit fixes (after 0.3.1)
+
+**Audit (2026-11-26):** a read-through of the whole source found no crash or broken feature, but 1 medium finding, 8 low
+ones and 5 notes (the audit report). This build fixes or settles each:
+
+- M1: `EnvironmentController.Darkness` counted the sun dimmed by the weather as dusk. It's split in two: `Darkness`
+  (night only: the time of day's sun, or the game's own night holes) for ball glow, City lamps, windows and bloom;
+  `SceneDarkness` (with the weather) for day and night brightness and the weather's own colours, as before.
+- L1: the shadow settings stay as they were (never below the game's own, which the class is for); the READMEs say so.
+- L2: `.cube` lines starting with a word are skipped as keywords unless the word is `NaN`, `Inf` or `Infinity`; NaN and
+  infinite values are refused with their line; `Rgb.Clamp01(NaN)` is 0.
+- L3: `MaterialTuner.Restore` lets go of the materials it looked at, and restarts a cut-short look, even with nothing tuned.
+- L4: `BallGlow.Unglow` takes the block off a renderer that had none only while the block still holds the glow's values.
+- L5: the City lamppost search goes through `ObjectSweep<Transform>` (the renderer sweep, made generic), at most 0.5 ms
+  a frame. (The audit said the search wasn't timed; it was, as part of `City night`.)
+- L6: footprints drop only the ids of destroyed prints, when the list passes 1,024 (then twice what's left).
+- L7: the name-tag hook finds `<OnPostPostLateBUpdate>g__UpdateSize|…` by name without the compiler's number.
+- L8: the grass-free depth is let go at `RenderPipelineManager.beginCameraRendering`, not kept for the frame.
+- N1: `LocalRandom` for lightning and rain splashes (and `ParticleLayer`). N2: the camera-mode hook and `TimeLabel`
+  removed. N3: copies of tuned materials found by name first; a value written over two stock values isn't used.
+  N4: `tests/Tests.cs`, run by `build.ps1 -Test` (64 checks). N5: the manifest's `author` is kept (`build.ps1` names
+  the package from it, and Thunderstore accepts it); a comment in `build.ps1` says so.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| A1 | Rain by day | City hole at Noon, `Effects.Rain` 1 (F10) | No street lamps, lit windows or ball glow; the rain and the sky look as before |
+| A2 | Rain at night | Same hole, F9 to Night, rain on | Lamps, windows and ball glow on, as without rain |
+| A3 | Snow and cartoon rain by day | A Snow or Grass hole at Noon, F10 through snow and cartoon rain | No ball glow; the snow and the mist look as before |
+| A4 | Lamp search | Night City hole; read the `City night:` line | `… lampposts lit … Looked through N renderers and M objects in F frames`, F above 1; no `City night` part over 2 ms in the log |
+| A5 | Name tags | `HUD.NameTags` 50 in a lobby with other players | Log has `[ok] Hook: HUD name tags`; tags at half size |
+| A6 | Ball glow off | Night, then F9 to Noon | Balls stop glowing and look as the game draws them |
+| A7 | F8 and map changes | F8 through its three steps, then change map twice | Colours, shading and materials back to the game's at off; no errors |
+| A8 | `.cube` errors | Put a `.cube` with a `NaN` line in `LightGreen.filters`, pick it | The log names the file, the line and the value; the filter isn't used |
+| A9 | Shadows | `SunShadowResolution` 2048 with the game's Shadow quality at its highest | Log `Sun shadows on …` shows the game's size kept |
+

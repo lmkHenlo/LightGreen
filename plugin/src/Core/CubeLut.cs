@@ -73,7 +73,9 @@ namespace LightGreen.Core
                         lut._max = Rgb.Grey(hi);
                         continue;
                     }
-                    if (char.IsLetter(parts[0][0])) continue;   // a keyword LightGreen doesn't need
+                    // A keyword LightGreen doesn't need (some programs add their own). A word that's a number,
+                    // NaN or Infinity, is a colour line, and is refused below with its line number.
+                    if (char.IsLetter(parts[0][0]) && !IsNumberWord(key)) continue;
 
                     if (lut._data == null) throw Bad(lineNumber, "colour values before LUT_3D_SIZE or LUT_1D_SIZE");
                     if (count >= lut._data.Length) throw Bad(lineNumber, $"more than the {lut._data.Length} entries the size gives");
@@ -126,8 +128,15 @@ namespace LightGreen.Core
         {
             if (at >= parts.Length || !float.TryParse(parts[at], NumberStyles.Float, CultureInfo.InvariantCulture, out float v))
                 throw Bad(line, "a missing or unreadable number");
+            // NaN would pass every clamp and reach the screen; an infinity (or a number too big for a float) means
+            // a broken file.
+            if (float.IsNaN(v) || float.IsInfinity(v)) throw Bad(line, $"\"{parts[at]}\" isn't a usable number");
             return v;
         }
+
+        /// <summary>Words that read as numbers (upper case): never a keyword.</summary>
+        private static bool IsNumberWord(string word) =>
+            word == "NAN" || word == "INF" || word == "INFINITY";
 
         private static int ParseInt(string[] parts, int at, int line)
         {

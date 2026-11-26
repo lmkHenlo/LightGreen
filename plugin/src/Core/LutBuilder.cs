@@ -23,7 +23,8 @@ namespace LightGreen.Core
         internal static Rgb Lerp(Rgb a, Rgb b, float t) =>
             new Rgb(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t);
 
-        internal static float Clamp01(float v) => v < 0f ? 0f : v > 1f ? 1f : v;
+        /// <summary>0 to 1; NaN becomes 0, so a broken value can't reach the LUT texture.</summary>
+        internal static float Clamp01(float v) => v > 0f ? (v < 1f ? v : 1f) : 0f;
 
         public override string ToString() => $"({R:0.###}, {G:0.###}, {B:0.###})";
     }

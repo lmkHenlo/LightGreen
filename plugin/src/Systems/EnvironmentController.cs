@@ -68,6 +68,9 @@ namespace LightGreen.Systems
 
         // Day and night brightness (Brightness.Day, Brightness.Night).
         private float _sunScaleApplied = 1f;
+        // The sun as the time of day sets it, before the weather dims it (for Darkness), while LightGreen sets the sun.
+        private Color _clearSunColor = Color.white;
+        private float _clearSunIntensity = 1f;
 
         internal TimePreset Current { get; private set; } = new TimePreset();
         /// <summary>The scene's sun, once found.</summary>
@@ -139,15 +142,31 @@ namespace LightGreen.Systems
 
         /// <summary>
         /// 0 in daylight, 1 at night: the time of day's own night setting, or, for holes the game itself sets
-        /// at night (the City's Causeway and Sky Lane, a Snow hole), how dim the scene's main light is. Ball
-        /// glow and the City at night follow it.
+        /// at night (the City's Causeway and Sky Lane, a Snow hole), how dim the scene's main light is. The
+        /// weather doesn't count: rain or snow by day isn't night. Ball glow and the City at night follow it.
         /// </summary>
         internal float Darkness
         {
             get
             {
-                // The sun as the time of day has it, before Brightness.Day and Night: making the day darker
-                // mustn't switch night things on, nor a brighter night switch them off.
+                // The sun as the time of day has it, before the weather and before Brightness.Day and Night:
+                // making the day darker mustn't switch night things on, nor a brighter night switch them off.
+                bool lit = _sun != null && _sun.isActiveAndEnabled;
+                if (!lit) return DarknessOf(Color.black, 0f, false);
+                return _sunChanged
+                    ? DarknessOf(_clearSunColor, _clearSunIntensity, true)
+                    : DarknessOf(_sun.color, _sun.intensity, true);
+            }
+        }
+
+        /// <summary>
+        /// How dark the lit scene is, 0 to 1: <see cref="Darkness"/>, plus the sun dimmed by rain, snow or cartoon
+        /// rain's mist. Brightness.Day and Night blend by it, and the weather's own colours dim with it.
+        /// </summary>
+        internal float SceneDarkness
+        {
+            get
+            {
                 bool lit = _sun != null && _sun.isActiveAndEnabled;
                 return DarknessOf(lit ? _sun.color : Color.black, lit ? _sun.intensity / _sunScaleApplied : 0f, lit);
             }
@@ -177,9 +196,6 @@ namespace LightGreen.Systems
         }
 
         private static bool Unscaled(float scale) => Mathf.Abs(scale - 1f) < 1e-3f;
-
-        /// <summary>The time of day being shown, for the on-screen notice.</summary>
-        internal string TimeLabel => Settings.ProgressionMinutes.Value > 0f ? $"{Current.name} (day cycle)" : Settings.Time.Value.ToString();
 
         internal void Update()
         {
@@ -337,6 +353,9 @@ namespace LightGreen.Systems
                 {
                     SunDirection = -(_stockSunRotation * Vector3.forward);
                 }
+
+                _clearSunColor = sunColor;
+                _clearSunIntensity = sunIntensity;
 
                 // Rain: a dimmer, greyer sun through the cloud. Snow: a little dimmer and cold white. Cartoon rain:
                 // a little dimmer, its colour kept.

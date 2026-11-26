@@ -117,19 +117,23 @@ namespace LightGreen.Systems
             return true;
         }
 
-        /// <summary>The renderer's emission back to its material's own (or its property block removed, if it had none).</summary>
+        /// <summary>
+        /// The renderer's emission back to its material's own. A renderer that had no property block before the
+        /// glow gets none again, so it's drawn (and batched) as before, but only if the block is still the glow's
+        /// own: one the game has put on it since (the glow's values gone from it) is left as the game set it.
+        /// </summary>
         private void Unglow(Renderer r)
         {
             if (!_glowing.TryGetValue(r, out bool hadBlock)) return;
             _glowing.Remove(r);
             if (r == null) return;
+            r.GetPropertyBlock(_block);
             if (!hadBlock)
             {
-                r.SetPropertyBlock(null);
+                if (_block.HasColor(EmissiveColorId) && _block.HasTexture(EmissiveTexId)) r.SetPropertyBlock(null);
                 return;
             }
             Material m = r.sharedMaterial;
-            r.GetPropertyBlock(_block);
             _block.SetColor(EmissiveColorId, m != null && m.HasProperty(EmissiveColorId) ? m.GetColor(EmissiveColorId) : Color.black);
             Texture tex = m != null && m.HasProperty(EmissiveTexId) ? m.GetTexture(EmissiveTexId) : null;
             _block.SetTexture(EmissiveTexId, tex != null ? tex : Texture2D.whiteTexture);

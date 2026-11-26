@@ -105,8 +105,8 @@ AmbientOcclusionQuality = Low
 | `Effects.FootprintSeconds` | `45` | How long a footprint in snow lasts, 2–180 seconds (the game's last about 2). |
 | `Effects.FootprintMax` | `300` | Most footprints in snow at once, 20–2000; past it the oldest fade. |
 | `Shading.Grass` | `true` | `false` hides the game's grass blades (the terrain's colour shows instead). |
-| `Quality.SunShadowResolution` | `4096` | Sun shadow map size (0, 2048, 4096, 8192); 0 keeps the game's. |
-| `Quality.SunShadowDistance` | `200` | How far (metres) the sun casts shadows, 0–500; 0 keeps the game's. |
+| `Quality.SunShadowResolution` | `4096` | Sun shadow map size (0, 2048, 4096, 8192); 0 keeps the game's. Never lower than the size the game's own Shadow quality option sets: shadows only get sharper. |
+| `Quality.SunShadowDistance` | `200` | How far (metres) the sun casts shadows, 0–500; 0 keeps the game's. Never shorter than the game's own. |
 | `Quality.AmbientOcclusionQuality` | `Medium` | `Low` (quarter resolution), `Medium` (half), `High` (full). |
 
 Each effect goes up to its own most: where turning it up further stops making a difference, or where it starts to look broken, flash too hard or cost too much. A higher value in the config is lowered to the most.
@@ -208,15 +208,18 @@ This writes `build/plugins/LightGreen.dll` and, with `-InstallTo`, copies it int
 
 Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGreen-<version>.zip`: `manifest.json`, `README.md` and `icon.png` from `thunderstore/`, `CHANGELOG.md`, `LightGreen.dll` and `LICENSE`. It stops if `thunderstore/manifest.json` and `Plugin.cs` give different versions.
 
+Add `-Test` to also run the offline checks in `tests/`: the `.cube` reader, the filter maths, the presets and filters files and the built-in filters, the HUD maths, the weather art, LightGreen's random numbers and the material copy lookup. They run in PowerShell, with no game running, and the build stops if one fails. What needs the game is checked by hand, in `docs/testing.md`.
+
 `plugin/LightGreen.csproj` is for editors.
 
 ## Files
 
 | File | What it does |
 |---|---|
-| `build.ps1` | Builds, installs and packages the plugin. |
+| `build.ps1` | Builds, installs, tests and packages the plugin. |
 | `CHANGELOG.md` | The changes in each release. |
 | `docs/testing.md` | The checks and results for each phase. |
+| `tests/Tests.cs` | The offline checks `build.ps1 -Test` runs. |
 | `thunderstore/` | The Thunderstore page (`README.md`), `manifest.json` and `icon.png`. |
 | `plugin/LightGreen.csproj` | Project file for editors; the build script doesn't need it. |
 | `plugin/src/Plugin.cs` | Entry point: settings reload, the F8, F9, F10 and F11 keys, and their messages. |
@@ -234,6 +237,10 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
 | `plugin/src/Core/LutBuilder.cs`, `CubeLut.cs` | A photo filter's colours as a lookup table, and the `.cube` file reader. |
 | `plugin/src/Core/Json.cs` | Reads and writes the presets and filters files. |
+| `plugin/src/Core/ObjectSweep.cs` | Goes through every renderer (or other object) in the world a few frames at a time, so a search doesn't hitch. |
+| `plugin/src/Core/ParticleValues.cs` | Copies of the game's particle curves and gradients that LightGreen owns. |
+| `plugin/src/Core/LocalRandom.cs` | LightGreen's own random numbers, so the game's sequence is left alone. |
+| `plugin/src/Core/WorkTiming.cs` | Times LightGreen's work each frame and logs the frames that took long. |
 | `plugin/src/Presets/` | The per-biome and per-time presets, the photo filters, their files, and the list of filters for `Filters.Filter`. |
 | `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
 | `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom, the photo filter. |
@@ -241,7 +248,7 @@ Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGree
 | `plugin/src/Systems/HudScaler.cs` | The `[HUD]` sizes for the screen's HUD, applied just before it's drawn. |
 | `plugin/src/Systems/HudPatches.cs` | The `[HUD]` sizes for the markers, name tags and pop-up words, which the game sizes every frame. |
 | `plugin/src/Systems/MaterialTuner.cs` | Shadow tint, water and ice. |
-| `plugin/src/Systems/SunShadows.cs` | Sharper, longer sun shadows. |
+| `plugin/src/Systems/SunShadows.cs` | Sharper, longer sun shadows, never below the game's own. |
 | `plugin/src/Systems/AmbientOcclusion.cs`, `GrassFreeDepth.cs` | Ambient occlusion, worked out without the grass blades. |
 | `plugin/src/Systems/GrassToggle.cs` | Hides the grass blades. |
 | `plugin/src/Systems/EffectLights.cs` | Light from explosions, muzzle flashes and trails. |

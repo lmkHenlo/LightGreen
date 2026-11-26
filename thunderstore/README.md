@@ -88,8 +88,8 @@ Rain = 1
 | `Effects.FootprintSeconds` | `45` | How long a footprint in snow lasts, from 2 to 180 seconds. |
 | `Effects.FootprintMax` | `300` | How many footprints in snow there can be at once; past it the oldest fade out. Lower it for big lobbies on a slower PC. |
 | `Shading.Grass` | `true` | `false` hides the grass blades; the ground's own colour shows instead. |
-| `Quality.SunShadowResolution` | `4096` | Sun shadow sharpness: 2048, 4096 or 8192; 0 keeps the game's. |
-| `Quality.SunShadowDistance` | `200` | How far, in metres, the sun casts shadows; 0 keeps the game's. |
+| `Quality.SunShadowResolution` | `4096` | Sun shadow sharpness: 2048, 4096 or 8192; 0 keeps the game's. Never less sharp than the game's own Shadow quality option. |
+| `Quality.SunShadowDistance` | `200` | How far, in metres, the sun casts shadows; 0 keeps the game's. Never shorter than the game's own. |
 | `Quality.AmbientOcclusionQuality` | `Medium` | `Low` (cheapest), `Medium` or `High` (sharpest). |
 
 Each effect goes up to its own most: where turning it up further stops making a difference, or where it starts to look broken, flash too hard or cost too much. A higher value is lowered to the most.
@@ -176,7 +176,7 @@ The filters are in `BepInEx/config/LightGreen.filters.json`, which you can edit 
 ## Notes
 
 - **Lights need the game's Dynamic Lighting setting** (Settings > Graphics), which is on by default. With it off, explosions, lightning and City lampposts give no light; everything else still works.
-- **Frame rate.** Ambient occlusion and the sharper shadows cost some frames per second. If yours drops, try `Quality.AmbientOcclusionQuality = Low`, `Quality.SunShadowResolution = 2048`, or turning effects down.
+- **Frame rate.** Ambient occlusion and the sharper shadows cost some frames per second. If yours drops, try `Quality.AmbientOcclusionQuality = Low`, `Quality.SunShadowResolution = 0` with a lower Shadow quality in the game's graphics settings, or turning effects down.
 - **The time of day is only yours:** other players see the hole as the game has it.
 - **The weather is off by default.** It's only a look; rain could be mistaken for the Thunderstorm item, and the big snowflakes near the camera can briefly hide the ball. Only one falls at a time, and nothing settles on the ground.
 - **Removing the mod** is safe: nothing it changes is saved, and the game looks as it did the next time it starts.

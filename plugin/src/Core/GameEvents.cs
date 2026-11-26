@@ -23,9 +23,6 @@ namespace LightGreen.Core
         /// </summary>
         internal static event Action GraphicsSettingsApplied;
 
-        /// <summary>The camera switched mode (orbit, overview, photo and so on).</summary>
-        internal static event Action CameraModuleChanged;
-
         internal static Biome CurrentBiome { get; private set; } = Biome.None;
 
         /// <summary>On a hole (not the menus): what LightGreen's effects need to be on.</summary>
@@ -56,11 +53,6 @@ namespace LightGreen.Core
             {
                 GameSettings.GraphicsSettings.OnGraphicsQualityApply += OnGraphicsApplied;
                 Unhooks.Add(() => GameSettings.GraphicsSettings.OnGraphicsQualityApply -= OnGraphicsApplied);
-            });
-            TryHook("Camera mode changed", () =>
-            {
-                CameraModuleController.ModuleTypeChanged += OnCameraModuleChanged;
-                Unhooks.Add(() => CameraModuleController.ModuleTypeChanged -= OnCameraModuleChanged);
             });
             UpdateBiome();
         }
@@ -101,8 +93,6 @@ namespace LightGreen.Core
         }
 
         private static void OnGraphicsApplied() => Raise(GraphicsSettingsApplied, "GraphicsSettingsApplied");
-
-        private static void OnCameraModuleChanged() => Raise(CameraModuleChanged, "CameraModuleChanged");
 
         private static void UpdateBiome()
         {

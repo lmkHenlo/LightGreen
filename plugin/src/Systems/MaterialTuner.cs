@@ -29,7 +29,7 @@ namespace LightGreen.Systems
         private readonly List<Material> _terrain = new List<Material>();
         private readonly HashSet<Material> _known = new HashSet<Material>();
         private readonly List<Material> _shared = new List<Material>();
-        private readonly RendererSweep _sweep = new RendererSweep();
+        private readonly ObjectSweep<Renderer> _sweep = new ObjectSweep<Renderer>();
         private int _sweepToon, _sweepWater;
         private float _nextScan;
         private float _nextApply;
@@ -131,7 +131,7 @@ namespace LightGreen.Systems
         /// <summary>
         /// Looks for new materials on the renderers in the world (inactive ones too, so pooled objects are ready
         /// when shown), not every material in memory: copies the game left behind with destroyed objects aren't
-        /// drawn. The renderers are gone through a few frames at a time (<see cref="RendererSweep"/>), so no
+        /// drawn. The renderers are gone through a few frames at a time (<see cref="ObjectSweep{T}"/>), so no
         /// frame carries the whole 3-5 ms; what's found is tuned when the sweep ends.
         /// </summary>
         private void Scan()
@@ -310,8 +310,15 @@ namespace LightGreen.Systems
         /// <summary>Puts every material back as the game had it.</summary>
         public void Restore()
         {
+            bool sweeping = _sweep.Running;
             _sweep.Stop();
-            if (_edits.Count == 0 && _toon.Count == 0 && _water.Count == 0 && _terrain.Count == 0) return;
+            // Nothing changed and nothing held: the quick way out (this runs every frame off a hole). A sweep cut
+            // short still starts again soon rather than at the next timed scan.
+            if (_edits.Count == 0 && _toon.Count == 0 && _water.Count == 0 && _terrain.Count == 0 && _known.Count == 0)
+            {
+                if (sweeping) Rescan();
+                return;
+            }
             _edits.Restore();
             _toon.Clear();
             _water.Clear();

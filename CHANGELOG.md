@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `build.ps1 -Test` runs offline checks (`tests/Tests.cs`) for the parts that work without the game: the `.cube` reader, the filter maths, the presets and filters files and the 27 built-in filters, the HUD maths, the weather art, LightGreen's random numbers and the material copy lookup. The build stops if one fails.
+
+### Changed
+
+- The City's street lamps, lit windows and night bloom, and ball glow, come on at night only, not by day in rain, snow or cartoon rain. The weather dims the sun, and LightGreen counted that as dusk: with rain on a sunny hole, the lamps and glow came on part way (about a third). Day and night brightness, and the weather's own colours, still follow how dark the weather makes the scene, as before.
+- The search for City lampposts now runs a little each frame (at most 0.5 ms), like the search for glowing windows, instead of looking at every object on the map in one frame at the start of a night City hole. Until it's done, the lamps of the hole before stay lit.
+- LightGreen's lightning flicker and rain splashes take their random numbers from LightGreen's own generator, so they no longer move the game's.
+- The READMEs now say that `Quality.SunShadowResolution` and `Quality.SunShadowDistance` never go below the game's own values: they only make shadows sharper and longer. To lower the shadow cost, set them to 0 and lower the game's own Shadow quality.
+
+### Fixed
+
+- A `.cube` file with `NaN` or `Infinity` in it was refused with "N entries, but size needs M" instead of naming the line; it now names the line and the value. A `NaN` in `DOMAIN_MIN` or `DOMAIN_MAX`, or a number too big for a float, was read, and broke the filter when it was picked; those files are now refused too. A broken value from the filter maths can no longer reach the colour table either.
+- HUD name tags (`HUD.NameTags`) would stop working after a game update: the hook named the game's function with the number the compiler gave it, which changes when the game adds a method. The function is now found by its name alone.
+- Footprints in snow: after more than 4,096 prints were given the snow look in one session, LightGreen forgot which ones to put back, so a print reused off snow could keep the snow look. Only the prints the game has destroyed are forgotten now.
+- Ball glow: a ball's renderer without a property block of its own had any block taken off when the glow ended, so one the game put on it during the glow would be lost. The block is only taken off when it's still the glow's.
+- Materials: when nothing had been tuned, putting the materials back (at a map change, with F8, or off a hole) kept hold of the materials already looked at, and a look for materials cut short didn't start again until the next timed one, up to 10 s later.
+- Materials the game copies from a tuned one ("… (Instance)") are now given the original's stock values by name. They were matched by value alone, and two materials tuned to the same value but with different stock values could give a copy the wrong one after F8 or a map change.
+- Ambient occlusion without the grass: the grass-free depth was kept for the rest of the frame, so a camera rendered twice in one frame would have reused a texture from its first render. It's now drawn again for each render.
+
+### Removed
+
+- An unused hook on the game's camera mode, and an unused time-of-day label.
+
 ## [0.3.1] - 2026-11-21
 
 ### Added

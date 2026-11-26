@@ -78,8 +78,12 @@ namespace LightGreen.Systems
         private static readonly Action<PoolableParticleSystem> Callback = Configure;
 
         private static List<Original> _originals;
-        /// <summary>Print particle systems (instance ids) given the snow look, to put back as the game had them.</summary>
-        private static readonly HashSet<int> Changed = new HashSet<int>();
+        /// <summary>Print particle systems given the snow look, by instance id, to put back as the game had them.</summary>
+        private static readonly Dictionary<int, ParticleSystem> Changed = new Dictionary<int, ParticleSystem>();
+        private static readonly List<int> Gone = new List<int>();
+        /// <summary>Size of <see cref="Changed"/> at which the ids of destroyed prints are dropped.</summary>
+        private static int _pruneAt = PruneFloor;
+        private const int PruneFloor = 1024;
         private static readonly List<ParticleSystem> Children = new List<ParticleSystem>();
         private static readonly Queue<Entry> Live = new Queue<Entry>();
         private static readonly Dictionary<int, int> Generations = new Dictionary<int, int>();
@@ -169,7 +173,7 @@ namespace LightGreen.Systems
                         main.startColor = _snowColor;
                         fade.enabled = true;
                         fade.color = HoldGradient;
-                        Changed.Add(psId);
+                        Changed[psId] = ps;
                     }
                     else
                     {
@@ -179,8 +183,9 @@ namespace LightGreen.Systems
                         fade.color = o.Fade;
                     }
                 }
-                // Prints the game destroyed leave their ids behind; they're only ids, so trimming is enough.
-                if (Changed.Count > 4096) Changed.Clear();
+                // Prints the game destroyed leave their ids behind: drop those, and only those, so every print still
+                // in the pool with the snow look is put back when it's used off snow.
+                if (Changed.Count > _pruneAt) PruneChanged();
                 if (snow) Track(effect, id, generation);
             }
             catch
@@ -262,6 +267,17 @@ namespace LightGreen.Systems
 
             // Pooled effects the game destroys leave their ids behind; forget them once nothing is tracked.
             if (Live.Count == 0 && Generations.Count > 2048) Generations.Clear();
+        }
+
+        private static void PruneChanged()
+        {
+            Gone.Clear();
+            foreach (KeyValuePair<int, ParticleSystem> pair in Changed)
+                if (pair.Value == null) Gone.Add(pair.Key);
+            foreach (int id in Gone) Changed.Remove(id);
+            Gone.Clear();
+            // Next time at twice what's left, so a pool that really is this big isn't gone through on every step.
+            _pruneAt = Mathf.Max(PruneFloor, Changed.Count * 2);
         }
 
         private static bool Finished(Entry e)

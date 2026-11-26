@@ -107,15 +107,15 @@ namespace LightGreen.Systems
         private static Strike NewStrike(Vector3 ground, Vector3 cloud)
         {
             // Two or three pulses, the first the brightest, at slightly different times for each strike.
-            int count = Random.value < 0.5f ? 2 : 3;
+            int count = LocalRandom.Value < 0.5f ? 2 : 3;
             var times = new float[count];
             var levels = new float[count];
             times[0] = 0f;
             levels[0] = 1f;
             for (int i = 1; i < count; i++)
             {
-                times[i] = times[i - 1] + Random.Range(0.07f, 0.14f);
-                levels[i] = Random.Range(0.45f, 0.8f);
+                times[i] = times[i - 1] + LocalRandom.Range(0.07f, 0.14f);
+                levels[i] = LocalRandom.Range(0.45f, 0.8f);
             }
             return new Strike { Ground = ground, Cloud = cloud, Start = Time.time, PulseTimes = times, PulseLevels = levels };
         }

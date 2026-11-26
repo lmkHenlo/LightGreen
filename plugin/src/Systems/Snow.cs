@@ -91,7 +91,7 @@ namespace LightGreen.Systems
             Vector2 target = GameWind.Direction * (DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
             _wind = Vector2.MoveTowards(_wind, target, Time.deltaTime * 0.5f);
 
-            float dark = Mathf.Clamp01(_environment.Darkness);
+            float dark = Mathf.Clamp01(_environment.SceneDarkness);
             float glow = Mathf.Lerp(DayGlow, NightDim, dark);
             Color tint = Color.Lerp(Color.white, NightTint, dark);
             var color = new Color(tint.r * glow, tint.g * glow, tint.b * glow, 1f);

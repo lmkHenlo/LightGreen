@@ -22,22 +22,72 @@ namespace LightGreen.Core
 
         private readonly Dictionary<Material, Stock> _stock = new Dictionary<Material, Stock>();
 
-        // Which stock value each value LightGreen wrote replaced. The game copies materials at runtime
-        // (cosmetics are instanced from their asset), and a copy of an edited material starts out with
-        // LightGreen's values; these let the copy be recognised and given its real stock values.
+        // The game copies materials at runtime (cosmetics are instanced from their asset), and a copy of an edited
+        // material starts out with LightGreen's values; these let the copy be recognised and given its real stock
+        // values. First by name: a copy is called "<original> (Instance)", and the original's own stock value is
+        // exact. Failing that, by value: which stock value each value LightGreen wrote replaced.
+        private readonly Dictionary<string, Material> _byName = new Dictionary<string, Material>();
         // Kept per property: the shade colours take a different value on every material, and sharing one
         // capped table with them made the rim's few values fall out of it, so copies of rimmed materials
         // weren't recognised and kept the rim after Restore.
-        private readonly Dictionary<string, Dictionary<Color, Color>> _colorOrigins = new Dictionary<string, Dictionary<Color, Color>>();
-        private readonly Dictionary<string, Dictionary<Vector4, Vector4>> _vectorOrigins = new Dictionary<string, Dictionary<Vector4, Vector4>>();
-        private readonly Dictionary<string, Dictionary<float, float>> _floatOrigins = new Dictionary<string, Dictionary<float, float>>();
+        private readonly Dictionary<string, Origins<Color>> _colorOrigins = new Dictionary<string, Origins<Color>>();
+        private readonly Dictionary<string, Origins<Vector4>> _vectorOrigins = new Dictionary<string, Origins<Vector4>>();
+        private readonly Dictionary<string, Origins<float>> _floatOrigins = new Dictionary<string, Origins<float>>();
+
+        /// <summary>
+        /// The stock value behind each value LightGreen wrote to one property. A value written over two different
+        /// stock values says nothing about which one a copy had, so it's marked and never used.
+        /// </summary>
+        internal sealed class Origins<T>
+        {
+            private readonly Dictionary<T, T> _stock = new Dictionary<T, T>();
+            private readonly HashSet<T> _ambiguous = new HashSet<T>();
+
+            // Values change every frame during a time-of-day blend; keep the lookup from growing without end.
+            internal void Remember(T value, T stock)
+            {
+                if (_stock.Count > 4096)
+                {
+                    _stock.Clear();
+                    _ambiguous.Clear();
+                }
+                if (_ambiguous.Contains(value)) return;
+                if (_stock.TryGetValue(value, out T known) && !EqualityComparer<T>.Default.Equals(known, stock))
+                {
+                    _stock.Remove(value);
+                    _ambiguous.Add(value);
+                    return;
+                }
+                _stock[value] = stock;
+            }
+
+            internal bool TryGet(T value, out T stock) => _stock.TryGetValue(value, out stock);
+        }
 
         internal int Count => _stock.Count;
 
         private Stock For(Material m)
         {
-            if (!_stock.TryGetValue(m, out Stock s)) _stock[m] = s = new Stock();
+            if (!_stock.TryGetValue(m, out Stock s))
+            {
+                _stock[m] = s = new Stock();
+                string name = m.name;
+                if (!name.EndsWith(InstanceSuffix) && (!_byName.TryGetValue(name, out Material known) || known == null))
+                    _byName[name] = m;
+            }
             return s;
+        }
+
+        private const string InstanceSuffix = " (Instance)";
+
+        /// <summary>The tracked material a copy was made from, by its name, if there is one.</summary>
+        private Material OriginalMaterialOf(Material copy)
+        {
+            string name = copy.name;
+            if (!name.EndsWith(InstanceSuffix)) return null;
+            while (name.EndsWith(InstanceSuffix)) name = name.Substring(0, name.Length - InstanceSuffix.Length);
+            if (!_byName.TryGetValue(name, out Material original) || original == null || original == copy) return null;
+            return _stock.ContainsKey(original) ? original : null;
         }
 
         internal bool StockKeyword(Material m, string keyword)
@@ -122,18 +172,24 @@ namespace LightGreen.Core
             m.SetVector(property, value);
         }
 
-        // Values change every frame during a time-of-day blend; keep the lookup from growing without end.
-        private static void Remember<T>(Dictionary<string, Dictionary<T, T>> origins, string property, T value, T stock)
+        private static void Remember<T>(Dictionary<string, Origins<T>> origins, string property, T value, T stock)
         {
-            if (!origins.TryGetValue(property, out Dictionary<T, T> byValue)) origins[property] = byValue = new Dictionary<T, T>();
-            if (byValue.Count > 4096) byValue.Clear();
-            byValue[value] = stock;
+            if (!origins.TryGetValue(property, out Origins<T> byValue)) origins[property] = byValue = new Origins<T>();
+            byValue.Remember(value, stock);
         }
 
-        private static bool Origin<T>(Dictionary<string, Dictionary<T, T>> origins, string property, T value, out T stock)
+        /// <summary>
+        /// The stock value of a copy's property: the original's (found by name) when the copy holds what LightGreen
+        /// set on it, else the one LightGreen's value replaced, if only one did.
+        /// </summary>
+        private static bool Origin<T>(Dictionary<string, Origins<T>> origins, Dictionary<string, T> originalStock,
+            string property, T value, T originalValue, out T stock)
         {
+            if (originalStock != null && originalStock.TryGetValue(property, out stock) &&
+                EqualityComparer<T>.Default.Equals(value, originalValue))
+                return true;
             stock = default;
-            return origins.TryGetValue(property, out Dictionary<T, T> byValue) && byValue.TryGetValue(value, out stock);
+            return origins.TryGetValue(property, out Origins<T> byValue) && byValue.TryGet(value, out stock);
         }
 
         internal bool IsTracked(Material m) => _stock.ContainsKey(m);
@@ -148,7 +204,10 @@ namespace LightGreen.Core
             if (!m.HasProperty(property)) return false;
             Stock s = For(m);
             if (s.Colors.ContainsKey(property)) return false;
-            if (!Origin(_colorOrigins, property, m.GetColor(property), out Color stock)) return false;
+            Material original = OriginalMaterialOf(m);
+            Color originalValue = original != null && original.HasProperty(property) ? original.GetColor(property) : default;
+            if (!Origin(_colorOrigins, original != null ? _stock[original].Colors : null, property,
+                    m.GetColor(property), originalValue, out Color stock)) return false;
             s.Colors[property] = stock;
             return true;
         }
@@ -158,7 +217,10 @@ namespace LightGreen.Core
             if (!m.HasProperty(property)) return false;
             Stock s = For(m);
             if (s.Vectors.ContainsKey(property)) return false;
-            if (!Origin(_vectorOrigins, property, m.GetVector(property), out Vector4 stock)) return false;
+            Material original = OriginalMaterialOf(m);
+            Vector4 originalValue = original != null && original.HasProperty(property) ? original.GetVector(property) : default;
+            if (!Origin(_vectorOrigins, original != null ? _stock[original].Vectors : null, property,
+                    m.GetVector(property), originalValue, out Vector4 stock)) return false;
             s.Vectors[property] = stock;
             return true;
         }
@@ -168,7 +230,10 @@ namespace LightGreen.Core
             if (!m.HasProperty(property)) return false;
             Stock s = For(m);
             if (s.Floats.ContainsKey(property)) return false;
-            if (!Origin(_floatOrigins, property, ReadFloat(m, property), out float stock)) return false;
+            Material original = OriginalMaterialOf(m);
+            float originalValue = original != null && original.HasProperty(property) ? ReadFloat(original, property) : 0f;
+            if (!Origin(_floatOrigins, original != null ? _stock[original].Floats : null, property,
+                    ReadFloat(m, property), originalValue, out float stock)) return false;
             s.Floats[property] = stock;
             return true;
         }
@@ -185,6 +250,8 @@ namespace LightGreen.Core
         {
             foreach (Material dead in _stock.Keys.Where(m => m == null).ToList())
                 _stock.Remove(dead);
+            foreach (string name in _byName.Where(pair => pair.Value == null).Select(pair => pair.Key).ToList())
+                _byName.Remove(name);
         }
 
         internal void Restore()
@@ -205,6 +272,7 @@ namespace LightGreen.Core
                 }
             }
             _stock.Clear();
+            _byName.Clear();
         }
     }
 }

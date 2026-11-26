@@ -111,7 +111,7 @@ namespace LightGreen.Systems
 
             Vector2 target = GameWind.Direction * (DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
             _wind = Vector2.MoveTowards(_wind, target, Time.deltaTime * 0.5f);
-            float dark = Mathf.Clamp01(_environment.Darkness);
+            float dark = Mathf.Clamp01(_environment.SceneDarkness);
             float b = Mathf.Lerp(1f, 0.35f, dark);
             Color color = RainColor * b;
             color.a = 1f;
@@ -136,18 +136,18 @@ namespace LightGreen.Systems
             var emit = new ParticleSystem.EmitParams { startColor = new Color(color.r, color.g, color.b, 0.6f) };
             for (int i = 0; i < count; i++)
             {
-                Vector2 offset = Random.insideUnitCircle * SplashRadius;
+                Vector2 offset = LocalRandom.InsideUnitCircle * SplashRadius;
                 var origin = new Vector3(eye.x + offset.x, eye.y + 20f, eye.z + offset.y);
                 if (!Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 60f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
                     continue;
                 // A few droplets thrown up and out.
                 for (int d = 0; d < 3; d++)
                 {
-                    Vector2 out2 = Random.insideUnitCircle * 0.8f;
+                    Vector2 out2 = LocalRandom.InsideUnitCircle * 0.8f;
                     emit.position = hit.point + hit.normal * 0.02f;
-                    emit.velocity = new Vector3(out2.x, Random.Range(1.2f, 2.2f), out2.y);
-                    emit.startSize = Random.Range(0.02f, 0.035f);
-                    emit.startLifetime = Random.Range(0.2f, 0.32f);
+                    emit.velocity = new Vector3(out2.x, LocalRandom.Range(1.2f, 2.2f), out2.y);
+                    emit.startSize = LocalRandom.Range(0.02f, 0.035f);
+                    emit.startLifetime = LocalRandom.Range(0.2f, 0.32f);
                     _splashes.Emit(emit, 1);
                 }
             }

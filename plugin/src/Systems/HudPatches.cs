@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 
@@ -42,10 +44,30 @@ namespace LightGreen.Systems
             }
         }
 
-        /// <summary>The name tags: the game sets their scale from their distance; this scales that.</summary>
-        [HarmonyPatch(typeof(NameTagUi), "<OnPostPostLateBUpdate>g__UpdateSize|23_1")]
+        /// <summary>
+        /// The name tags: the game sets their scale from their distance, in a local function of
+        /// OnPostPostLateBUpdate; this scales that. The compiler numbers local functions (<c>|23_1</c>), and the
+        /// number changes when the game adds a method, so the function is found by its name without the number.
+        /// Only that function is patched: the whole of OnPostPostLateBUpdate doesn't always set the scale, and
+        /// scaling a scale the game didn't set that frame would compound it.
+        /// </summary>
+        [HarmonyPatch]
         internal static class NameTagPatch
         {
+            private const string LocalFunction = "<" + nameof(NameTagUi.OnPostPostLateBUpdate) + ">g__UpdateSize|";
+
+            internal static MethodBase Target()
+            {
+                foreach (MethodInfo method in AccessTools.GetDeclaredMethods(typeof(NameTagUi)))
+                    if (!method.IsStatic && method.Name.StartsWith(LocalFunction, StringComparison.Ordinal)) return method;
+                return null;
+            }
+
+            // No such function in this game version: Harmony then patches nothing, and the hook is logged as failed.
+            private static bool Prepare() => Target() != null;
+
+            private static MethodBase TargetMethod() => Target();
+
             private static void Postfix(NameTagUi __instance)
             {
                 float k = HudScaler.Scale(HudPart.NameTags);

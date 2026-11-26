@@ -71,7 +71,7 @@ namespace LightGreen.Systems
             Vector2 target = direction * Mathf.Max(LeastLean, DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
             _wind = Vector2.MoveTowards(_wind, target, Time.deltaTime * 0.5f);
 
-            float dark = Mathf.Clamp01(_environment.Darkness);
+            float dark = Mathf.Clamp01(_environment.SceneDarkness);
             Color color = StreakColor * Mathf.Lerp(1f, 0.4f, dark);
             color.a = 1f;
 

@@ -138,7 +138,7 @@ namespace LightGreen.Systems
                 Color fog = Color.Lerp(stockFog, env.HorizonColor, colorBlend);   // the horizon colour is already scaled
                 float grey = fog.grayscale * 0.85f;
                 fog = Color.Lerp(fog, new Color(grey, grey, grey, fog.a), 0.7f * overcast * rainy);
-                float lit = light * Mathf.Lerp(1f, 0.3f, Mathf.Clamp01(env.Darkness));
+                float lit = light * Mathf.Lerp(1f, 0.3f, Mathf.Clamp01(env.SceneDarkness));
                 Color snowFog = SnowFog * lit;
                 snowFog.a = fog.a;
                 fog = Color.Lerp(fog, snowFog, SnowFogBlend * overcast * snowy);

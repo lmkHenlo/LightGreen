@@ -75,10 +75,12 @@ namespace LightGreen.Systems
         private static TextureHandle _cameraDepth;
         private static bool _failureLogged;
 
-        // The depth drawn for the camera being recorded, so it is drawn once a frame per camera.
-        private static int _drawnFrame = -1;
+        // The depth drawn for the camera being recorded, so it's drawn once per render of that camera. A texture
+        // handle is only good inside the render graph that made it, so this is let go as each camera starts
+        // rendering: a camera rendered twice in a frame gets a new one the second time.
         private static Camera _drawnCamera;
         private static TextureHandle _drawn;
+        private static bool _listening;
 
         /// <summary>Set by Plugin when the hooks applied.</summary>
         internal static bool GrassHooked, HTraceHooked;
@@ -96,6 +98,7 @@ namespace LightGreen.Systems
         {
             bool on = _forOcclusion && GrassHooked && !_failureLogged;
             if (on) MarkAll();
+            Listen(on);
             if (on == _active) return;
             _active = on;
             if (!on) UnmarkAll();
@@ -109,6 +112,21 @@ namespace LightGreen.Systems
             Refresh();
             foreach (RTHandle handle in Depths.Values) handle?.Release();
             Depths.Clear();
+        }
+
+        private static void Listen(bool on)
+        {
+            if (on == _listening) return;
+            _listening = on;
+            if (on) RenderPipelineManager.beginCameraRendering += ForgetDrawn;
+            else RenderPipelineManager.beginCameraRendering -= ForgetDrawn;
+            _drawnCamera = null;
+        }
+
+        private static void ForgetDrawn(ScriptableRenderContext context, Camera camera)
+        {
+            _drawnCamera = null;
+            _drawn = TextureHandle.nullHandle;
         }
 
         // ---- Grass draw order ------------------------------------------------------------------------------
@@ -241,7 +259,7 @@ namespace LightGreen.Systems
             var camera = frameData.Get<UniversalCameraData>();
             if (camera.cameraType != CameraType.Game || camera.camera == null || IsStereo(camera.camera))
                 return TextureHandle.nullHandle;
-            if (_drawnFrame == Time.frameCount && _drawnCamera == camera.camera) return _drawn;
+            if (_drawnCamera != null && _drawnCamera == camera.camera) return _drawn;
 
             var rendering = frameData.Get<UniversalRenderingData>();
             var lights = frameData.Get<UniversalLightData>();
@@ -292,7 +310,6 @@ namespace LightGreen.Systems
                 });
             }
 
-            _drawnFrame = Time.frameCount;
             _drawnCamera = camera.camera;
             _drawn = depth;
             return depth;
