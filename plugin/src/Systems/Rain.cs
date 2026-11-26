@@ -13,15 +13,11 @@ namespace LightGreen.Systems
     /// close (0.5, 0.35 mid, 0.16 far): fainter, it read as haze rather than rain.</item>
     /// <item>Splashes: small droplet bursts where rain lands within 15 m of the camera, placed by a few ground checks a
     /// frame (cheaper than particle collision).</item>
-    /// <item>Overcast: the sun dims and greys, and the sky and fog turn grey (the time of day and post-processing do
-    /// it, from <see cref="EnvironmentController.Overcast"/>); at once on a new hole, eased over 10 s otherwise.</item>
+    /// <item>Overcast: the sun dims and greys, and the sky and fog turn grey: set by <see cref="WeatherSky"/>, which keeps
+    /// the sky for all three weathers, and drawn by the time of day and post-processing.</item>
     /// </list>
     /// No wet look: surfaces stay as the game draws them (wet surfaces and puddles needed LightGreen's own shaders).
-    /// <para>The sky is the rain's job for the snow and the cartoon rain too (<see cref="Snow"/> and
-    /// <see cref="CartoonRain"/> draw only their own particles), so they never pull it different ways: snow's overcast is
-    /// bright and pale blue (<see cref="EnvironmentController.Snowy"/>), cartoon rain's a soft blue mist
-    /// (<see cref="EnvironmentController.Misty"/>), eased over the same 10 s. Only one weather falls at a time
-    /// (<see cref="Weather"/>).</para>
+    /// Only one weather falls at a time (<see cref="Weather"/>).
     /// </summary>
     internal sealed class Rain : FallingWeather
     {

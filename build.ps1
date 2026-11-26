@@ -80,7 +80,8 @@ Write-Host "Built $out"
 if ($Test) {
     $tested = @('Core/CubeLut.cs', 'Core/LutBuilder.cs', 'Core/Json.cs', 'Core/HudMath.cs', 'Core/FlakeArt.cs', 'Core/RainArt.cs',
                 'Core/LocalRandom.cs', 'Core/MaterialEdits.cs', 'Core/SafeFile.cs', 'Core/CoreLog.cs', 'Core/TextureArt.cs',
-                'Presets/Presets.cs', 'Presets/Filters.cs', 'Presets/FilterStore.cs', 'Presets/JsonFile.cs') |
+                'Core/Biome.cs', 'Presets/Presets.cs', 'Presets/Filters.cs', 'Presets/FilterStore.cs', 'Presets/JsonFile.cs',
+                'Presets/PresetStore.cs') |
               ForEach-Object { Join-Path $PSScriptRoot "plugin/src/$_" }
     $testFiles = @(Get-ChildItem -Filter *.cs (Join-Path $PSScriptRoot 'tests') | ForEach-Object FullName) + $tested
     $testTrees = [Microsoft.CodeAnalysis.SyntaxTree[]]@($testFiles | ForEach-Object {

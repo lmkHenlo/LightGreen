@@ -1006,3 +1006,35 @@ ones and 5 notes (the audit report). This build fixes or settles each:
 
 **Results (2026-11-26):** the user reports **A1–A9 pass** on build 8129aa1.
 
+## Code quality fixes (after the audit fixes)
+
+**Audit (2026-11-26):** a code quality audit found 3 medium findings, 11 low and 4 notes (the report). This build:
+
+- M1: `PatchGuard` around every Harmony body (HUD markers, name tags, pop-ups, grass material, footprints, effect and
+  lightning lights): the first failure is logged in full and the patch stands down. `WorldspaceIconUi.settings` is
+  looked up without throwing.
+- M2: `.cube` files are read and parsed on a worker thread (`FilterEntry.TryGetSpec`), line by line, colour lines in
+  place; the filter before stays until the new one is ready. Size limits: `.cube` 96 MB, presets and filters 4 MB.
+- M3: `IMapAware` (map and hole changes from `FeatureHost`); `WeatherSky` owns the overcast and runs first;
+  `Weather.Start`/`Step` hold the one-weather rule and F10; `SkyLook` holds the sky material and ambient light.
+- L1: silent catches log once (`CoreLog.FailedOnce`). L2: ordinal matching. L3: JSON depth 64; size caps. L4: whole-file
+  writes (`SafeFile.WriteText`, `JsonFile`). L5: presets indexed per load, reused blend, ranked light sort, HUD
+  children by index. L6: missing keys found once. L7: `JsonFile`, `TextureArt`, `FallingWeather`, `OwnWrite`.
+  L8: `Footprints`, `EffectLights`, `LightningLights`, `GrassToggle` keep state on the instance. L9: full exceptions.
+  L10: the footprint fade buffer grows to the print. L11: the checks run in a child PowerShell and the temp folder goes.
+  N1: `CoreLog`, and `WorkTiming.LogLongFrames` set by the plugin. N2: `IsDefined(NonSerializedAttribute)`.
+  N4: ball-glow log keys are `hole:` keys. N3: 86 offline checks (was 64).
+- Not changed: the hole check at the top of each feature's `Apply` (each restores differently; a host-side check would
+  hide that); `GrassFreeDepth` stays a static class (all of it is static, nothing mixed).
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| Q1 | Hooks | Start the game, read the hook lines | Every `[ok] Hook: …` as before; no `[FAILED]` |
+| Q2 | Weather sky | F10 through rain, cartoon rain, snow and clear on one hole, then change hole with snow on | The sky greys, mists or turns pale blue and clears over about 10 s as before; on the new hole it starts overcast at once |
+| Q3 | Weather keys | F10 a full round; set `Effects.Snow` 2 in the config while rain is on | One weather at a time; each comes back at its last strength; the config edit turns rain off and says `Weather: snow (2)` |
+| Q4 | Big `.cube` | Put a 65-point `.cube` in `LightGreen.filters`, F11 onto it and off it a few times | No hitch on the press; the filter shows a frame or so later; `Timing` lines show no `Photo filter` part over 2 ms |
+| Q5 | Map changes | Play two holes on one map, then change map twice (one City at night) | City lamps and windows, ball glow, footprints and materials right on each; `Biome:` lines, no errors |
+| Q6 | F8 | F8 through on, HUD only, off and on, with weather and a filter on | Each step as before; off is the game's own look |
+| Q7 | Looks | Each time of day with and without weather | Sky, ambient light and brightness as before |
+| Q8 | HUD | `[HUD]` sizes at 50 | Markers, name tags and pop-ups at half size as before |
+

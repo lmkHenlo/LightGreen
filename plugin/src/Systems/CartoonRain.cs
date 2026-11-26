@@ -12,7 +12,7 @@ namespace LightGreen.Systems
     /// the next: near 3–15 m, mid 15–45 m, far 45–120 m. The near layer's 3 m clear zone stops a streak passing right
     /// by the lens (drawn as a long white slash, fanned out by perspective); the mid and far layers' stop their big
     /// drops falling past the camera, where they showed as fat grey ovals. No ground splashes or ripples (taken out at the user's request).
-    /// Its sky, a soft blue mist that keeps the colours bright, is set in <see cref="Rain"/> with the others'. At night the
+    /// Its sky, a soft blue mist that keeps the colours bright, is set by <see cref="WeatherSky"/> with the others'. At night the
     /// streaks dim. Only one weather at a time (<see cref="Weather"/>).
     /// </summary>
     internal sealed class CartoonRain : FallingWeather

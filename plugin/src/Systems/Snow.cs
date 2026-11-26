@@ -20,7 +20,7 @@ namespace LightGreen.Systems
     /// close ones are big on screen:
     /// the earlier snowfall (about 8,200, many of them large and far) cost too much frame rate.
     /// Magical rather than real: the flakes are a little brighter than white, so the game's bloom gives them a soft
-    /// glow; at night they dim and turn blue. The sky (bright and pale blue) is set with the rain's, in <see cref="Rain"/>;
+    /// glow; at night they dim and turn blue. The sky (bright and pale blue) is set by <see cref="WeatherSky"/>;
     /// the fog and a slightly colder, less saturated grade in <see cref="VolumeLayer"/>.
     /// Nothing settles on the ground: that needed shaders. Only one weather at a time: with snow on, there's no rain.
     /// </summary>

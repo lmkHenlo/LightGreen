@@ -208,7 +208,7 @@ This writes `build/plugins/LightGreen.dll` and, with `-InstallTo`, copies it int
 
 Add `-Package` to also write the Thunderstore package, `build/lmkHenlo-LightGreen-<version>.zip`: `manifest.json`, `README.md` and `icon.png` from `thunderstore/`, `CHANGELOG.md`, `LightGreen.dll` and `LICENSE`. It stops if `thunderstore/manifest.json` and `Plugin.cs` give different versions.
 
-Add `-Test` to also run the offline checks in `tests/`: the `.cube` reader, the filter maths, the presets and filters files and the built-in filters, the HUD maths, the weather art, LightGreen's random numbers and the material copy lookup. They run in PowerShell, with no game running, and the build stops if one fails. What needs the game is checked by hand, in `docs/testing.md`.
+Add `-Test` to also run the offline checks in `tests/`: the `.cube` reader, the filter maths, the presets and filters files and the built-in filters, the preset lookup, LightGreen's file handling (size limits, whole-file writes), the HUD maths, the weather art and pixels, LightGreen's random numbers and the material copy lookup. They run in a PowerShell of their own, with no game running, and the build stops if one fails. What needs the game is checked by hand, in `docs/testing.md`.
 
 `plugin/LightGreen.csproj` is for editors.
 
@@ -236,13 +236,17 @@ Add `-Test` to also run the offline checks in `tests/`: the `.cube` reader, the 
 | `plugin/src/Core/FlakeArt.cs`, `RainArt.cs` | Draw the snowflakes, and cartoon rain's streaks, in code. |
 | `plugin/src/Core/ToonEmissive.cs` | Which toon materials can be switched to glow (City windows, balls). |
 | `plugin/src/Core/LutBuilder.cs`, `CubeLut.cs` | A photo filter's colours as a lookup table, and the `.cube` file reader. |
-| `plugin/src/Core/Json.cs` | Reads and writes the presets and filters files. |
+| `plugin/src/Core/Json.cs` | Reads and writes the presets and filters files (at most 64 levels deep). |
+| `plugin/src/Core/SafeFile.cs` | LightGreen's file reads, with a size limit, and writes that replace a file whole or not at all. |
+| `plugin/src/Core/PatchGuard.cs` | Keeps a Harmony patch from breaking the game's own method: the first failure is logged and the patch stands down. |
+| `plugin/src/Core/CoreLog.cs` | The log the Core classes write to, and failures said once. |
+| `plugin/src/Core/TextureArt.cs` | Turns pictures drawn in code into textures. |
 | `plugin/src/Core/ObjectSweep.cs` | Goes through every renderer (or other object) in the world a few frames at a time, so a search doesn't hitch. |
 | `plugin/src/Core/ParticleValues.cs` | Copies of the game's particle curves and gradients that LightGreen owns. |
 | `plugin/src/Core/LocalRandom.cs` | LightGreen's own random numbers, so the game's sequence is left alone. |
 | `plugin/src/Core/WorkTiming.cs` | Times LightGreen's work each frame and logs the frames that took long. |
-| `plugin/src/Presets/` | The per-biome and per-time presets, the photo filters, their files, and the list of filters for `Filters.Filter`. |
-| `plugin/src/Systems/EnvironmentController.cs` | Time of day. |
+| `plugin/src/Presets/` | The per-biome and per-time presets, the photo filters, their files (`JsonFile`: read, written, backed up and watched), and the list of filters for `Filters.Filter`. |
+| `plugin/src/Systems/EnvironmentController.cs`, `SkyLook.cs` | Time of day: the sun and moon, day and night brightness; the sky and the ambient light. |
 | `plugin/src/Systems/VolumeLayer.cs` | Post-processing: colour grading, haze, lens effects, City night bloom, the photo filter. |
 | `plugin/src/Systems/PhotoFilter.cs` | The photo filter and its colour table. |
 | `plugin/src/Systems/HudScaler.cs` | The `[HUD]` sizes for the screen's HUD, applied just before it's drawn. |
@@ -256,8 +260,8 @@ Add `-Test` to also run the offline checks in `tests/`: the `.cube` reader, the 
 | `plugin/src/Systems/CityNight.cs` | City windows, vehicle lights and lampposts at night. |
 | `plugin/src/Systems/BallGlow.cs` | Glowing balls at night. |
 | `plugin/src/Systems/LightPool.cs` | Hands the lights out each frame. |
-| `plugin/src/Systems/Weather.cs` | Which weather is on: one at a time, and F10's order. |
-| `plugin/src/Systems/Rain.cs`, `CartoonRain.cs`, `Snow.cs`, `ParticleLayer.cs` | Rain (and every weather's sky), cartoon rain, snow, and their particles. |
+| `plugin/src/Systems/Weather.cs`, `WeatherSky.cs` | Which weather is on: one at a time, and F10's order; the sky under it, for all three. |
+| `plugin/src/Systems/FallingWeather.cs`, `Rain.cs`, `CartoonRain.cs`, `Snow.cs`, `ParticleLayer.cs` | What the falling weathers share; rain, cartoon rain, snow; and their particles. |
 | `plugin/src/Systems/Footprints.cs` | Longer-lasting footprints in snow. |
 
 ## Maintainers

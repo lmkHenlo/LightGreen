@@ -8,9 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- `.cube` filters are read on a worker thread: picking a big one (F11) no longer stops the game while it's read (a 65-point cube took about a tenth of a second or more). The filter before stays on screen until the new one is ready, a frame or two later. `.cube` files over 96 MB, and presets or filters files over 4 MB, are refused with their size in the log.
 - `build.ps1 -Test` runs offline checks (`tests/Tests.cs`) for the parts that work without the game: the `.cube` reader, the filter maths, the presets and filters files and the 27 built-in filters, the HUD maths, the weather art, LightGreen's random numbers and the material copy lookup. The build stops if one fails.
 
 ### Changed
+
+- If a game update breaks one of LightGreen's hooks while it runs, the hook now logs the error once and stands down, instead of throwing inside the game's own code every frame (the HUD markers, name tags and pop-up words, the grass, footprint, effect and lightning hooks). A renamed field the HUD markers read now leaves them at the game's size, with a line in the log.
+- The presets and filters files are written to a temporary file first, which then replaces the old one, so a crash or power cut while writing can't leave a cut-off file. A JSON file nested more than 64 levels deep is refused instead of closing the game.
+- Failures LightGreen used to pass over in silence (the camera mode, the course's own grading, the pipeline's colour table size, the `.cube` folder check) are logged once, with the error, so a game update that breaks one shows in the log. Errors are logged in full where only their message was.
+- A key in `[Keys]` the keyboard doesn't have is reported once in the log, instead of failing quietly every frame.
+- Less work and garbage every frame: the presets are looked up once per load instead of by name three times a frame, the time-of-day blend reuses one preset, lights are ranked once before they're sorted, and name matching is ordinal. Footprint fades now reach every particle of a print, however many it has.
+- Inside: the weather's sky for rain, cartoon rain and snow is its own part (`WeatherSky`), run before the time of day; the sky and ambient light are their own class (`SkyLook`); the three weathers share their frame logic (`FallingWeather`); features hear about map and hole changes from the feature host (`IMapAware`) instead of the plugin naming each one; the one-weather rule and F10's memory live in `Weather`; the presets and filters files share one helper (`JsonFile`); the texture code is shared (`TextureArt`).
 
 - The City's street lamps, lit windows and night bloom, and ball glow, come on at night only, not by day in rain, snow or cartoon rain. The weather dims the sun, and LightGreen counted that as dusk: with rain on a sunny hole, the lamps and glow came on part way (about a third). Day and night brightness, and the weather's own colours, still follow how dark the weather makes the scene, as before.
 - The search for City lampposts now runs a little each frame (at most 0.5 ms), like the search for glowing windows, instead of looking at every object on the map in one frame at the start of a night City hole. Until it's done, the lamps of the hole before stay lit.

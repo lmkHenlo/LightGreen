@@ -12,7 +12,8 @@ namespace LightGreen.Tests
     /// Offline checks for the parts of LightGreen that run without the game: .cube files, the filter maths, the
     /// JSON files and the built-in presets and filters, the HUD maths, the weather art, LightGreen's random numbers
     /// and the material copy lookup. Compiled with those source files and run by <c>build.ps1 -Test</c>; what needs
-    /// the game (rendering, the HUD, lights) is checked by hand (docs/testing.md).
+    /// the game (rendering, the HUD, lights) is checked by hand (docs/testing.md). Also LightGreen's own file handling
+    /// (size limits, writes that replace a file whole) and the preset lookup the systems use every frame.
     /// </summary>
     public static class Tests
     {
@@ -32,6 +33,11 @@ namespace LightGreen.Tests
             WeatherArt();
             RandomNumbers();
             MaterialOrigins();
+            CubeLines();
+            JsonLimits();
+            Files();
+            Pixels();
+            PresetIndex();
             Console.WriteLine($"Tests: {_passed} passed, {_failed} failed.");
             return _failed;
         }
@@ -214,6 +220,96 @@ namespace LightGreen.Tests
             var colors = new MaterialEdits.Origins<Color>();
             colors.Remember(Color.red, Color.white);
             Check(colors.TryGet(Color.red, out Color c) && c == Color.white, "colours too");
+        }
+
+        private static void CubeLines()
+        {
+            CubeLut spaced = CubeLut.Parse("LUT_1D_SIZE 2\n\t0  0\t0 # first\n+1 1.0 .5e1 extra\n");
+            Rgb top = spaced.Sample(new Rgb(1f, 1f, 1f));
+            Check(Near(top.R, 1f) && Near(top.B, 5f), "colour lines with tabs, extra spaces, a sign, an exponent and extra words");
+            Refused("a colour line with two numbers", "LUT_1D_SIZE 2\n0 0\n1 1 1\n", "line 2", "missing or unreadable");
+            Refused("a colour line with a word", "LUT_1D_SIZE 2\n0 x 0\n1 1 1\n", "line 2", "missing or unreadable");
+            Refused("colour before the size", "0 0 0\nLUT_1D_SIZE 2\n", "line 1", "before LUT_3D_SIZE");
+            Refused("too many entries", "LUT_1D_SIZE 2\n0 0 0\n1 1 1\n1 1 1\n", "line 4", "more than the 2");
+            using (var reader = new StringReader("LUT_1D_SIZE 2\n0 0 0\n1 1 1\n"))
+                Check(CubeLut.Parse(reader).Size == 2, "a .cube read from a reader, as from a file");
+        }
+
+        private static void JsonLimits()
+        {
+            string deep = new string('[', Json.MaxDepth) + new string(']', Json.MaxDepth);
+            Check(Json.Parse(deep) is List<object>, $"{Json.MaxDepth} levels of nesting read");
+            try
+            {
+                Json.Parse(new string('[', 100000) + new string(']', 100000));
+                Check(false, "deep nesting refused");
+            }
+            catch (InvalidDataException e)
+            {
+                Check(e.Message.Contains("nested more than"), "100,000 levels of nesting refused, not a stack overflow: " + e.Message);
+            }
+        }
+
+        private static void Files()
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "LightGreen-files-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string path = Path.Combine(folder, "settings.json");
+                SafeFile.WriteText(path, "first");
+                SafeFile.WriteText(path, "second");
+                Check(File.ReadAllText(path) == "second" && !File.Exists(path + ".tmp"), "a file written twice holds the second text and leaves no temp file");
+                Check(SafeFile.ReadText(path, 100) == "second", "a small file reads under its limit");
+                try
+                {
+                    SafeFile.ReadText(path, 3);
+                    Check(false, "a file over its limit is refused");
+                }
+                catch (InvalidDataException e)
+                {
+                    Check(e.Message.Contains("LightGreen reads files up to"), "a file over its limit is refused: " + e.Message);
+                }
+                var file = new JsonFile(Path.Combine(folder, "filters.json"));
+                file.Write(DefaultFilters.Create());
+                var read = (FilterFile)Json.FromTree(typeof(FilterFile), file.Read(), "");
+                Check(read.filters.Length == DefaultFilters.Create().filters.Length, "a settings file written and read back");
+                string backup = file.Backup(3);
+                Check(backup.EndsWith(".v3.bak", StringComparison.Ordinal) && File.Exists(backup), "a settings file backed up by version");
+                string cube = Path.Combine(folder, "two.cube");
+                File.WriteAllText(cube, "LUT_1D_SIZE 2\n0 0 0\n1 1 1\n");
+                Check(FilterStore.ReadCube(cube).Size == 2, "a .cube file read as the worker thread reads it");
+            }
+            finally
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
+        private static void Pixels()
+        {
+            Check(TextureArt.ToByte(float.NaN) == 0 && TextureArt.ToByte(-1f) == 0 && TextureArt.ToByte(2f) == 255, "pixel bytes of NaN and out-of-range values");
+            Check(TextureArt.ToByte(0.5f) == 128 && TextureArt.ToByte(1f) == 255 && TextureArt.ToByte(0f) == 0, "pixel bytes round as before");
+            Color32[] pixels = TextureArt.ToPixels(new[] { 1f, 0f, 0.5f, 1f, 0f, 1f, 0f, 0f });
+            Check(pixels.Length == 2 && pixels[0].r == 255 && pixels[0].b == 128 && pixels[1].g == 255 && pixels[1].a == 0, "pixels from RGBA floats");
+        }
+
+        private static void PresetIndex()
+        {
+            BiomePreset snow = PresetStore.ForBiome(Biome.Snow);
+            Check(snow != null && string.Equals(snow.biome, "Snow", StringComparison.OrdinalIgnoreCase), "the Snow biome's preset");
+            Check(ReferenceEquals(snow, PresetStore.ForBiome(Biome.Snow)), "the same preset each time (no new one each frame)");
+            TimePreset noon = PresetStore.ForTime(TimeOfDay.Noon);
+            Check(noon != null && noon.name == "Noon" && ReferenceEquals(noon, PresetStore.ForTime(TimeOfDay.Noon)), "the Noon preset, the same each time");
+
+            var blend = new TimePreset();
+            TimePreset night = PresetStore.ForTime(TimeOfDay.Night);
+            TimePreset into = TimePreset.Lerp(noon, night, 0.5f, blend);
+            TimePreset fresh = TimePreset.Lerp(noon, night, 0.5f);
+            Check(ReferenceEquals(into, blend) && Near(into.night, fresh.night) && Near(into.sunIntensity, fresh.sunIntensity) &&
+                  into.name == fresh.name, "a blend written into a reused preset matches a new one");
+            TimePreset self = TimePreset.Lerp(blend, night, 1f, blend);
+            Check(Near(self.night, night.night) && Near(self.exposure, night.exposure), "a blend into one of its own ends");
         }
     }
 }
