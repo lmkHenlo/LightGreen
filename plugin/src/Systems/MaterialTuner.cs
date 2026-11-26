@@ -18,7 +18,7 @@ namespace LightGreen.Systems
     /// it held tens of thousands, which also kept Unity from freeing them. Its look every 20 s then hitched (50-80 ms
     /// after two hours), and while the weather or the time of day changed, re-tuning them all took ~30 ms a frame.
     /// </summary>
-    internal sealed class MaterialTuner : IFeature
+    internal sealed class MaterialTuner : IFeature, IMapAware
     {
         private const string ToonShader = "Custom/ToonShader";
         private const string WaterShader = "Water 2.0";
@@ -73,6 +73,16 @@ namespace LightGreen.Systems
             Restore();
             _slowScanLogged = false;
         }
+
+        /// <summary>A new map: let go of the old map's materials, then find the new ones (and log their counts once).</summary>
+        public void OnBiomeChanged()
+        {
+            Forget();
+            Rescan(announce: true);
+        }
+
+        /// <summary>A new hole: its objects and players' cosmetics load; look for their materials soon.</summary>
+        public void OnHoleChanged() => Rescan();
 
         /// <summary>
         /// Looks for new materials soon (a hole or cosmetics loaded). With announce, the next scan that finds

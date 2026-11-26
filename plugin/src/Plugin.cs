@@ -45,11 +45,8 @@ namespace LightGreen
         private readonly SunShadows _shadows = new SunShadows();
         private readonly AmbientOcclusion _occlusion = new AmbientOcclusion();
         private readonly LightPool _lightPool = new LightPool();
-        private MaterialTuner _materials;
         private VolumeLayer _volumes;
         private readonly PhotoFilter _filter = new PhotoFilter();
-        private CityNight _cityNight;
-        private BallGlow _ballGlow;
         private Rain _rain;
         private Snow _snow;
         private CartoonRain _cartoonRain;
@@ -61,9 +58,6 @@ namespace LightGreen
         private enum View { On, HudOnly, Off }
 
         private View _view = View.On;
-        private float _lastRain = 1f;   // how heavy the rain comes back with RainKey
-        private float _lastSnow = 1f;   // and the snow
-        private float _lastCartoonRain = 1f;   // and the cartoon rain
         private float _nextConfigCheck;
         private DateTime _configWriteTime;
         private string _filterChoicesWritten;   // the filter list last written to the config file
@@ -88,23 +82,21 @@ namespace LightGreen
             GameEvents.Hook(Log);
             _harmony = new Harmony(Guid);
 
-            // The time of day first: the others take its sun, sky and colours.
-            _materials = new MaterialTuner(_environment);
+            // The weather's share of the sky, then the time of day: the others take its sun, sky and colours.
             _volumes = new VolumeLayer(_environment, _filter);
+            _features.Add(new WeatherSky(_environment));
             _features.Add(_environment);
             _features.Add(_filter);   // before the volumes, which take its colour table
             _features.Add(_volumes);
-            _features.Add(_materials);
+            _features.Add(new MaterialTuner(_environment));
             _features.Add(_shadows);
             _features.Add(_occlusion);
             _features.Add(new GrassToggle());
             // The lights: each asks the pool for this frame's lights, then the pool hands them out.
-            _cityNight = new CityNight(_lightPool, _environment);
             _features.Add(new EffectLights(_lightPool));
             _features.Add(new LightningLights(_lightPool));
-            _features.Add(_cityNight);
-            _ballGlow = new BallGlow(_environment);
-            _features.Add(_ballGlow);
+            _features.Add(new CityNight(_lightPool, _environment));
+            _features.Add(new BallGlow(_environment));
             _features.Add(_lightPool);
             // Weather.
             _rain = new Rain(_environment);
@@ -129,53 +121,25 @@ namespace LightGreen
             new PatchModule(typeof(HudPatches.PopupPatch), "Hook: HUD pop-up words").TryApply(_harmony, Log);
             _hud.Hook();
 
+            // A new map or hole: each feature that holds the old one's things lets go of them (IMapAware).
             GameEvents.BiomeChanged += biome =>
             {
                 Log.LogInfo($"Biome: {biome}.");
                 ForgetLogged("hole:");
-                // A new map: let go of the old map's materials (see MaterialTuner), then find the new ones.
-                _materials.Forget();
-                _materials.Rescan(announce: true);
-                _cityNight.Restore();
-                _cityNight.Rescan();
-                _ballGlow.Restore();
-                _rain.Rescan();
+                _features.OnBiomeChanged();
                 _hud.Rescan();
             };
             GameEvents.HoleChanged += () =>
             {
                 _hud.Rescan();
-                _materials.Rescan();
-                _cityNight.Rescan();
-                _rain.Rescan();
-                _footprints.Clear();
+                _features.OnHoleChanged();
             };
             GameEvents.GraphicsSettingsApplied += _shadows.OnGameApplied;
             PresetStore.Reloaded += _environment.OnPresetsReloaded;
             Settings.Time.SettingChanged += (_, __) => Notify("time", $"Time of day: {Settings.Time.Value}");
             Settings.Filter.SettingChanged += (_, __) => Notify("filter", $"Filter: {Settings.Filter.Value}");
-            // One weather at a time. More than one on when the game starts keeps the first of snow, cartoon rain and
-            // rain; turning one on turns the others off.
-            WeatherKind kept = Weather.Current;
-            foreach (WeatherKind other in new[] { WeatherKind.Rain, WeatherKind.CartoonRain, WeatherKind.Snow })
-            {
-                if (other == kept || Weather.Entry(other).Value <= 0.01f) continue;
-                Weather.Entry(other).Value = 0f;
-                Log.LogInfo($"Only one weather shows at a time: {Weather.Name(kept)} is kept, and Effects.{Weather.Entry(other).Definition.Key} is now 0.");
-            }
-            RememberWeather();
-            foreach (WeatherKind kind in new[] { WeatherKind.Rain, WeatherKind.CartoonRain, WeatherKind.Snow })
-            {
-                BepInEx.Configuration.ConfigEntry<float> entry = Weather.Entry(kind);
-                entry.SettingChanged += (_, __) =>
-                {
-                    if (entry.Value > 0.01f)
-                        foreach (WeatherKind other in new[] { WeatherKind.Rain, WeatherKind.CartoonRain, WeatherKind.Snow })
-                            if (other != kind && Weather.Entry(other).Value > 0.01f) Weather.Entry(other).Value = 0f;
-                    RememberWeather();
-                    Notify("weather", Weather.Notice());
-                };
-            }
+            // One weather at a time (Weather.Start); each change says what's falling now.
+            Weather.Start(notice => Notify("weather", notice));
 
             if (Application.unityVersion != ExpectedUnity)
                 Log.LogWarning($"The game runs Unity {Application.unityVersion}; this LightGreen was made for {ExpectedUnity} " +
@@ -227,39 +191,31 @@ namespace LightGreen
             }
             if (Pressed(keyboard, Settings.TimeKey.Value) && _view == View.On)
             {
-                EnvironmentController.StepTime();
-                // StepTime saves the config file; take that write as our own so it isn't reported as an edit.
-                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+                OwnWrite(EnvironmentController.StepTime);
                 Log.LogInfo($"Time of day: {Settings.Time.Value}");
             }
             if (Pressed(keyboard, Settings.RainKey.Value) && _view == View.On)
             {
-                // Clear, rain, cartoon rain, snow, clear: each comes back as heavy as it last was. Setting a value saves
-                // the config file, as TimeKey does; take that write as our own too. Turning one on turns the others off
-                // (above).
-                WeatherKind now = Weather.Current;
-                WeatherKind next = Weather.Next(now);
-                if (next == WeatherKind.Clear) Weather.Entry(now).Value = 0f;
-                else Weather.Entry(next).Value = next == WeatherKind.Rain ? _lastRain : next == WeatherKind.Snow ? _lastSnow : _lastCartoonRain;
-                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+                OwnWrite(Weather.Step);   // one on turns the others off (Weather.Start)
                 Log.LogInfo($"{Weather.Notice()} (RainKey).");
             }
             if (Pressed(keyboard, Settings.FilterKey.Value) && _view == View.On)
             {
                 bool back = keyboard.shiftKey.isPressed;
                 // Setting the value saves the config file, as TimeKey does; take that write as our own too.
-                Settings.Filter.Value = PhotoFilter.Step(Settings.Filter.Value, back ? -1 : 1);
-                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+                OwnWrite(() => Settings.Filter.Value = PhotoFilter.Step(Settings.Filter.Value, back ? -1 : 1));
                 Log.LogInfo($"Photo filter: {Settings.Filter.Value} (FilterKey{(back ? " with Shift" : "")}).");
             }
         }
 
-        /// <summary>Keeps the last strength of each weather above off, for RainKey to bring back.</summary>
-        private void RememberWeather()
+        /// <summary>
+        /// Makes a change that saves the config file (a key changing a setting), and takes that save as LightGreen's own,
+        /// so the next check doesn't report it as an edit and reload it.
+        /// </summary>
+        private void OwnWrite(Action change)
         {
-            if (Settings.Rain.Value > 0.01f) _lastRain = Settings.Rain.Value;
-            if (Settings.CartoonRain.Value > 0.01f) _lastCartoonRain = Settings.CartoonRain.Value;
-            if (Settings.Snow.Value > 0.01f) _lastSnow = Settings.Snow.Value;
+            change();
+            _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
         }
 
         private static readonly System.Collections.Generic.Dictionary<string, string> Logged =
@@ -327,9 +283,7 @@ namespace LightGreen
                     _nextConfigCheck = 0f;
                     ReloadConfigIfEdited();
                 }
-                Config.Save();
-                // Our own write: not an edit to reload.
-                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+                OwnWrite(Config.Save);
             }
             catch (Exception e)
             {

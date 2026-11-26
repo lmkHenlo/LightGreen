@@ -16,7 +16,7 @@ namespace LightGreen.Systems
     /// through a property block of its own, so the own ball and others can glow differently. Balls drawn by another
     /// shader don't glow.</para>
     /// </summary>
-    internal sealed class BallGlow : IFeature
+    internal sealed class BallGlow : IFeature, IMapAware
     {
         private readonly EnvironmentController _environment;
 
@@ -138,6 +138,13 @@ namespace LightGreen.Systems
             Texture tex = m != null && m.HasProperty(EmissiveTexId) ? m.GetTexture(EmissiveTexId) : null;
             _block.SetTexture(EmissiveTexId, tex != null ? tex : Texture2D.whiteTexture);
             r.SetPropertyBlock(_block);
+        }
+
+        /// <summary>A new map: let go of every ball and material of the old one.</summary>
+        public void OnBiomeChanged() => Restore();
+
+        public void OnHoleChanged()
+        {
         }
 
         public void Restore()

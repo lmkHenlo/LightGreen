@@ -32,7 +32,7 @@ namespace LightGreen.Systems
     /// "Footprint Particle", 3 of 12 prints with corrupt gradients).
     /// </para>
     /// </summary>
-    internal sealed class Footprints : IFeature
+    internal sealed class Footprints : IFeature, IMapAware
     {
         public string Name => "Footprints";
 
@@ -69,29 +69,33 @@ namespace LightGreen.Systems
         }
 
         // Read by the patches; set each frame by Update.
-        private static bool _hooked;        // the callback is added once the effect has run at all
-        private static bool _active;
-        private static float _seconds = 45f;
-        private static Color _snowColor = SnowShade;
-        private static bool _step;          // inside ShowFootprint, on snow, for a player you can see
+        private bool _hooked;        // the callback is added once the effect has run at all
+        private bool _active;
+        private float _seconds = 45f;
+        private Color _snowColor = SnowShade;
+        private bool _step;          // inside ShowFootprint, on snow, for a player you can see
         private static readonly Gradient HoldGradient = MakeHoldGradient();
-        private static readonly Action<PoolableParticleSystem> Callback = Configure;
+        // The one Footprints (made by the plugin), for the patches and the game's effect callback, which are static.
+        private static Footprints _instance;
+        private static readonly Action<PoolableParticleSystem> Callback = effect => _instance?.Configure(effect);
 
-        private static List<Original> _originals;
+        internal Footprints() => _instance = this;
+
+        private List<Original> _originals;
         /// <summary>Print particle systems given the snow look, by instance id, to put back as the game had them.</summary>
-        private static readonly Dictionary<int, ParticleSystem> Changed = new Dictionary<int, ParticleSystem>();
-        private static readonly List<int> Gone = new List<int>();
-        /// <summary>Size of <see cref="Changed"/> at which the ids of destroyed prints are dropped.</summary>
-        private static int _pruneAt = PruneFloor;
+        private readonly Dictionary<int, ParticleSystem> _changed = new Dictionary<int, ParticleSystem>();
+        private readonly List<int> _gone = new List<int>();
+        /// <summary>Size of <see cref="_changed"/> at which the ids of destroyed prints are dropped.</summary>
+        private int _pruneAt = PruneFloor;
         private const int PruneFloor = 1024;
-        private static readonly List<ParticleSystem> Children = new List<ParticleSystem>();
-        private static readonly Queue<Entry> Live = new Queue<Entry>();
-        private static readonly Dictionary<int, int> Generations = new Dictionary<int, int>();
+        private readonly List<ParticleSystem> _children = new List<ParticleSystem>();
+        private readonly Queue<Entry> _live = new Queue<Entry>();
+        private readonly Dictionary<int, int> _generations = new Dictionary<int, int>();
         // The particles of one print system while its fade is shortened; grows to the most a print has had, so every one
         // of them is faded, whatever the game's prints hold.
-        private static ParticleSystem.Particle[] _buffer = new ParticleSystem.Particle[8];
-        private static bool _loggedFirst;
-        private static bool _loggedCap;
+        private ParticleSystem.Particle[] _buffer = new ParticleSystem.Particle[8];
+        private bool _loggedFirst;
+        private bool _loggedCap;
 
         /// <summary>Notes whether this step is a snow step for a player the local player can see.</summary>
         [HarmonyPatch(typeof(PlayerMovementVfx), "ShowFootprint")]
@@ -101,26 +105,28 @@ namespace LightGreen.Systems
 
             private static void Prefix(PlayerVfx ___playerVfx)
             {
-                _step = false;
-                if (!_active || Guard.Broken) return;
+                Footprints prints = _instance;
+                if (prints == null) return;
+                prints._step = false;
+                if (!prints._active || Guard.Broken) return;
                 try
                 {
                     PlayerInfo player = ___playerVfx != null ? ___playerVfx.PlayerInfo : null;
                     if (player == null || player.Movement == null) return;
                     PlayerInfo local = GameManager.LocalPlayerInfo;
                     if (local != null && local != player && !local.CanDetectSmokeBombInvisiblePlayer(player)) return;
-                    _step = IsSnow(player.Movement.GroundTerrainDominantGlobalLayer);
+                    prints._step = IsSnow(player.Movement.GroundTerrainDominantGlobalLayer);
                 }
                 catch (Exception e)
                 {
-                    _step = false;
+                    prints._step = false;
                     Guard.Fail(e);
                 }
             }
 
             private static Exception Finalizer(Exception __exception)
             {
-                _step = false;
+                if (_instance != null) _instance._step = false;
                 return __exception;
             }
         }
@@ -132,7 +138,7 @@ namespace LightGreen.Systems
         {
             private static void Prefix(VfxType vfxType, ref Action<PoolableParticleSystem> additionalVfxCallback)
             {
-                if (!_hooked || vfxType != VfxType.CharacterFootprint) return;
+                if (_instance == null || !_instance._hooked || vfxType != VfxType.CharacterFootprint) return;
                 additionalVfxCallback = additionalVfxCallback == null ? Callback : additionalVfxCallback + Callback;
             }
         }
@@ -153,7 +159,7 @@ namespace LightGreen.Systems
         /// <summary>Runs just before a footprint effect plays: snow look on snow steps, the game's otherwise.</summary>
         private static readonly PatchGuard EffectGuard = new PatchGuard("Footprint effects hook");
 
-        private static void Configure(PoolableParticleSystem effect)
+        private void Configure(PoolableParticleSystem effect)
         {
             if (EffectGuard.Broken) return;
             try
@@ -162,16 +168,16 @@ namespace LightGreen.Systems
                 bool snow = _active && _step;
                 // Every play counts as a new use, so a tracked snow print that came back as a sand print is let go.
                 int id = effect.GetInstanceID();
-                Generations.TryGetValue(id, out int generation);
-                Generations[id] = ++generation;
+                _generations.TryGetValue(id, out int generation);
+                _generations[id] = ++generation;
                 GetPrints(effect);
                 if (_originals == null) Capture();
-                for (int i = 0; i < Children.Count && i < _originals.Count; i++)
+                for (int i = 0; i < _children.Count && i < _originals.Count; i++)
                 {
-                    ParticleSystem ps = Children[i];
+                    ParticleSystem ps = _children[i];
                     int psId = ps.GetInstanceID();
                     // A print LightGreen never changed keeps the game's values as they are: nothing to put back.
-                    if (!snow && !Changed.Remove(psId)) continue;
+                    if (!snow && !_changed.Remove(psId)) continue;
                     Original o = _originals[i];
                     ParticleSystem.MainModule main = ps.main;
                     ParticleSystem.ColorOverLifetimeModule fade = ps.colorOverLifetime;
@@ -181,7 +187,7 @@ namespace LightGreen.Systems
                         main.startColor = _snowColor;
                         fade.enabled = true;
                         fade.color = HoldGradient;
-                        Changed[psId] = ps;
+                        _changed[psId] = ps;
                     }
                     else
                     {
@@ -193,7 +199,7 @@ namespace LightGreen.Systems
                 }
                 // Prints the game destroyed leave their ids behind: drop those, and only those, so every print still
                 // in the pool with the snow look is put back when it's used off snow.
-                if (Changed.Count > _pruneAt) PruneChanged();
+                if (_changed.Count > _pruneAt) PruneChanged();
                 if (snow) Track(effect, id, generation);
             }
             catch (Exception e)
@@ -203,22 +209,22 @@ namespace LightGreen.Systems
         }
 
         /// <summary>The effect's print particle systems (its children; the root one draws nothing).</summary>
-        private static void GetPrints(PoolableParticleSystem effect)
+        private void GetPrints(PoolableParticleSystem effect)
         {
-            Children.Clear();
-            effect.GetComponentsInChildren(true, Children);
+            _children.Clear();
+            effect.GetComponentsInChildren(true, _children);
             ParticleSystem root = effect.Particles;
-            Children.RemoveAll(ps => ps == root);
+            _children.RemoveAll(ps => ps == root);
         }
 
         /// <summary>
         /// The game's own values, from the first print seen (every print comes from one prefab), copied: the getters'
         /// curves and gradients belong to that print and go when it's destroyed.
         /// </summary>
-        private static void Capture()
+        private void Capture()
         {
             _originals = new List<Original>();
-            foreach (ParticleSystem ps in Children)
+            foreach (ParticleSystem ps in _children)
             {
                 ParticleSystem.MainModule main = ps.main;
                 ParticleSystem.ColorOverLifetimeModule fade = ps.colorOverLifetime;
@@ -232,9 +238,9 @@ namespace LightGreen.Systems
             }
         }
 
-        private static void Track(PoolableParticleSystem effect, int id, int generation)
+        private void Track(PoolableParticleSystem effect, int id, int generation)
         {
-            Live.Enqueue(new Entry { Effect = effect, Id = id, Generation = generation });
+            _live.Enqueue(new Entry { Effect = effect, Id = id, Generation = generation });
             if (!_loggedFirst)
             {
                 _loggedFirst = true;
@@ -259,11 +265,11 @@ namespace LightGreen.Systems
             _snowColor = Color.Lerp(new Color(0.15f, 0.07f, 0.03f), SnowShade, t);
             _snowColor.a = Mathf.Clamp(0.3f + 0.27f * contrast, 0f, 0.85f);
 
-            while (Live.Count > 0 && Finished(Live.Peek())) Live.Dequeue();
-            int over = Live.Count - Mathf.Max(1, max);
+            while (_live.Count > 0 && Finished(_live.Peek())) _live.Dequeue();
+            int over = _live.Count - Mathf.Max(1, max);
             for (; over > 0; over--)
             {
-                Entry e = Live.Dequeue();
+                Entry e = _live.Dequeue();
                 if (Finished(e)) continue;
                 FadeOut(e.Effect, TrimFadeSeconds);
                 if (!_loggedCap)
@@ -274,33 +280,33 @@ namespace LightGreen.Systems
             }
 
             // Pooled effects the game destroys leave their ids behind; forget them once nothing is tracked.
-            if (Live.Count == 0 && Generations.Count > 2048) Generations.Clear();
+            if (_live.Count == 0 && _generations.Count > 2048) _generations.Clear();
         }
 
-        private static void PruneChanged()
+        private void PruneChanged()
         {
-            Gone.Clear();
-            foreach (KeyValuePair<int, ParticleSystem> pair in Changed)
-                if (pair.Value == null) Gone.Add(pair.Key);
-            foreach (int id in Gone) Changed.Remove(id);
-            Gone.Clear();
+            _gone.Clear();
+            foreach (KeyValuePair<int, ParticleSystem> pair in _changed)
+                if (pair.Value == null) _gone.Add(pair.Key);
+            foreach (int id in _gone) _changed.Remove(id);
+            _gone.Clear();
             // Next time at twice what's left, so a pool that really is this big isn't gone through on every step.
-            _pruneAt = Mathf.Max(PruneFloor, Changed.Count * 2);
+            _pruneAt = Mathf.Max(PruneFloor, _changed.Count * 2);
         }
 
-        private static bool Finished(Entry e)
+        private bool Finished(Entry e)
         {
             if (e.Effect == null) return true;
-            if (!Generations.TryGetValue(e.Id, out int generation) || generation != e.Generation) return true;   // reused
+            if (!_generations.TryGetValue(e.Id, out int generation) || generation != e.Generation) return true;   // reused
             return !e.Effect.gameObject.activeInHierarchy || !e.Effect.Particles.IsAlive(true);
         }
 
         /// <summary>Fades a print out over <paramref name="seconds"/>, from wherever it is in its own fade.</summary>
-        private static void FadeOut(PoolableParticleSystem effect, float seconds)
+        private void FadeOut(PoolableParticleSystem effect, float seconds)
         {
             GetPrints(effect);
             float life = seconds / (1f - Hold);
-            foreach (ParticleSystem ps in Children)
+            foreach (ParticleSystem ps in _children)
             {
                 if (_buffer.Length < ps.particleCount) _buffer = new ParticleSystem.Particle[Mathf.NextPowerOfTwo(ps.particleCount)];
                 ParticleSystem.Particle[] buffer = _buffer;
@@ -319,12 +325,18 @@ namespace LightGreen.Systems
             }
         }
 
+        public void OnBiomeChanged()
+        {
+        }
+
+        public void OnHoleChanged() => Clear();
+
         /// <summary>Hole changed: the previous hole's prints go at once.</summary>
         internal void Clear()
         {
-            foreach (Entry e in Live)
+            foreach (Entry e in _live)
                 if (!Finished(e)) e.Effect.Stop(ParticleSystemStopBehavior.StopEmittingAndClear);
-            Live.Clear();
+            _live.Clear();
             _loggedFirst = false;
             _loggedCap = false;
         }
@@ -332,11 +344,11 @@ namespace LightGreen.Systems
         /// <summary>Off: snow prints fade out over a second, and new prints are the game's.</summary>
         public void Restore()
         {
-            if (!_active && Live.Count == 0) return;
+            if (!_active && _live.Count == 0) return;
             _active = false;
-            foreach (Entry e in Live)
+            foreach (Entry e in _live)
                 if (!Finished(e)) FadeOut(e.Effect, TrimFadeSeconds);
-            Live.Clear();
+            _live.Clear();
         }
     }
 }

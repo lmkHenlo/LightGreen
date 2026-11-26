@@ -19,6 +19,19 @@ namespace LightGreen.Core
     }
 
     /// <summary>
+    /// A feature that holds things from the map or hole it's on (materials, objects, prints) and needs to hear when
+    /// that changes. <see cref="FeatureHost"/> tells it, whether or not LightGreen is showing at the time.
+    /// </summary>
+    internal interface IMapAware
+    {
+        /// <summary>A different map (biome): let go of the old one's things, and look for the new one's.</summary>
+        void OnBiomeChanged();
+
+        /// <summary>The next hole on the same map.</summary>
+        void OnHoleChanged();
+    }
+
+    /// <summary>
     /// Runs the features. A feature that throws is restored and switched off until the game restarts, and the
     /// rest carry on, so one effect broken by a game update can't take the others (or the game) down with it.
     /// </summary>
@@ -67,6 +80,32 @@ namespace LightGreen.Core
             if (!_applied) return;
             _applied = false;
             foreach (IFeature feature in _features) Restore(feature);
+        }
+
+        /// <summary>Tells each working <see cref="IMapAware"/> feature the map changed; one that throws is switched off.</summary>
+        internal void OnBiomeChanged() => Tell(true);
+
+        /// <summary>Tells each working <see cref="IMapAware"/> feature the hole changed.</summary>
+        internal void OnHoleChanged() => Tell(false);
+
+        private void Tell(bool biome)
+        {
+            foreach (IFeature feature in _features)
+            {
+                if (!(feature is IMapAware aware) || _failed.Contains(feature)) continue;
+                try
+                {
+                    if (biome) aware.OnBiomeChanged();
+                    else aware.OnHoleChanged();
+                }
+                catch (Exception e)
+                {
+                    _failed.Add(feature);
+                    CoreLog.Source?.LogError($"[FAILED] {feature.Name} (on a {(biome ? "map" : "hole")} change): {e}\n" +
+                                             $"{feature.Name} is off until the game restarts; the rest of LightGreen carries on.");
+                    Restore(feature);
+                }
+            }
         }
 
         /// <summary>Every feature back, whatever state it's in (shutdown).</summary>

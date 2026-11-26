@@ -19,7 +19,11 @@ namespace LightGreen.Systems
     {
         private readonly LightPool _pool;
 
-        internal EffectLights(LightPool pool) => _pool = pool;
+        internal EffectLights(LightPool pool)
+        {
+            _pool = pool;
+            _instance = this;
+        }
 
         public string Name => "Effect lights";
 
@@ -83,8 +87,11 @@ namespace LightGreen.Systems
         }
 
         /// <summary>Effects seen by the postfix since the last frame (only while the effect is on).</summary>
-        private static readonly List<Active> Incoming = new List<Active>();
-        private static bool _listening;
+        private readonly List<Active> _incoming = new List<Active>();
+        private bool _listening;
+
+        // The one EffectLights (made by the plugin), for the static patch.
+        private static EffectLights _instance;
 
         private readonly List<Active> _active = new List<Active>();
 
@@ -100,8 +107,9 @@ namespace LightGreen.Systems
                 if (Guard.Broken) return;
                 try
                 {
-                    if (!_listening || __result == null || !Looks.TryGetValue(vfxType, out EffectLook look)) return;
-                    Incoming.Add(new Active
+                    EffectLights lights = _instance;
+                    if (lights == null || !lights._listening || __result == null || !Looks.TryGetValue(vfxType, out EffectLook look)) return;
+                    lights._incoming.Add(new Active
                     {
                         Look = look,
                         Position = __result.transform.position,
@@ -121,8 +129,8 @@ namespace LightGreen.Systems
         {
             _listening = true;
 
-            _active.AddRange(Incoming);
-            Incoming.Clear();
+            _active.AddRange(_incoming);
+            _incoming.Clear();
             if (_active.Count == 0) return;
             bool gentle = GameFlashes.Off;
             float now = Time.time;
@@ -170,7 +178,7 @@ namespace LightGreen.Systems
         public void Restore()
         {
             _listening = false;
-            Incoming.Clear();
+            _incoming.Clear();
             _active.Clear();
         }
     }

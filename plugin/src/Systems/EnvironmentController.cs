@@ -38,7 +38,7 @@ namespace LightGreen.Systems
             TimeOfDay.Dawn, TimeOfDay.Morning, TimeOfDay.Noon, TimeOfDay.GoldenHour, TimeOfDay.Sunset, TimeOfDay.BlueHour, TimeOfDay.Night,
         };
 
-        private readonly MaterialEdits _sky = new MaterialEdits();
+        private readonly SkyLook _skyLook = new SkyLook();
 
         // The hole's own values, captured when it loads.
         private int _sceneHandle = -1;
@@ -47,12 +47,10 @@ namespace LightGreen.Systems
         private Quaternion _stockSunRotation;
         private Color _stockSunColor;
         private float _stockSunIntensity;
-        private SphericalHarmonicsL2 _stockAmbientProbe;
         private bool _captured;
         private bool _hadSun;
         private float _nextSunSearch;
         private bool _sunChanged;
-        private bool _ambientChanged;
 
         // Time-of-day blending.
         private TimeOfDay _target = (TimeOfDay)(-1);
@@ -62,9 +60,6 @@ namespace LightGreen.Systems
         private float _dayPhase;
 
         // Ambient refresh.
-        private Vector4 _lastSkyKey;
-        private float _nextAmbientRefresh;
-        private float _skyBrightnessDelta, _horizonBrightnessDelta;
 
         // Day and night brightness (Brightness.Day, Brightness.Night).
         private float _sunScaleApplied = 1f;
@@ -77,11 +72,14 @@ namespace LightGreen.Systems
         private readonly TimePreset _blended = new TimePreset();
         /// <summary>The scene's sun, once found.</summary>
         internal Light Sun => _sun;
+        /// <summary>True while LightGreen has the sun moved or recoloured (false: as the game has it).</summary>
+        internal bool SunMoved => _sunChanged;
         internal Color SunColor { get; private set; } = Color.white;
         internal float SunElevation { get; private set; } = 45f;
         /// <summary>Direction to the sun itself (below the horizon at night, when the scene light is the moon).</summary>
         internal Vector3 SunDirection { get; private set; } = Vector3.up;
-        internal Color HorizonColor { get; private set; } = Color.grey;
+        /// <summary>The sky's horizon colour as shown this frame (the hole's fog colour when there's no sky).</summary>
+        internal Color HorizonColor => _skyLook.HorizonColor;
         internal Color StockFogColor { get; private set; } = Color.grey;
         internal float StockFogStart { get; private set; }
         internal float StockFogEnd { get; private set; } = 600f;
@@ -105,42 +103,40 @@ namespace LightGreen.Systems
 
         /// <summary>
         /// 0 for the time of day's own sky, up to 1 for a fully overcast, rainy sky: the sun (or moon) dims and
-        /// greys, and the sky and fog turn grey. Set by the rain each frame; eased there.
+        /// greys, and the sky and fog turn grey. Set by <see cref="WeatherSky"/> each frame; eased there.
         /// </summary>
-        internal float Overcast { get; set; }
+        internal float Overcast { get; private set; }
 
         /// <summary>
         /// How much of the overcast is snow rather than rain, 0 to 1: snow's sky is bright and pale blue, not grey, and
         /// its sun dims less. Set and eased with <see cref="Overcast"/>.
         /// </summary>
-        internal float Snowy { get; set; }
+        internal float Snowy { get; private set; }
 
         /// <summary>
         /// How much of the overcast is cartoon rain's soft blue mist, 0 to 1: the colours stay bright, the sky and fog go
         /// a misty blue, the sun dims a little. Snowy + Misty is at most 1; the rest is rain's grey. Set and eased with
         /// <see cref="Overcast"/>.
         /// </summary>
-        internal float Misty { get; set; }
+        internal float Misty { get; private set; }
 
-        /// <summary>The sun's brightness under a full overcast, and how far the sky's colours go to grey.</summary>
+        /// <summary>The weather's share of the sky this frame (see <see cref="WeatherSky"/>, the only one that sets it).</summary>
+        internal void SetWeatherSky(float overcast, float snowy, float misty)
+        {
+            Overcast = overcast;
+            Snowy = snowy;
+            Misty = misty;
+        }
+
+        /// <summary>The sun's brightness under a full overcast (the sky's own colours: <see cref="SkyLook"/>).</summary>
         private const float OvercastSun = 0.45f;
-        private const float OvercastSkyGrey = 0.7f;
 
-        /// <summary>Under a full snow sky: the sun's brightness, its pale cold tint, and the sky's bright, pale blue
-        /// colours (top, horizon, the glow round the sun), and how far the sky goes to them.</summary>
+        /// <summary>Under a full snow sky: the sun's brightness and its pale cold tint.</summary>
         private const float SnowSun = 0.85f;
         private static readonly Color SnowSunTint = new Color(0.9f, 0.95f, 1f);
-        private static readonly Color SnowSkyTop = new Color(0.62f, 0.76f, 0.97f);
-        private static readonly Color SnowSkyHorizon = new Color(0.9f, 0.95f, 1f);
-        private static readonly Color SnowSkyGlow = new Color(0.95f, 0.97f, 1f);
-        private const float SnowSkyBlend = 0.9f;
 
-        /// <summary>Under full cartoon-rain mist: the sun's brightness, and the sky's misty blues and how far it goes to them.</summary>
+        /// <summary>Under full cartoon-rain mist: the sun's brightness.</summary>
         private const float MistSun = 0.7f;
-        private static readonly Color MistSkyTop = new Color(0.55f, 0.72f, 0.86f);
-        private static readonly Color MistSkyHorizon = new Color(0.7f, 0.82f, 0.9f);
-        private static readonly Color MistSkyGlow = new Color(0.85f, 0.92f, 0.95f);
-        private const float MistSkyBlend = 0.6f;
 
         /// <summary>
         /// 0 in daylight, 1 at night: the time of day's own night setting, or, for holes the game itself sets
@@ -197,7 +193,7 @@ namespace LightGreen.Systems
             ExposureBoost = Brightness > LightScale && LightScale > 0f ? Mathf.Log(Brightness / LightScale, 2f) : 0f;
         }
 
-        private static bool Unscaled(float scale) => Mathf.Abs(scale - 1f) < 1e-3f;
+        internal static bool Unscaled(float scale) => Mathf.Abs(scale - 1f) < 1e-3f;
 
         internal void Update()
         {
@@ -205,8 +201,7 @@ namespace LightGreen.Systems
             if (!_captured) return;
             UpdateTime();
             ApplySun();
-            ApplySky();
-            ApplyAmbient();
+            _skyLook.Apply(this);
         }
 
         internal void OnPresetsReloaded() => _target = (TimeOfDay)(-1);
@@ -243,11 +238,10 @@ namespace LightGreen.Systems
             _skyMaterial = sky;
             CaptureSun(FindSun());
             _nextSunSearch = Time.unscaledTime + 1f;
-            _stockAmbientProbe = RenderSettings.ambientProbe;
             StockFogColor = RenderSettings.fogColor;
             StockFogStart = RenderSettings.fogStartDistance;
             StockFogEnd = RenderSettings.fogEndDistance;
-            HorizonColor = _skyMaterial != null && _skyMaterial.HasProperty("_HorizonColor") ? _skyMaterial.GetColor("_HorizonColor") : StockFogColor;
+            _skyLook.Capture(sky, StockFogColor);
             _captured = true;
             _target = (TimeOfDay)(-1); // re-pick the preset against the new hole
             Plugin.LogChange("hole:lighting", $"Scene lighting captured: sun {(_sun != null ? _sun.name : "not found yet")}, " +
@@ -404,191 +398,6 @@ namespace LightGreen.Systems
             _sunChanged = false;
         }
 
-        // ---- Sky ---------------------------------------------------------------------------------
-
-        private void ApplySky()
-        {
-            Material sky = _skyMaterial;
-            if (sky == null)
-            {
-                _skyBrightnessDelta = _horizonBrightnessDelta = 0f;
-                return;
-            }
-
-            float blend = Mathf.Clamp01(Current.skyBlend);
-            Blend(sky, "_SkyColor", Current.skyColor, blend);
-            Blend(sky, "_HorizonColor", Current.horizonColor, blend);
-            Blend(sky, "_SunGradientColor", Current.sunGlowColor, blend);
-
-            // Rain: the sky's colours toward a soft grey. Snow: toward a bright, pale blue, dimmed at night.
-            float overcast = Mathf.Clamp01(Overcast);
-            if (overcast > 0f)
-            {
-                float snowy = Mathf.Clamp01(Snowy);
-                float misty = Mathf.Clamp01(Misty);
-                float grey = OvercastSkyGrey * overcast * (1f - Mathf.Clamp01(snowy + misty));
-                Grey(sky, "_SkyColor", grey);
-                Grey(sky, "_HorizonColor", grey);
-                Grey(sky, "_SunGradientColor", grey);
-                float snow = SnowSkyBlend * overcast * snowy;
-                if (snow > 0f)
-                {
-                    float dim = Mathf.Lerp(1f, 0.25f, Mathf.Clamp01(Darkness));
-                    Tint(sky, "_SkyColor", SnowSkyTop * dim, snow);
-                    Tint(sky, "_HorizonColor", SnowSkyHorizon * dim, snow);
-                    Tint(sky, "_SunGradientColor", SnowSkyGlow * dim, snow);
-                }
-                float mist = MistSkyBlend * overcast * misty;
-                if (mist > 0f)
-                {
-                    float dim = Mathf.Lerp(1f, 0.25f, Mathf.Clamp01(Darkness));
-                    Tint(sky, "_SkyColor", MistSkyTop * dim, mist);
-                    Tint(sky, "_HorizonColor", MistSkyHorizon * dim, mist);
-                    Tint(sky, "_SunGradientColor", MistSkyGlow * dim, mist);
-                }
-            }
-
-            // Night: the sky's own stars and moon, and less of the sun's glow around the moon.
-            float night = Mathf.Clamp01(Current.night);
-            BlendFloat(sky, "_StarsExposure", 1f, night);
-            BlendFloat(sky, "_MoonCycle", Current.moonPhase, night);
-            if (sky.HasProperty("_SunScatterIntensity"))
-                _sky.SetFloat(sky, "_SunScatterIntensity", _sky.StockFloat(sky, "_SunScatterIntensity") * Mathf.Lerp(1f, 0.2f, night));
-
-            // The sky's own change in brightness, for the fill light, before Brightness.Day and Night scale it.
-            _skyBrightnessDelta = BrightnessDelta(sky, "_SkyColor");
-            _horizonBrightnessDelta = BrightnessDelta(sky, "_HorizonColor");
-            if (!Unscaled(LightScale))
-            {
-                Scale(sky, "_SkyColor", LightScale);
-                Scale(sky, "_HorizonColor", LightScale);
-                Scale(sky, "_SunGradientColor", LightScale);
-            }
-
-            if (sky.HasProperty("_SunDirection") && _sun != null)
-            {
-                Vector4 stock = _sky.StockVector(sky, "_SunDirection");
-                Vector3 toSun = SunDirection;
-                _sky.SetVector(sky, "_SunDirection", _sunChanged ? new Vector4(toSun.x, toSun.y, toSun.z, stock.w) : stock);
-            }
-
-            HorizonColor = sky.HasProperty("_HorizonColor") ? sky.GetColor("_HorizonColor") : StockFogColor;
-        }
-
-        /// <summary>Multiplies one of the sky's colours (as set this frame) by the scene's brightness.</summary>
-        private void Scale(Material sky, string property, float scale)
-        {
-            if (!sky.HasProperty(property)) return;
-            Color c = sky.GetColor(property);
-            _sky.SetColor(sky, property, new Color(c.r * scale, c.g * scale, c.b * scale, c.a));
-        }
-
-        /// <summary>Moves one of the sky's colours (as set this frame) toward grey of the same brightness, a little darker.</summary>
-        private void Grey(Material sky, string property, float amount)
-        {
-            if (!sky.HasProperty(property)) return;
-            Color c = sky.GetColor(property);
-            float g = c.grayscale * 0.9f;
-            Color value = Color.Lerp(c, new Color(g, g, g, c.a), amount);
-            _sky.SetColor(sky, property, value);
-        }
-
-        /// <summary>The sky colour as it stands this frame, moved toward target.</summary>
-        private void Tint(Material sky, string property, Color target, float amount)
-        {
-            if (!sky.HasProperty(property)) return;
-            Color c = sky.GetColor(property);
-            Color value = Color.Lerp(c, target, amount);
-            value.a = c.a;
-            _sky.SetColor(sky, property, value);
-        }
-
-        private void BlendFloat(Material sky, string property, float target, float blend)
-        {
-            if (!sky.HasProperty(property)) return;
-            _sky.SetFloat(sky, property, Mathf.Lerp(_sky.StockFloat(sky, property), target, blend));
-        }
-
-        private void Blend(Material sky, string property, Color target, float blend)
-        {
-            if (!sky.HasProperty(property)) return;
-            Color stock = _sky.StockColor(sky, property);
-            Color value = Color.Lerp(stock, target, blend);
-            value.a = stock.a;
-            _sky.SetColor(sky, property, value);
-        }
-
-        // ---- Ambient --------------------------------------------------------------------------------
-
-        /// <summary>How much of a sky colour change reaches the ambient (fill) light.</summary>
-        private const float AmbientFromSky = 0.5f;
-
-        /// <summary>
-        /// Shifts the hole's own ambient light by the change in the sky's brightness, instead of recomputing it
-        /// from the sky: the game's ambient isn't what Unity would compute from its sky (recomputing it washed
-        /// every toon surface pale), so with the sky at stock the ambient stays exactly stock.
-        /// <para>Only the brightness moves, as grey: the fill light keeps the hole's own hue, and the preset's
-        /// ambient tint colours it. Shifting by the colour change made snow under a warm horizon turn
-        /// yellow-green wherever it faced sideways or down (warm horizon minus the hole's blue one = less blue).</para>
-        /// </summary>
-        private void ApplyAmbient()
-        {
-            // Until LightGreen changes it, follow the engine's own value (it can finish updating after load).
-            if (!_ambientChanged) _stockAmbientProbe = RenderSettings.ambientProbe;
-
-            // A darker sky lowers the fill light only a little; the preset's intensity and tint do the rest.
-            float skyDelta = Mathf.Max(_skyBrightnessDelta, -0.2f);
-            float horizonDelta = Mathf.Max(_horizonBrightnessDelta, -0.2f);
-            // The preset's intensity, and Brightness.Day and Night.
-            float scale = Mathf.Max(0f, Current.ambientIntensity) * LightScale;
-            Color tint = Current.ambientTint;
-
-            var key = new Vector4(skyDelta, horizonDelta, scale, tint.r + tint.g * 3.1f + tint.b * 7.3f);
-            bool unchanged = (key - _lastSkyKey).sqrMagnitude < 1e-8f;
-            if (unchanged && (!_ambientChanged || Time.unscaledTime < _nextAmbientRefresh)) return;
-            _lastSkyKey = key;
-            _nextAmbientRefresh = Time.unscaledTime + 2f; // re-assert now and then in case the engine resets it
-
-            bool stock = Mathf.Abs(skyDelta) < 1e-4f && Mathf.Abs(horizonDelta) < 1e-4f &&
-                         Mathf.Approximately(scale, 1f) && tint.r > 0.999f && tint.g > 0.999f && tint.b > 0.999f;
-            if (stock)
-            {
-                if (_ambientChanged) RenderSettings.ambientProbe = _stockAmbientProbe;
-                _ambientChanged = false;
-                return;
-            }
-
-            var shift = new SphericalHarmonicsL2();
-            shift.Clear();
-            shift.AddAmbientLight(Grey(horizonDelta * AmbientFromSky));
-            shift.AddDirectionalLight(Vector3.up, Grey((skyDelta - horizonDelta) * AmbientFromSky), 1f);
-            // Per colour channel, so a tint (blue at night) colours the fill light.
-            SphericalHarmonicsL2 probe = _stockAmbientProbe + shift;
-            float r = scale * Mathf.Max(0f, tint.r);
-            float g = scale * Mathf.Max(0f, tint.g);
-            float b = scale * Mathf.Max(0f, tint.b);
-            for (int c = 0; c < 9; c++)
-            {
-                probe[0, c] *= r;
-                probe[1, c] *= g;
-                probe[2, c] *= b;
-            }
-            RenderSettings.ambientProbe = probe;
-            _ambientChanged = true;
-        }
-
-        /// <summary>How much brighter one of the sky's colours is than the hole's own (negative: darker).</summary>
-        private float BrightnessDelta(Material sky, string property)
-        {
-            if (!sky.HasProperty(property)) return 0f;
-            return Luminance(sky.GetColor(property)) - Luminance(_sky.StockColor(sky, property));
-        }
-
-        /// <summary>Perceived brightness (Rec. 709 weights).</summary>
-        private static float Luminance(Color c) => 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
-
-        private static Color Grey(float v) => new Color(v, v, v, 0f);
-
         // ---- Restore -----------------------------------------------------------------------------------
 
         /// <summary>Puts the hole's sun, sky and ambient light back as the game had them.</summary>
@@ -599,12 +408,8 @@ namespace LightGreen.Systems
             _sunScaleApplied = 1f;
             if (!_captured) return;
             RestoreSun();
-            _sky.Restore();
             // RenderSettings belong to the active scene: only put them back if it's still the same one.
-            if (SceneManager.GetActiveScene().handle == _sceneHandle && _ambientChanged)
-                RenderSettings.ambientProbe = _stockAmbientProbe;
-            _ambientChanged = false;
-            _lastSkyKey = Vector4.zero;
+            _skyLook.Restore(SceneManager.GetActiveScene().handle == _sceneHandle);
             _captured = false;
             _hadSun = false;
             _sun = null;

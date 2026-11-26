@@ -23,7 +23,7 @@ namespace LightGreen.Systems
     /// </list>
     /// Bloom for the glow is the volume layer's (it lowers the bloom threshold on City holes at night).
     /// </summary>
-    internal sealed class CityNight : IFeature
+    internal sealed class CityNight : IFeature, IMapAware
     {
         private readonly LightPool _pool;
         private readonly EnvironmentController _environment;
@@ -90,6 +90,14 @@ namespace LightGreen.Systems
         private float _appliedLevel = -1f;
         private bool _logged;
         private int _skipped;
+
+        public void OnBiomeChanged()
+        {
+            Restore();
+            Rescan();
+        }
+
+        public void OnHoleChanged() => Rescan();
 
         /// <summary>Called on a new hole: look for lampposts and materials again.</summary>
         internal void Rescan()

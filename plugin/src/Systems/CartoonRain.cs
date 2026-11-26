@@ -15,10 +15,8 @@ namespace LightGreen.Systems
     /// Its sky, a soft blue mist that keeps the colours bright, is set in <see cref="Rain"/> with the others'. At night the
     /// streaks dim. Only one weather at a time (<see cref="Weather"/>).
     /// </summary>
-    internal sealed class CartoonRain : IFeature
+    internal sealed class CartoonRain : FallingWeather
     {
-        private readonly EnvironmentController _environment;
-        private readonly ParticleLayer _layer;
         private readonly Texture2D _disc;
 
         private static readonly Color StreakColor = new Color(0.92f, 0.96f, 1f);
@@ -29,13 +27,10 @@ namespace LightGreen.Systems
         private const float LeastLean = 2.5f;
         private static readonly Vector2 CalmLean = new Vector2(0.6f, 0.8f);
 
-        private Vector2 _wind;
-
-        internal CartoonRain(EnvironmentController environment)
+        internal CartoonRain(EnvironmentController environment) : base(environment, WeatherKind.CartoonRain, "cartoonrain")
         {
-            _environment = environment;
             _disc = TextureArt.Make("LightGreen cartoon rain: streak", RainArt.Disc(32), 32);
-            _layer = new ParticleLayer("LightGreen cartoon rain",
+            Layer = new ParticleLayer("LightGreen cartoon rain",
                 new ParticleLayer.Spec
                 {
                     Name = "near", Width = 30f, Height = 16f, Lift = 4f, Density = 0.08f, Fall = 10f,
@@ -56,35 +51,19 @@ namespace LightGreen.Systems
                 });
         }
 
-        public string Name => "Cartoon rain";
+        public override string Name => "Cartoon rain";
 
-        public void Apply()
+        protected override Vector2 WindTarget()
         {
-            if (!GameEvents.InHole || Weather.Current != WeatherKind.CartoonRain)
-            {
-                Restore();
-                return;
-            }
-
-            float strength = Weather.Strength;
             Vector2 direction = GameWind.Direction.sqrMagnitude > 1e-4f ? GameWind.Direction.normalized : CalmLean;
-            Vector2 target = direction * Mathf.Max(LeastLean, DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
-            _wind = Vector2.MoveTowards(_wind, target, Time.deltaTime * 0.5f);
-
-            float dark = Mathf.Clamp01(_environment.SceneDarkness);
-            Color color = StreakColor * Mathf.Lerp(1f, 0.4f, dark);
-            color.a = 1f;
-
-            bool wasRunning = _layer.Running;
-            _layer.Update(GameManager.Camera, strength, color, _wind);
-            if (!wasRunning && _layer.Running) Plugin.LogChange("hole:cartoonrain", $"Cartoon rain: on, strength {strength:0.##}.");
+            return direction * Mathf.Max(LeastLean, DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
         }
 
-        public void Restore() => _layer.Stop();
+        protected override Color ColorAt(float darkness) => StreakColor * Mathf.Lerp(1f, 0.4f, darkness);
 
-        internal void Destroy()
+        internal override void Destroy()
         {
-            _layer.Destroy();
+            base.Destroy();
             if (_disc != null) Object.Destroy(_disc);
         }
 

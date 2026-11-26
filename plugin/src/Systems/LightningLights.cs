@@ -27,7 +27,11 @@ namespace LightGreen.Systems
     {
         private readonly LightPool _pool;
 
-        internal LightningLights(LightPool pool) => _pool = pool;
+        internal LightningLights(LightPool pool)
+        {
+            _pool = pool;
+            _instance = this;
+        }
 
         public string Name => "Lightning";
 
@@ -77,8 +81,11 @@ namespace LightGreen.Systems
             internal float[] PulseLevels;
         }
 
-        private static readonly List<Strike> Incoming = new List<Strike>();
-        private static bool _listening;
+        private readonly List<Strike> _incoming = new List<Strike>();
+        private bool _listening;
+
+        // The one LightningLights (made by the plugin), for the static patch.
+        private static LightningLights _instance;
 
         private readonly List<Strike> _active = new List<Strike>();
 
@@ -93,13 +100,14 @@ namespace LightGreen.Systems
                 if (Guard.Broken) return;
                 try
                 {
-                    if (!_listening || __instance == null) return;
+                    LightningLights lights = _instance;
+                    if (lights == null || !lights._listening || __instance == null) return;
                     Vector3 ground = __instance.transform.position;
                     Thunderstorm storm = __instance.NetworkowningThunderstorm;
                     Vector3 cloud = storm != null && storm.transform.position.y > ground.y
                         ? new Vector3(ground.x, storm.transform.position.y, ground.z)
                         : ground + Vector3.up * FallbackCloudHeight;
-                    Incoming.Add(NewStrike(ground, cloud));
+                    lights._incoming.Add(NewStrike(ground, cloud));
                 }
                 catch (Exception e)
                 {
@@ -128,8 +136,8 @@ namespace LightGreen.Systems
         {
             _listening = true;
 
-            _active.AddRange(Incoming);
-            Incoming.Clear();
+            _active.AddRange(_incoming);
+            _incoming.Clear();
             if (_active.Count == 0) return;
 
             bool gentle = vrRunning || GameFlashes.Off;
@@ -189,7 +197,7 @@ namespace LightGreen.Systems
         public void Restore()
         {
             _listening = false;
-            Incoming.Clear();
+            _incoming.Clear();
             _active.Clear();
         }
     }

@@ -23,15 +23,13 @@ namespace LightGreen.Systems
     /// (<see cref="EnvironmentController.Misty"/>), eased over the same 10 s. Only one weather falls at a time
     /// (<see cref="Weather"/>).</para>
     /// </summary>
-    internal sealed class Rain : IFeature
+    internal sealed class Rain : FallingWeather
     {
-        private readonly EnvironmentController _environment;
+        internal Rain(EnvironmentController environment) : base(environment, WeatherKind.Rain, "rain") => Layer = MakeLayer();
 
-        internal Rain(EnvironmentController environment) => _environment = environment;
+        public override string Name => "Rain";
 
-        public string Name => "Rain";
-
-        private readonly ParticleLayer _layer = new ParticleLayer("LightGreen rain",
+        private static ParticleLayer MakeLayer() => new ParticleLayer("LightGreen rain",
             new ParticleLayer.Spec
             {
                 Name = "near", Width = 30f, Height = 16f, Lift = 4f, Density = 0.12f, Fall = 8f,
@@ -61,67 +59,14 @@ namespace LightGreen.Systems
         private const float SplashesPerSecond = 1200f;
         private const float SplashRadius = 15f;
 
-        /// <summary>Seconds for the sky to turn grey or clear.</summary>
-        private const float OvercastSeconds = 10f;
-
         private ParticleSystem _splashes;
         private float _splashDebt;
-        private Vector2 _wind;
-        private bool _fresh = true;
-        private bool _touchedSky;
 
-        /// <summary>A new hole: if it's raining, it starts overcast.</summary>
-        internal void Rescan() => _fresh = true;
+        protected override Vector2 WindTarget() => GameWind.Direction * (DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
 
-        public void Apply()
-        {
-            if (!GameEvents.InHole)
-            {
-                Restore();
-                return;
-            }
+        protected override Color ColorAt(float darkness) => RainColor * Mathf.Lerp(1f, 0.35f, darkness);
 
-            WeatherKind kind = Weather.Current;
-            bool raining = kind == WeatherKind.Rain;
-            float strength = raining ? Weather.Strength : 0f;
-
-            // The sky: overcast in any weather, eased (at once on a new hole). It keeps its last kind of cloud while it
-            // clears; going from one weather to another, the old kind's share hands over to the new one's.
-            bool weather = kind != WeatherKind.Clear;
-            float overcastTarget = weather ? Mathf.Clamp01(Weather.Strength) : 0f;
-            float snowyTarget = weather ? (kind == WeatherKind.Snow ? 1f : 0f) : _environment.Snowy;
-            float mistyTarget = weather ? (kind == WeatherKind.CartoonRain ? 1f : 0f) : _environment.Misty;
-            if (weather || _touchedSky)
-            {
-                bool atOnce = _fresh && weather;
-                float step = Time.deltaTime / OvercastSeconds;
-                _environment.Overcast = atOnce ? overcastTarget : Mathf.MoveTowards(_environment.Overcast, overcastTarget, step);
-                _environment.Snowy = atOnce ? snowyTarget : Mathf.MoveTowards(_environment.Snowy, snowyTarget, step);
-                _environment.Misty = atOnce ? mistyTarget : Mathf.MoveTowards(_environment.Misty, mistyTarget, step);
-                _touchedSky = _environment.Overcast > 0f;
-            }
-            _fresh = false;
-
-            if (!raining)
-            {
-                _layer.Stop();
-                StopSplashes();
-                return;
-            }
-
-            Vector2 target = GameWind.Direction * (DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
-            _wind = Vector2.MoveTowards(_wind, target, Time.deltaTime * 0.5f);
-            float dark = Mathf.Clamp01(_environment.SceneDarkness);
-            float b = Mathf.Lerp(1f, 0.35f, dark);
-            Color color = RainColor * b;
-            color.a = 1f;
-
-            Camera camera = GameManager.Camera;
-            bool wasRunning = _layer.Running;
-            _layer.Update(camera, strength, color, _wind);
-            if (!wasRunning && _layer.Running) Plugin.LogChange("hole:rain", $"Rain: on, strength {strength:0.##}.");
-            Splash(camera, strength, color);
-        }
+        protected override void AfterFall(Camera camera, float strength, Color color) => Splash(camera, strength, color);
 
         // ---- Splashes -----------------------------------------------------------------------------------------
 
@@ -194,24 +139,15 @@ namespace LightGreen.Systems
 
         // ---- Restore -------------------------------------------------------------------------------------------
 
-        public void Restore()
+        public override void Restore()
         {
-            _layer.Stop();
+            base.Restore();
             StopSplashes();
-            if (_touchedSky)
-            {
-                _environment.Overcast = 0f;
-                _environment.Snowy = 0f;
-                _environment.Misty = 0f;
-                _touchedSky = false;
-            }
-            _fresh = true;
         }
 
-        internal void Destroy()
+        internal override void Destroy()
         {
-            Restore();
-            _layer.Destroy();
+            base.Destroy();
             if (_splashes != null)
             {
                 Object.Destroy(_splashes.GetComponent<ParticleSystemRenderer>().sharedMaterial);

@@ -24,15 +24,10 @@ namespace LightGreen.Systems
     /// the fog and a slightly colder, less saturated grade in <see cref="VolumeLayer"/>.
     /// Nothing settles on the ground: that needed shaders. Only one weather at a time: with snow on, there's no rain.
     /// </summary>
-    internal sealed class Snow : IFeature
+    internal sealed class Snow : FallingWeather
     {
-        private readonly EnvironmentController _environment;
-        private readonly ParticleLayer _layer;
         private readonly Texture2D _crisp;
         private readonly Texture2D _soft;
-
-        /// <summary>Whether it's snowing: Effects.Snow above 0 (and then the rain stays off).</summary>
-        internal static bool Falling => Weather.Current == WeatherKind.Snow;
 
         /// <summary>Drift with the wind: m/s at calm and per km/h. Slower than rain: snow floats.</summary>
         private const float DriftAtCalm = 0.25f;
@@ -43,14 +38,11 @@ namespace LightGreen.Systems
         private const float NightDim = 0.35f;
         private static readonly Color NightTint = new Color(0.8f, 0.88f, 1f);
 
-        private Vector2 _wind;
-
-        internal Snow(EnvironmentController environment)
+        internal Snow(EnvironmentController environment) : base(environment, WeatherKind.Snow, "snow")
         {
-            _environment = environment;
             _crisp = Atlas("LightGreen snowflakes", 0.03f, 17);
             _soft = Atlas("LightGreen snowflakes (soft)", 0.35f, 29);
-            _layer = new ParticleLayer("LightGreen snow",
+            Layer = new ParticleLayer("LightGreen snow",
                 new ParticleLayer.Spec
                 {
                     Name = "near", Width = 14f, Height = 8f, Lift = 1.5f, Density = 0.024f, Fall = 0.9f,
@@ -77,35 +69,20 @@ namespace LightGreen.Systems
                 });
         }
 
-        public string Name => "Snow";
+        public override string Name => "Snow";
 
-        public void Apply()
+        protected override Vector2 WindTarget() => GameWind.Direction * (DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
+
+        protected override Color ColorAt(float darkness)
         {
-            if (!GameEvents.InHole || !Falling)
-            {
-                _layer.Stop();
-                return;
-            }
-
-            float strength = Mathf.Max(0f, Settings.Snow.Value);
-            Vector2 target = GameWind.Direction * (DriftAtCalm + DriftPerKmh * GameWind.SpeedKmh);
-            _wind = Vector2.MoveTowards(_wind, target, Time.deltaTime * 0.5f);
-
-            float dark = Mathf.Clamp01(_environment.SceneDarkness);
-            float glow = Mathf.Lerp(DayGlow, NightDim, dark);
-            Color tint = Color.Lerp(Color.white, NightTint, dark);
-            var color = new Color(tint.r * glow, tint.g * glow, tint.b * glow, 1f);
-
-            bool wasRunning = _layer.Running;
-            _layer.Update(GameManager.Camera, strength, color, _wind);
-            if (!wasRunning && _layer.Running) Plugin.LogChange("hole:snow", $"Snow: on, strength {strength:0.##}.");
+            float glow = Mathf.Lerp(DayGlow, NightDim, darkness);
+            Color tint = Color.Lerp(Color.white, NightTint, darkness);
+            return new Color(tint.r * glow, tint.g * glow, tint.b * glow, 1f);
         }
 
-        public void Restore() => _layer.Stop();
-
-        internal void Destroy()
+        internal override void Destroy()
         {
-            _layer.Destroy();
+            base.Destroy();
             if (_crisp != null) Object.Destroy(_crisp);
             if (_soft != null) Object.Destroy(_soft);
         }

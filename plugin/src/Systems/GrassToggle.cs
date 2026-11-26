@@ -14,14 +14,19 @@ namespace LightGreen.Systems
     /// </summary>
     internal sealed class GrassToggle : IFeature
     {
-        private static bool _hidden;
+        private bool _hidden;
+
+        // The one GrassToggle (made by the plugin), for the static patch.
+        private static GrassToggle _instance;
+
+        internal GrassToggle() => _instance = this;
 
         /// <summary>Set by Plugin when the hook applied.</summary>
         internal static bool Hooked;
 
         public string Name => "Grass";
 
-        private static bool _settingLogged;
+        private bool _settingLogged;
 
         public void Apply()
         {
@@ -48,7 +53,7 @@ namespace LightGreen.Systems
                 return batch == null ? null : AccessTools.Method(batch, "Render");
             }
 
-            private static bool Prefix() => !_hidden;
+            private static bool Prefix() => _instance == null || !_instance._hidden;
         }
     }
 }
