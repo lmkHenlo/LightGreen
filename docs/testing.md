@@ -1004,3 +1004,5 @@ ones and 5 notes (the audit report). This build fixes or settles each:
 | A8 | `.cube` errors | Put a `.cube` with a `NaN` line in `LightGreen.filters`, pick it | The log names the file, the line and the value; the filter isn't used |
 | A9 | Shadows | `SunShadowResolution` 2048 with the game's Shadow quality at its highest | Log `Sun shadows on …` shows the game's size kept |
 
+**Results (2026-11-26):** the user reports **A1–A9 pass** on build 8129aa1.
+
