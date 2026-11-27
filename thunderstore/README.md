@@ -1,10 +1,10 @@
 # LightGreen
 
-![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/lmkHenlo/LightGreen/blob/master/LICENSE)
 
 Lighting, atmosphere, weather and photo filters for Super Battle Golf that keep its cel-shaded look.
 
-Version 0.3.1, tested on Super Battle Golf 1.4.0-798 with BepInEx 5.4.23.5.
+Version 0.3.1, tested on Super Battle Golf 1.4.1-823 with BepInEx 5.4.23.5.
 
 LightGreen changes how the game looks for you, using the game's own shaders and effects so it keeps the bright cel-shaded style:
 
@@ -13,8 +13,8 @@ LightGreen changes how the game looks for you, using the game's own shaders and 
 - **Water, ice and shadows.** Sun highlights on water that follow the time of day, more sparkle on snow, and sharper sun shadows (at least 4096 px) that reach further: out to 200 m, from the game's 150 m.
 - **Ambient occlusion** on every course: soft shading under carts and benches, at the foot of posts, trees and walls, and in corners. Open grass stays even.
 - **Light from effects.** Explosions light the ground and players around them for a moment (the big ones with shadows), muzzle flashes pop, and rocket and freeze-bomb trails carry a light. The Thunderstorm item's strikes light where they land and flicker.
-- **Night.** Balls glow evenly, your own the brightest. On City holes made dark with F9, building windows and vehicle lights glow, lampposts light the street, and bright lights bloom.
-- **Weather.** Footprints in snow last longer (45 seconds) and show as blue-grey dents. Rain, cartoon rain or snow (off by default; **F10** steps clear, rain, cartoon rain, snow): rain brings streaks, splashes and a grey overcast sky; cartoon rain brings bold white streaks and a soft blue mist; snow brings soft, round cartoon flakes, a few big ones drifting past the camera, a bright, pale blue sky and slightly colder colours.
+- **Night.** A moon where the moonlight comes from, and brighter stars (`Effects.Stars`) that come out late at dusk. Balls glow evenly, your own the brightest. On City holes made dark with F9, building windows and vehicle lights glow, lampposts light the street, bright lights bloom, and the horizon has a faint warm glow.
+- **Weather.** Footprints in snow last longer (45 seconds) and show as blue-grey dents. Rain, cartoon rain or snow (off by default; **F10** steps clear, rain, cartoon rain, snow): rain brings streaks, splashes and a grey overcast sky with thicker cloud; cartoon rain brings bold white streaks and a soft blue mist; snow brings soft, round cartoon flakes, a few big ones drifting past the camera, a bright, pale blue sky and slightly colder colours.
 - **Lens effects.** A lens flare toward a low sun, a miniature (tilt-shift) look for the hole overview flyover, and depth of field in photo mode. Vignette and chromatic aberration are there too, off by default.
 - **Photo filters.** Mono, Sepia, Faded Film, Teal & Orange, Toy Camera and more, stepped through with **F11**, on top of the rest of the look. Your own `.cube` LUTs work too. The HUD isn't filtered.
 - **HUD sizes.** Each part of the HUD (progress bar, wind, markers, item bar, power meter, chat, scoreboard, name tags and more) has its own size from 0 (hidden) to 100 %.
@@ -78,16 +78,17 @@ Rain = 1
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
 | `Brightness.Day` | `1` | How bright daylight is, from 0.5 to 1.5, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, from 0.25 to 1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
-| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. In r2modman's config editor it's a dropdown of every filter LightGreen has found, sorted A–Z and kept up to date as filters are added or removed. A `.cube` file whose name has a comma in it shows up split in two there, but F11 still reaches it. |
+| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. r2modman's config editor shows it as a dropdown of every filter LightGreen has found, sorted A–Z (the config file lists them in F11 order) and kept up to date as filters are added or removed. A `.cube` file whose name has a comma in it shows up split in two there, but F11 still reaches it. |
 | `Filters.Strength` | `1` | How much of the photo filter shows, from 0 to 1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | How strong each effect is: 0 off, 1 as tuned, 2 double, each up to its own most (below). `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain`, `Effects.CartoonRain`, `Effects.Snow` | `0` | Off unless you turn them up, on the same scale. |
-| `Effects.Stars` | `2` | How bright the stars are at night: 1 is the sky's own level, up to 4. Higher brings out fainter stars too. They hide behind the weather's cloud. |
+| `Effects.Stars` | `2` | How bright the stars are at night, on the same scale (1 is the sky's own level, up to 4): higher also brings out fainter stars. They come out late at dusk and hide behind rain, snow and cartoon rain's cloud. |
+| `Effects.Rain` | `0` | Rain on every course: streaks, splashes where it lands and a grey overcast sky with thicker cloud; surfaces don't get wet. 0–3, how heavy. One weather at a time, as for snow. |
 | `Effects.CartoonRain` | `0` | Cartoon rain on every course: bold, bright white streaks, easier to see than `Effects.Rain` but still rain, and a soft blue mist that keeps the colours bright. 0–3, how heavy. One weather at a time, as for snow. |
 | `Effects.Snow` | `0` | Cartoon snow on every course: soft, round flakes drifting with the wind, a few big ones close by, a bright, pale blue sky and blue-white fog, and slightly colder colours. Nothing settles on the ground. 0–3, how heavy. Only one weather shows at a time: turning one on turns the others off, and if more than one is on when the game starts, snow is kept, then cartoon rain. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
 | `Effects.FootprintSeconds` | `45` | How long a footprint in snow lasts, from 2 to 180 seconds. |
-| `Effects.FootprintMax` | `300` | How many footprints in snow there can be at once; past it the oldest fade out. Lower it for big lobbies on a slower PC. |
+| `Effects.FootprintMax` | `300` | How many footprints in snow there can be at once, from 20 to 2000; past it the oldest fade out. Lower it for big lobbies on a slower PC. |
 | `Shading.Grass` | `true` | `false` hides the grass blades; the ground's own colour shows instead. |
 | `Quality.SunShadowResolution` | `4096` | Sun shadow sharpness: 2048, 4096 or 8192; 0 keeps the game's. Never less sharp than the game's own Shadow quality option. |
 | `Quality.SunShadowDistance` | `200` | How far, in metres, the sun casts shadows; 0 keeps the game's. Never shorter than the game's own. |
@@ -101,7 +102,7 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 3 | `ColorGrading`, `WaterTuning`, `IceGlints`, `BallGlow`, `Lightning`, `Rain`, `CartoonRain`, `Snow` |
 | 2 | `TiltShift`, `Footprints` |
 
-The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first start. It's reloaded when you save it. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`.
+The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first start. It's reloaded when you save it. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`. Either file over 4 MB is refused, with its size in the log.
 
 ### HUD sizes
 
@@ -172,7 +173,7 @@ F11 goes through them in this order. The last three show roughly how the world l
 | Deuteranopia | Roughly how it looks without green-sensitive cones |
 | Tritanopia | Roughly how it looks without blue-sensitive cones |
 
-The filters are in `BepInEx/config/LightGreen.filters.json`, which you can edit while you play. To use your own LUTs, put `.cube` files in `BepInEx/config/LightGreen.filters/`: each becomes a filter named after the file, read only when you pick it, so a big collection doesn't slow the game. In VR, filters keep their colours but not their vignette, distortion or fringes.
+The filters are in `BepInEx/config/LightGreen.filters.json`, which you can edit while you play. To use your own LUTs, put `.cube` files in `BepInEx/config/LightGreen.filters/`: each becomes a filter named after the file, read only when you pick it, so a big collection doesn't slow the game. It's read in the background: the filter before stays on screen for a frame or two until the new one is ready. A `.cube` file over 96 MB is refused, with its size in the log. In VR, filters keep their colours but not their vignette, distortion or fringes.
 
 ## Notes
 

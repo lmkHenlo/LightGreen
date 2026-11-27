@@ -29,7 +29,7 @@ LightGreen was built and tested in three phases, recorded in [docs/testing.md](d
 2. **Light:** ambient occlusion, a grass switch, effect lights, ball glow, lightning, City at night.
 3. **Weather:** longer-lasting footprints in snow, and optional rain without wet surfaces.
 
-Later releases (the rain key, day and night brightness, photo filters, snow) were tested the same way, in the same file.
+Later releases (the rain key, day and night brightness, photo filters, chat notices, snow, cartoon rain, HUD sizes and the night sky) were tested the same way, in the same file.
 
 Each effect is a *feature*: it is applied every frame on a hole, and put back exactly as the game had it when LightGreen is switched off, outside a hole, or if it fails. A feature that throws an error, or whose hook no longer matches the game after an update, switches itself off and the rest carry on.
 
@@ -45,7 +45,7 @@ Each effect is a *feature*: it is applied every frame on a hole, and put back ex
 ### Dependencies
 
 - [BepInEx 5](https://github.com/BepInEx/BepInEx) for Windows x64. On Thunderstore this is `BepInEx-BepInExPack-5.4.2305`.
-- Super Battle Golf 1.4.0 (Unity 6000.3.27f2). LightGreen logs a warning if the game runs a different Unity version.
+- Super Battle Golf 1.4.1-823 (Unity 6000.3.27f2). LightGreen logs a warning if the game runs a different Unity version.
 - **Client-side only.** Only the players who want the look need the mod. It works in any lobby, whoever hosts.
 
 ### With a mod manager
@@ -95,11 +95,12 @@ AmbientOcclusionQuality = Low
 | `TimeOfDay.TransitionSeconds` | `3` | How long a change of time of day blends in. |
 | `Brightness.Day` | `1` | How bright daylight is, 0.5–1.5: the sun, fill light, sky and haze together, on every hole and at every time of day. |
 | `Brightness.Night` | `1` | How bright night is, 0.25–1.5 (lower = darker); dusk falls between the two. Lit windows, lampposts, glowing balls and explosions keep their brightness. |
-| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. In r2modman's config editor it's a dropdown of every filter LightGreen has found, sorted A–Z and kept up to date as filters are added or removed. A `.cube` file whose name has a comma in it shows up split in two there, but F11 still reaches it. |
+| `Filters.Filter` | `None` | The photo filter (below), or the name of one of your `.cube` files. r2modman's config editor shows it as a dropdown of every filter LightGreen has found, sorted A–Z (the config file lists them in F11 order) and kept up to date as filters are added or removed. A `.cube` file whose name has a comma in it shows up split in two there, but F11 still reaches it. |
 | `Filters.Strength` | `1` | How much of the photo filter shows, 0–1, its vignette, fringes, distortion and glow included. In between, a filter is mixed with the normal picture, so Negative and Solarize turn grey around 0.5. |
 | `Effects.*` | `1` | Strength per effect, 0 off, 1 tuned, 2 double, each up to its own most (below): `ShadowTint`, `ColorGrading`, `DistanceHaze`, `LensFlare`, `WaterTuning`, `IceGlints`, `TiltShift`, `PhotoDepthOfField`, `AmbientOcclusion`, `EffectLights`, `BallGlow`, `Lightning`, `CityNight`, `Footprints`. |
 | `Effects.Vignette`, `Effects.ChromaticAberration`, `Effects.Rain`, `Effects.CartoonRain`, `Effects.Snow` | `0` | Off unless you turn them up, on the same scale. |
-| `Effects.Stars` | `2` | How bright the stars are at night, on the same scale (1 is the sky's own level, up to 4): higher also brings out fainter stars, and the brightest pick up a soft glow. They come out late at dusk and hide behind rain, snow and cartoon rain's cloud. |
+| `Effects.Stars` | `2` | How bright the stars are at night, on the same scale (1 is the sky's own level, up to 4): higher also brings out fainter stars. They come out late at dusk and hide behind rain, snow and cartoon rain's cloud. |
+| `Effects.Rain` | `0` | Rain on every course: streaks, splashes where it lands and a grey overcast sky with thicker cloud; surfaces don't get wet. 0–3, how heavy. One weather at a time, as for snow. |
 | `Effects.CartoonRain` | `0` | Cartoon rain on every course: bold, bright white streaks, easier to see than `Effects.Rain` but still rain, and a soft blue mist that keeps the colours bright. 0–3, how heavy. One weather at a time, as for snow. |
 | `Effects.Snow` | `0` | Cartoon snow on every course: soft, round flakes drifting with the wind, a few big ones close by, a bright, pale blue sky and blue-white fog, and slightly colder colours. Nothing settles on the ground. 0–3, how heavy. Only one weather shows at a time: turning one on turns the others off, and if more than one is on when the game starts, snow is kept, then cartoon rain. |
 | `Effects.BallGlowOwnOnly` | `false` | Only your own ball glows. |
@@ -118,7 +119,7 @@ Each effect goes up to its own most: where turning it up further stops making a 
 | 3 | `ColorGrading`, `WaterTuning`, `IceGlints`, `BallGlow`, `Lightning`, `Rain`, `CartoonRain`, `Snow` |
 | 2 | `TiltShift`, `Footprints` |
 
-The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first launch and reloaded when saved. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`.
+The colours for each biome and time of day are in `BepInEx/config/LightGreen.presets.json`, written on first launch and reloaded when saved. A mistake in it is reported in `BepInEx/LogOutput.log` with its line and column, and the previous colours stay until it's fixed. A setting name it doesn't recognise, such as a misspelling, is ignored, and that setting keeps its default. The same goes for `LightGreen.filters.json`. Either file over 4 MB is refused, with its size in the log.
 
 ### HUD sizes
 
@@ -191,7 +192,7 @@ F11 goes through them in this order. The last three show roughly how the world l
 | Deuteranopia | Roughly how it looks without green-sensitive cones |
 | Tritanopia | Roughly how it looks without blue-sensitive cones |
 
-The filters are in `BepInEx/config/LightGreen.filters.json`, written on first launch and reloaded when saved: each sets any of a `.cube` file, a channel mixer, warmth and tint, brightness, contrast, saturation, tone curves, split toning, a gradient map, fade and posterize, plus a vignette, lens distortion, colour fringes and bloom. To use your own LUTs, put `.cube` files (3D or 1D, as Lightroom, Photoshop and Resolve export them) in `BepInEx/config/LightGreen.filters/`. Each one becomes a filter named after the file. A `.cube` file is read when its filter is picked, and only the one in use is kept in memory, so a folder of hundreds costs nothing until used; one that can't be read is reported in the log when picked. In VR, filters keep their colours but not their vignette, distortion or fringes.
+The filters are in `BepInEx/config/LightGreen.filters.json`, written on first launch and reloaded when saved: each sets any of a `.cube` file, a channel mixer, warmth and tint, brightness, contrast, saturation, tone curves, split toning, a gradient map, fade and posterize, plus a vignette, lens distortion, colour fringes and bloom. To use your own LUTs, put `.cube` files (3D or 1D, as Lightroom, Photoshop and Resolve export them) in `BepInEx/config/LightGreen.filters/`. Each one becomes a filter named after the file. A `.cube` file is read when its filter is picked, in the background, so the game doesn't stop while it's read: the filter before stays on screen for a frame or two until the new one is ready. Only the one in use is kept in memory, so a folder of hundreds costs nothing until used. One that can't be read, or is over 96 MB, is reported in the log when picked. In VR, filters keep their colours but not their vignette, distortion or fringes.
 
 ## Known issues
 
@@ -224,6 +225,7 @@ Add `-Test` to also run the offline checks in `tests/`: the `.cube` reader, the 
 | `thunderstore/` | The Thunderstore page (`README.md`), `manifest.json` and `icon.png`. |
 | `plugin/LightGreen.csproj` | Project file for editors; the build script doesn't need it. |
 | `plugin/src/Plugin.cs` | Entry point: settings reload, the F8, F9, F10 and F11 keys, and their messages. |
+| `plugin/src/AssemblyInfo.cs` | The DLL's title, description and version (kept equal to `Plugin.Version`). |
 | `plugin/src/Settings.cs` | The settings, and removed ones taken out of the file. |
 | `plugin/src/Vr.cs` | Whether a headset is in use. |
 | `plugin/src/Core/Features.cs` | The feature interface and host. A feature that throws is put back and switched off until the game restarts; the rest carry on. |

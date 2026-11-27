@@ -1056,9 +1056,9 @@ dim warm orange × darkness × `Effects.CityNight` (up to 1).
 
 | # | Check | Steps | Expected |
 |---|---|---|---|
-| K1 | Moon | F9 to Night on a clear hole; look toward where the shadows point away from | A moon disc, with the phase of the time of day, where the light comes from; shadows fall away from it |
+| K1 | Moon | F9 to Night on a clear hole; look toward where the shadows point away from | A moon disc, shaded as the game's own night sky shades it (the same phase every night), where the light comes from; shadows fall away from it |
 | K2 | Sunset | F9 from Sunset to Blue hour to Night, watching the sky | The sun sets; the moon grows in a little after, never pops; stars come out late |
-| K3 | Stars | Night: `Effects.Stars` 1, 2, 4 | 1 as before; 2 clearly more and brighter; 4 a full sky, brightest stars glowing, not washed out |
+| K3 | Stars | Night: `Effects.Stars` 1, 2, 4 | 1 as before; 2 clearly more and brighter; 4 a full sky, not washed out |
 | K4 | Weather at night | Night, then F10 rain, snow, cartoon rain | Stars fade as the cloud comes in; few or none under full rain or snow; more under the mist |
 | K5 | Cloud cover | Noon, F10 to rain at strength 1, wait 10 s | **More** cloud in the sky's own clouds. If it's less, say so: `_Cutoff` works the other way and the target flips |
 | K6 | Game's own night hole | A City hole the game sets at night (HoleDefault) | Its own moon as before; its stars twice as bright at `Effects.Stars` 2 |
@@ -1070,3 +1070,26 @@ a thin crescent, in a large pale patch. The time of day's Night `moonPhase` (0.5
 and its bright `sunGlowColor` (made for a sun below the horizon) followed the disc. The moon now takes the game's own
 night sky's phase, glow colour and light scatter. To compare: F8 off on a City hole the game sets at night shows the
 game's own moon.
+
+## Documentation audit (after the night sky)
+
+**Audit (2026-11-26):** a documentation audit found 4 medium findings, 7 low and 3 nits (the report), no factual
+errors in the settings, limits, filters or build steps. This change:
+
+- D1: Super Battle Golf 1.4.1-823 in both READMEs, the `ExpectedUnity` summary and the log's Unity warning (the Unity
+  version is unchanged, so the check itself is too).
+- D2: the Thunderstore page's Night and Weather bullets name the moon, the stars, the thicker cloud and the City glow.
+- D3: `Effects.Stars`'s config description ends "0 = no stars, 1 = the sky's own, 2 = double (the default), up to 4"
+  instead of the shared "1 = tuned" (`Effect(…, scale)`).
+- D4: both READMEs say a `.cube` is read in the background and that `.cube` files over 96 MB, and presets or filters
+  files over 4 MB, are refused.
+- D5: K1 expects the game's own moon phase. D11: "the brightest pick up a soft glow" dropped (LightGreen adds no glow;
+  K3 no longer asks for one).
+- D6, D7: `[Unreleased]` entries moved to their Keep a Changelog category; one list of what the offline checks cover.
+- D8–D10, D12–D14: the `Plugin` summary, the README's Background, an `Effects.Rain` row, the A–Z note, `AssemblyInfo.cs`
+  in the Files table, the Thunderstore licence badge links.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| R1 | Stars text | Start the game once, open the config in r2modman's editor, find `Effects.Stars` | Its description ends `0 = no stars, 1 = the sky's own, 2 = double (the default), up to 4.`; other effects still end `0 = off, 1 = tuned, …` |
+| R2 | Load line | Start the game, read the log | No warning about the Unity version; the load line as before |

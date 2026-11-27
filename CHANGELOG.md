@@ -12,8 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `Effects.Stars` (default 2): brighter stars at night, up to 4; higher also brings out fainter ones. They come out late at dusk, and rain, snow and cartoon rain's cloud hides them. Holes the game sets at night get theirs scaled the same way.
 - Thicker cloud in rain and snow (half as much under cartoon rain's mist), from the sky's own clouds.
 - City holes at night: a faint warm glow on the horizon from the streets, with `Effects.CityNight`.
-- `.cube` filters are read on a worker thread: picking a big one (F11) no longer stops the game while it's read (a 65-point cube took about a tenth of a second or more). The filter before stays on screen until the new one is ready, a frame or two later. `.cube` files over 96 MB, and presets or filters files over 4 MB, are refused with their size in the log.
-- `build.ps1 -Test` runs offline checks (`tests/Tests.cs`) for the parts that work without the game: the `.cube` reader, the filter maths, the presets and filters files and the 27 built-in filters, the HUD maths, the weather art, LightGreen's random numbers and the material copy lookup. The build stops if one fails.
+- Size limits: `.cube` files over 96 MB, and presets or filters files over 4 MB, are refused with their size in the log.
+- `build.ps1 -Test` runs offline checks (`tests/Tests.cs`) for the parts that work without the game: the `.cube` reader, the filter maths, the presets and filters files and the 27 built-in filters, the preset lookup, LightGreen's file handling (size limits, whole-file writes), the HUD maths, the weather art and pixels, LightGreen's random numbers and the material copy lookup. The build stops if one fails.
 
 ### Changed
 
@@ -22,12 +22,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Failures LightGreen used to pass over in silence (the camera mode, the course's own grading, the pipeline's colour table size, the `.cube` folder check) are logged once, with the error, so a game update that breaks one shows in the log. Errors are logged in full where only their message was.
 - A key in `[Keys]` the keyboard doesn't have is reported once in the log, instead of failing quietly every frame.
 - Less work and garbage every frame: the presets are looked up once per load instead of by name three times a frame, the time-of-day blend reuses one preset, lights are ranked once before they're sorted, and name matching is ordinal. Footprint fades now reach every particle of a print, however many it has.
-- Inside: the weather's sky for rain, cartoon rain and snow is its own part (`WeatherSky`), run before the time of day; the sky and ambient light are their own class (`SkyLook`); the three weathers share their frame logic (`FallingWeather`); features hear about map and hole changes from the feature host (`IMapAware`) instead of the plugin naming each one; the one-weather rule and F10's memory live in `Weather`; the presets and filters files share one helper (`JsonFile`); the texture code is shared (`TextureArt`).
-
-- The City's street lamps, lit windows and night bloom, and ball glow, come on at night only, not by day in rain, snow or cartoon rain. The weather dims the sun, and LightGreen counted that as dusk: with rain on a sunny hole, the lamps and glow came on part way (about a third). Day and night brightness, and the weather's own colours, still follow how dark the weather makes the scene, as before.
 - The search for City lampposts now runs a little each frame (at most 0.5 ms), like the search for glowing windows, instead of looking at every object on the map in one frame at the start of a night City hole. Until it's done, the lamps of the hole before stay lit.
 - LightGreen's lightning flicker and rain splashes take their random numbers from LightGreen's own generator, so they no longer move the game's.
-- The READMEs now say that `Quality.SunShadowResolution` and `Quality.SunShadowDistance` never go below the game's own values: they only make shadows sharper and longer. To lower the shadow cost, set them to 0 and lower the game's own Shadow quality.
+- `.cube` filters are read on a worker thread: picking a big one (F11) no longer stops the game while it's read (a 65-point cube took about a tenth of a second or more). The filter before stays on screen until the new one is ready, a frame or two later.
+- Inside: the weather's sky, the sky and ambient light, the three weathers' shared frame logic, the one-weather rule and the JSON and texture helpers are each one class (`WeatherSky`, `SkyLook`, `FallingWeather`, `Weather`, `JsonFile`, `TextureArt`), and features hear about map and hole changes from the feature host (`IMapAware`).
+- The READMEs now say that `Quality.SunShadowResolution` and `Quality.SunShadowDistance` never go below the game's own values (to lower the shadow cost, set them to 0 and lower the game's own Shadow quality), cover the night sky, the `.cube` background read and the file size limits, and name Super Battle Golf 1.4.1-823, the version tested. The log's warning about a different Unity version names it too.
 
 ### Fixed
 
@@ -38,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Materials: when nothing had been tuned, putting the materials back (at a map change, with F8, or off a hole) kept hold of the materials already looked at, and a look for materials cut short didn't start again until the next timed one, up to 10 s later.
 - Materials the game copies from a tuned one ("… (Instance)") are now given the original's stock values by name. They were matched by value alone, and two materials tuned to the same value but with different stock values could give a copy the wrong one after F8 or a map change.
 - Ambient occlusion without the grass: the grass-free depth was kept for the rest of the frame, so a camera rendered twice in one frame would have reused a texture from its first render. It's now drawn again for each render.
+- The City's street lamps, lit windows and night bloom, and ball glow, came on by day in rain, snow or cartoon rain; they now come on at night only. The weather dims the sun, and LightGreen counted that as dusk: with rain on a sunny hole, the lamps and glow came on part way (about a third). Day and night brightness, and the weather's own colours, still follow how dark the weather makes the scene, as before.
 
 ### Removed
 
