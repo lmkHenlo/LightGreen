@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- A moon at night. The sky draws its moon with its sun disc (as the game's own night skies do), but LightGreen left the disc pointing at the sun below the horizon, so LightGreen's nights had moonlight and no moon. After sunset the disc now goes where the moonlight comes from, at the moon's size and with the time of day's moon phase, growing in over the first degrees below the horizon, with a soft halo.
+- A moon at night. The sky draws its moon with its sun disc (as the game's own night skies do), but LightGreen left the disc pointing at the sun below the horizon, so LightGreen's nights had moonlight and no moon. After sunset the disc now goes where the moonlight comes from, drawn as the game's own night sky draws its moon (its size, phase and faint glow), growing in over the first degrees below the horizon. The presets' `moonPhase` is no longer used.
 - `Effects.Stars` (default 2): brighter stars at night, up to 4; higher also brings out fainter ones. They come out late at dusk, and rain, snow and cartoon rain's cloud hides them. Holes the game sets at night get theirs scaled the same way.
 - Thicker cloud in rain and snow (half as much under cartoon rain's mist), from the sky's own clouds.
 - City holes at night: a faint warm glow on the horizon from the streets, with `Effects.CityNight`.

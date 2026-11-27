@@ -1049,7 +1049,7 @@ no moon showed (City night screenshot: stars and clouds, no moon). The sky also 
 clouds by time × `_WindSpeed`, so changing the speed would jump them across the sky.
 
 Changed (`SkyLook`): after sunset under LightGreen's time of day the disc points at the moonlight, `_SunSize` grows to
-0.092 over the first 6° below the horizon, `_SunScatterIntensity` keeps 0.35 round the moon; `_StarsExposure` = the sky's
+0.092 over the first 6° below the horizon, `_MoonCycle` 0.381, `_LightFuzziness` 0.329 and `_SunGradientColor` (0.028, 0.046, 0.052) round the moon, the game's own night sky's; `_StarsExposure` = the sky's
 night level (1, or the hole's own) × `Effects.Stars` (default 2) × (1 − 0.9 × overcast), eased in from `night` 0.4;
 `_Cutoff` toward 0.45 with the weather's overcast (half under cartoon rain); City at night, `_HorizonColor` 25 % toward a
 dim warm orange × darkness × `Effects.CityNight` (up to 1).
@@ -1065,3 +1065,8 @@ dim warm orange × darkness × `Effects.CityNight` (up to 1).
 | K7 | City glow | City at Night, `Effects.CityNight` 0 then 1 | A faint warm horizon at 1, none at 0 |
 | K8 | F8 | F8 off at Night | The game's own sky: no LightGreen moon, stars as the game has them |
 
+**Results and change (2026-11-26, LogOutput.log and a City screenshot at Night):** the moon showed as a flat dark ring with
+a thin crescent, in a large pale patch. The time of day's Night `moonPhase` (0.5, never seen before) gave the dark disc,
+and its bright `sunGlowColor` (made for a sun below the horizon) followed the disc. The moon now takes the game's own
+night sky's phase, glow colour and light scatter. To compare: F8 off on a City hole the game sets at night shows the
+game's own moon.

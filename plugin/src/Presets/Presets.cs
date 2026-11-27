@@ -51,7 +51,7 @@ namespace LightGreen.Presets
 
         [Tooltip("0 = day, 1 = night: shows the sky's stars and moon and dims the sun's glow in the sky.")]
         public float night;
-        [Tooltip("Moon phase the sky shows at night (0 to 1).")]
+        [Tooltip("Not used since the moon became visible: it takes the game's own night-sky phase. Kept so older files read.")]
         public float moonPhase = 0.5f;
 
         [Tooltip("How far the distance haze colour moves toward the sky's horizon colour (0 to 1).")]
