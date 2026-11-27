@@ -102,7 +102,9 @@ namespace LightGreen.Systems
                 Restore();
                 return;
             }
+            long t = WorkTiming.Now;
             if (_sweep.Running || Time.unscaledTime >= _nextScan) Scan();
+            WorkTiming.Lap(FindStep, t);
 
             BiomePreset biome = PresetStore.ForBiome(GameEvents.CurrentBiome);
             TimePreset time = _env.Current;
@@ -132,10 +134,16 @@ namespace LightGreen.Systems
             _forceApply = false;
             _applied = v;
 
+            t = WorkTiming.Now;
             foreach (Material m in _toon) if (m != null) ApplyToon(m, v);
             foreach (Material m in _water) if (m != null) ApplyWater(m, v);
             foreach (Material m in _terrain) if (m != null) ApplyTerrain(m, v);
+            WorkTiming.Lap(TuneStep, t);
         }
+
+        // Steps of the Materials part in the timing log: looking for materials, and setting them.
+        private static readonly int FindStep = WorkTiming.Step("Materials: find");
+        private static readonly int TuneStep = WorkTiming.Step("Materials: tune");
 
         // ---- Finding materials --------------------------------------------------------------------
 

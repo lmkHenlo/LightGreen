@@ -122,7 +122,8 @@ namespace LightGreen
                 new AcceptableValueRange<float>(0f, 2f)));
             TimingLog = config.Bind("General", "TimingLog", false,
                 "For finding hitches: every 10 s, logs the frames that took much longer than usual (whatever the cause) and how much " +
-                "of each was LightGreen's own work. Frames where LightGreen's work took over 2 ms are logged even when this is off.");
+                "of each was LightGreen's own work, the garbage collections (and whether one fell in that frame) and the managed " +
+                "heap's size. Frames where LightGreen's work took over 2 ms are logged even when this is off.");
 
             ToggleKey = config.Bind("Keys", "ToggleKey", Key.F8,
                 "Steps LightGreen while playing, to compare with the game's own look: on, then HUD only (the game's own look " +

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - City holes at night: a faint warm glow on the horizon from the streets, with `Effects.CityNight`.
 - Size limits: `.cube` files over 96 MB, and presets or filters files over 4 MB, are refused with their size in the log.
 - `build.ps1 -Test` runs offline checks (`tests/Tests.cs`) for the parts that work without the game: the `.cube` reader, the filter maths, the presets and filters files and the 27 built-in filters, the preset lookup, LightGreen's file handling (size limits, whole-file writes), the HUD maths, the weather art and pixels, LightGreen's random numbers and the material copy lookup. The build stops if one fails.
+- `General.TimingLog` also counts the garbage collections in each 10 s (Mono's collector stops the whole game while it runs), says when one fell in the worst or the longest frame, and gives the managed heap's size. The worst frame's line splits Time of day and Materials into steps (`[steps: Time of day: capture …, Materials: tune …]`), to find what a one-frame cost is made of.
 
 ### Changed
 
@@ -27,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `.cube` filters are read on a worker thread: picking a big one (F11) no longer stops the game while it's read (a 65-point cube took about a tenth of a second or more). The filter before stays on screen until the new one is ready, a frame or two later.
 - Inside: the weather's sky, the sky and ambient light, the three weathers' shared frame logic, the one-weather rule and the JSON and texture helpers are each one class (`WeatherSky`, `SkyLook`, `FallingWeather`, `Weather`, `JsonFile`, `TextureArt`), and features hear about map and hole changes from the feature host (`IMapAware`).
 - The READMEs now say that `Quality.SunShadowResolution` and `Quality.SunShadowDistance` never go below the game's own values (to lower the shadow cost, set them to 0 and lower the game's own Shadow quality), cover the night sky, the `.cube` background read and the file size limits, and name Super Battle Golf 1.4.1-823, the version tested. The log's warning about a different Unity version names it too.
+- The timing log measures each frame's length with LightGreen's own clock. The game's frame time didn't match the work timed in that frame around loads ("21.5 ms … in a 2.8 ms frame").
 
 ### Fixed
 

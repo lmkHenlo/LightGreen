@@ -68,7 +68,7 @@ Rain = 1
 | `General.Enabled` | `true` | `false` turns LightGreen off: the game looks exactly as it does without the mod. |
 | `General.Notices` | `Chat` | Where LightGreen says what a key or a config edit changed. `Chat`: a line in the game's chat box, seen only by you (with no chat box, the top-left corner). `Screen`: the top-left corner. `Off`: nowhere. |
 | `General.NoticeDelay` | `0.5` | Chat only: seconds (0–2) to wait after the last change before posting, so stepping through filters posts one line. `0` posts each change at once. |
-| `General.TimingLog` | `false` | For finding hitches: every 10 s, logs frames much longer than usual and how much of each was LightGreen's. |
+| `General.TimingLog` | `false` | For finding hitches: every 10 s, logs frames much longer than usual and how much of each was LightGreen's, and the garbage collections. |
 | `Keys.ToggleKey` | `F8` | Steps LightGreen while you play: on, HUD only (the game's own look with your HUD sizes), off. |
 | `Keys.TimeKey` | `F9` | Steps through the times of day. |
 | `Keys.RainKey` | `F10` | Steps the weather: clear, rain, cartoon rain, snow, then clear again, each as heavy as it last was (or 1). |

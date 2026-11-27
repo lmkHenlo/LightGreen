@@ -1093,3 +1093,24 @@ errors in the settings, limits, filters or build steps. This change:
 |---|---|---|---|
 | R1 | Stars text | Start the game once, open the config in r2modman's editor, find `Effects.Stars` | Its description ends `0 = no stars, 1 = the sky's own, 2 = double (the default), up to 4.`; other effects still end `0 = off, 1 = tuned, …` |
 | R2 | Load line | Start the game, read the log | No warning about the Unity version; the load line as before |
+
+## Timing log: garbage collections, frame clock, steps (performance audit P16)
+
+**Audit (2026-11-26):** the performance audit measured its hitches from the timing log, but couldn't count garbage
+collections, the frame time beside the worst work didn't add up around loads ("21.5 ms … in a 2.8 ms frame"), and the
+first frame of a map (Time of day 9-15 ms) couldn't be split into its steps. This build:
+
+- The frame's length is LightGreen's own clock, from one `Update` to the next, not `Time.unscaledDeltaTime`.
+- With `General.TimingLog` on: `N garbage collections, managed heap M MB` at the end of each line, and `, with a garbage
+  collection` after the worst or longest frame when one fell in it (`GC.CollectionCount(0)` read once a frame). A line
+  is also written for a 10 s with collections but no slow frame.
+- Steps (`WorkTiming.Step`, not added to the frame's total): `Time of day: capture`, `sun search` (inside the capture,
+  or the sun's later search), `blend`, `sun`, `sky and ambient`; `Materials: find`, `Materials: tune`. Shown after the
+  worst frame's parts as `[steps: …]`.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| T1 | Steps | `General.TimingLog = true`; change map twice | The map's first frame line has `[steps: …]` with `Time of day: capture` and `Materials: tune` among them; the steps add up to about their part |
+| T2 | Frame clock | Same lines | The frame time beside the worst work is at least LightGreen's work in it |
+| T3 | Collections | Play a few minutes with `TimingLog` on, then F11 through a few big `.cube` filters | Lines end `N garbage collections, managed heap M MB`; more collections while stepping through big cubes |
+| T4 | Off | `TimingLog = false` | Only lines for frames over 2 ms, as before, with no garbage collection part |

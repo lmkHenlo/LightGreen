@@ -195,13 +195,25 @@ namespace LightGreen.Systems
 
         internal static bool Unscaled(float scale) => Mathf.Abs(scale - 1f) < 1e-3f;
 
+        // Steps of the Time of day part in the timing log: the first frame of a map measured 9-15 ms here, cause unknown.
+        private static readonly int CaptureStep = WorkTiming.Step("Time of day: capture");
+        private static readonly int SunSearchStep = WorkTiming.Step("Time of day: sun search");
+        private static readonly int BlendStep = WorkTiming.Step("Time of day: blend");
+        private static readonly int SunStep = WorkTiming.Step("Time of day: sun");
+        private static readonly int SkyStep = WorkTiming.Step("Time of day: sky and ambient");
+
         internal void Update()
         {
+            long t = WorkTiming.Now;
             CaptureIfNewScene();
+            t = WorkTiming.Lap(CaptureStep, t);
             if (!_captured) return;
             UpdateTime();
+            t = WorkTiming.Lap(BlendStep, t);
             ApplySun();
+            t = WorkTiming.Lap(SunStep, t);
             _skyLook.Apply(this);
+            WorkTiming.Lap(SkyStep, t);
         }
 
         internal void OnPresetsReloaded() => _target = (TimeOfDay)(-1);
@@ -211,10 +223,13 @@ namespace LightGreen.Systems
         private static Light FindSun()
         {
             if (RenderSettings.sun != null && RenderSettings.sun.isActiveAndEnabled) return RenderSettings.sun;
-            return Object.FindObjectsByType<Light>(FindObjectsSortMode.None)
+            long t = WorkTiming.Now;
+            Light sun = Object.FindObjectsByType<Light>(FindObjectsSortMode.None)
                 .Where(l => l.type == LightType.Directional && l.isActiveAndEnabled)
                 .OrderByDescending(l => l.intensity)
                 .FirstOrDefault();
+            WorkTiming.Lap(SunSearchStep, t);   // inside the capture step (or the sun's later search)
+            return sun;
         }
 
         private void CaptureIfNewScene()
