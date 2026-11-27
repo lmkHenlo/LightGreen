@@ -1114,3 +1114,20 @@ first frame of a map (Time of day 9-15 ms) couldn't be split into its steps. Thi
 | T2 | Frame clock | Same lines | The frame time beside the worst work is at least LightGreen's work in it |
 | T3 | Collections | Play a few minutes with `TimingLog` on, then F11 through a few big `.cube` filters | Lines end `N garbage collections, managed heap M MB`; more collections while stepping through big cubes |
 | T4 | Off | `TimingLog = false` | Only lines for frames over 2 ms, as before, with no garbage collection part |
+
+**Results (2026-11-26, LogOutput.log, game 1.4.1, ten maps and the F11 filters):** T1-T3 pass; T4 not run (the log
+was on throughout).
+
+- T1: the session's first map frame was Time of day 33.7 ms: `capture 25.2, sky and ambient 7.4, sun 0.8, blend 0.3`,
+  no `sun search` (the scene names its sun). No later map change shows Time of day over 2 ms, so this is a once-a-session
+  first-use cost (most likely the first run of that code), inside a 396 ms frame of the game's own. `Materials: find`
+  is 0.5 ms in most frames, but 3.6 ms at the first map and 4.5 ms once on City (a 10 s rescan): the renderer list made
+  in one call (`ObjectSweep.Start`).
+- T2: every frame time now covers the work in it ("44.1 ms … in a 396.5 ms frame").
+- T3: about 1 collection per 10 s in play, managed heap 133-152 MB. Stepping F11 through filters: 16-18 per 10 s
+  (LobbyEOS counted 27), with `Photo filter` 6.7-7.6 ms in each pick's frame and 32-62 frames over 2 ms per 10 s:
+  building the 32³ colour table runs on the game's thread. Keys and config 1.5 ms while stepping (the config file is
+  written on each pick).
+- Also: Ball glow 2.2-3.8 ms once a second on night City holes; HUD sizes 6.4-13.1 ms at each map load and 2.7-3.4 ms
+  in the scans after; City night under 2 ms this time (15,025 objects in 13 frames). The long frames (200-420 ms at map
+  changes, 12-43 ms in play) had 0.0-0.1 ms of LightGreen's work: they're the game's own.
