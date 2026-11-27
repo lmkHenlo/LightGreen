@@ -1166,3 +1166,12 @@ pick):** `[ok] Hook: Balls made`. P3: each load now has its first look (6.7-8.7 
 still changing as players joined) in place of 10-13 frames over 2 ms. P4 in part: the one pick had no `Photo filter`
 part over 2 ms (Keys and config 2.3 ms in that frame). P1, P2, P5 and P6 not tried (no night hole; filters not stepped
 through). The session's first map: `Time of day: sky and ambient 7.1, capture 2.4` (25.2 the time before), once.
+
+**Results (2026-11-26, LogOutput.log, hosting; Driving Range, City (the game's own night) with F9 through the day,
+Coast; F10 rounds; F11 through about 100 filters):** P1 passes: no `Ball glow` part over 2 ms on the night City hole
+(10 frames per 10 s before). P4 passes: no `Photo filter` part over 2 ms in any pick. P5 passes: 2-5 garbage
+collections per 10 s while stepping, against 16-18. P3 as before: one HUD look per load (8.6 ms). P2 and P6 not tried.
+Left: Keys and config 1.9-5.1 ms on a pick (BepInEx writes the config file on each key press); Rain 6.3 ms the first
+time weather started in the session (making its particles); and a bug: the `.cube` file `Omega Derry .cube` (a space
+before `.cube`) was shown as "isn't in … the folder; showing none", and the next F11 went back to the first filter,
+since the filter's name keeps the space and the lookup and F11 trim it.
