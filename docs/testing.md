@@ -1160,3 +1160,9 @@ while stepping through `.cube` filters. This build, with the look unchanged:
 | P4 | Filters | F11 through 20 or so filters, built-in and `.cube`, then hold Shift+F11 | No `Photo filter` part over 2 ms; each filter looks as before; F11 held skips ahead and lands on the last one |
 | P5 | Collections | Same as P4 | Fewer garbage collections per 10 s than 16-18 |
 | P6 | F8 | F8 through on, HUD only, off with a filter and night on | As before |
+
+**Results (2026-11-26, LogOutput.log, client in an 8-player lobby; Driving Range, Snow and Forest by day, one F11
+pick):** `[ok] Hook: Balls made`. P3: each load now has its first look (6.7-8.7 ms) and one later look (3.1 ms, the HUD
+still changing as players joined) in place of 10-13 frames over 2 ms. P4 in part: the one pick had no `Photo filter`
+part over 2 ms (Keys and config 2.3 ms in that frame). P1, P2, P5 and P6 not tried (no night hole; filters not stepped
+through). The session's first map: `Time of day: sky and ambient 7.1, capture 2.4` (25.2 the time before), once.
