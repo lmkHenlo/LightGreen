@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The timing log measures each frame's length with LightGreen's own clock. The game's frame time didn't match the work timed in that frame around loads ("21.5 ms … in a 2.8 ms frame").
 - Ball glow finds the balls from a list the game's own `GolfBall.Awake` adds to, instead of looking through the whole scene once a second (2.2-3.8 ms each time on City maps). A new ball glows from its first frame instead of within a second. If the hook doesn't fit a game update, the search once a second is used, as before.
 - The HUD's later looks after a load (at 1, 3 and 6 s) are skipped when the HUD hasn't changed since the first: the same canvases, with as many objects under each. A look went through all of the HUD's components, 2.7-13 ms.
+- F8, F9, F10 and F11 change their setting at once, but the config file is written once, half a second after the last key press (and when the game quits), instead of on each press: BepInEx rewrites the whole file each time, 1.9-5.1 ms an F11 press while stepping through filters. A config edit isn't reloaded while such a save waits.
 
 ### Fixed
 
@@ -42,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Materials the game copies from a tuned one ("… (Instance)") are now given the original's stock values by name. They were matched by value alone, and two materials tuned to the same value but with different stock values could give a copy the wrong one after F8 or a map change.
 - Ambient occlusion without the grass: the grass-free depth was kept for the rest of the frame, so a camera rendered twice in one frame would have reused a texture from its first render. It's now drawn again for each render.
 - The City's street lamps, lit windows and night bloom, and ball glow, came on by day in rain, snow or cartoon rain; they now come on at night only. The weather dims the sun, and LightGreen counted that as dusk: with rain on a sunny hole, the lamps and glow came on part way (about a third). Day and night brightness, and the weather's own colours, still follow how dark the weather makes the scene, as before.
+- A `.cube` file with a space at either end of its name ("Omega Derry .cube") couldn't be picked: it was "not in the folder", and the next F11 went back to the first filter. Its filter is now named without the space. Two files whose names differ only by those spaces make one filter, with a line in the log.
 
 ### Removed
 

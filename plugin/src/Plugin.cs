@@ -61,6 +61,11 @@ namespace LightGreen
         private View _view = View.On;
         private float _nextConfigCheck;
         private DateTime _configWriteTime;
+        /// <summary>A key press changed a setting and the file isn't saved yet: it is, <see cref="SaveDelay"/> after the last.</summary>
+        private bool _savePending;
+        private float _saveDue;
+        /// <summary>BepInEx rewrites the whole config file on each change (1.9-5.1 ms an F11 press); key presses save once, after this.</summary>
+        private const float SaveDelay = 0.5f;
         private string _filterChoicesWritten;   // the filter list last written to the config file
         private int _filterRevisionSeen;
         private string _notice;
@@ -165,6 +170,7 @@ namespace LightGreen
             WorkTiming.NextFrame();
             long start = WorkTiming.Now;
             if (_pendingKinds.Count > 0 && Time.unscaledTime >= _noticesDueAt) FlushNotices();
+            if (_savePending && Time.unscaledTime >= _saveDue) SaveNow();
             ReloadConfigIfEdited();
             PresetStore.Poll();
             FilterStore.Poll();
@@ -216,8 +222,34 @@ namespace LightGreen
         /// </summary>
         private void OwnWrite(Action change)
         {
-            change();
-            _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+            // The change takes effect now; the file is written once, a moment after the last key press.
+            bool saving = Config.SaveOnConfigSet;
+            Config.SaveOnConfigSet = false;
+            try
+            {
+                change();
+            }
+            finally
+            {
+                Config.SaveOnConfigSet = saving;
+            }
+            _savePending = true;
+            _saveDue = Time.unscaledTime + SaveDelay;
+        }
+
+        /// <summary>Writes the config file now, and takes its time as LightGreen's own write (not an edit to reload).</summary>
+        private void SaveNow()
+        {
+            _savePending = false;
+            try
+            {
+                Config.Save();
+                _configWriteTime = System.IO.File.GetLastWriteTimeUtc(Config.ConfigFilePath);
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Couldn't save the config file: {e}");
+            }
         }
 
         private static readonly System.Collections.Generic.Dictionary<string, string> Logged =
@@ -279,13 +311,14 @@ namespace LightGreen
             _filterChoicesWritten = choices;
             try
             {
-                // Take in an edit to the file first, so saving doesn't write over it.
-                if (_configWriteTime != default)
+                // Take in an edit to the file first, so saving doesn't write over it (not while a key press's
+                // change waits to be saved: reloading would put the old value back).
+                if (_configWriteTime != default && !_savePending)
                 {
                     _nextConfigCheck = 0f;
                     ReloadConfigIfEdited();
                 }
-                OwnWrite(Config.Save);
+                SaveNow();
             }
             catch (Exception e)
             {
@@ -296,6 +329,8 @@ namespace LightGreen
         /// <summary>Settings changed in the config file while playing take effect within a second.</summary>
         private void ReloadConfigIfEdited()
         {
+            // A key press's change not saved yet: the file is still the old one, so it isn't an edit to take in.
+            if (_savePending) return;
             if (Time.unscaledTime < _nextConfigCheck) return;
             _nextConfigCheck = Time.unscaledTime + 1f;
             try
@@ -378,6 +413,7 @@ namespace LightGreen
 
         private void OnDestroy()
         {
+            if (_savePending) SaveNow();   // the last key press's change, when the game quits within the delay
             _features.RestoreAll();
             _volumes?.Destroy();
             _filter.Destroy();

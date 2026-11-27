@@ -1175,3 +1175,23 @@ Left: Keys and config 1.9-5.1 ms on a pick (BepInEx writes the config file on ea
 time weather started in the session (making its particles); and a bug: the `.cube` file `Omega Derry .cube` (a space
 before `.cube`) was shown as "isn't in … the folder; showing none", and the next F11 went back to the first filter,
 since the filter's name keeps the space and the lookup and F11 trim it.
+
+## Config saves and .cube names (after the performance fixes)
+
+**From the last results:** each F11 press cost 1.9-5.1 ms (Keys and config), BepInEx writing the whole config file
+on each change; and `Omega Derry .cube` couldn't be picked (its filter name kept the space before `.cube`; the lookup
+and F11 trim names). This build:
+
+- Key presses (`OwnWrite`): the setting changes at once with `Config.SaveOnConfigSet` off, and the file is written
+  once, 0.5 s after the last press (`SaveNow`), and at quit if one is waiting. The config reload check waits while a
+  save is due, so it can't put the old value back; the filter list update saves at once, as before.
+- `.cube` filter names: `FilterStore.CubeName` drops spaces at either end of the file name; files are taken in name
+  order, and a second file making the same name is skipped with a warning. 2 new offline checks (96).
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| C1 | Stepping | `TimingLog` on; F11 through 30 filters quickly | No `Keys and config` part over 2 ms while stepping; one save after (at most one frame of it) |
+| C2 | Saved | Stop on a filter, wait a second, quit the game, start it again | The same filter on; `Filters.Filter` in the file is that filter |
+| C3 | Quit at once | F11 then quit within half a second | The new filter is kept after a restart |
+| C4 | Config edit | While playing, change `Effects.Stars` in the config file and save | `Config reloaded.`, the stars change, as before |
+| C5 | Space in a name | F11 to `Omega Derry` | It shows (no "isn't in … the folder"); the next F11 goes to the filter after it, not the first |

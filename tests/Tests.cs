@@ -331,6 +331,10 @@ namespace LightGreen.Tests
                 string cube = Path.Combine(folder, "two.cube");
                 File.WriteAllText(cube, "LUT_1D_SIZE 2\n0 0 0\n1 1 1\n");
                 Check(FilterStore.ReadCube(cube).Size == 2, "a .cube file read as the worker thread reads it");
+                Check(FilterStore.CubeName(Path.Combine(folder, "Omega Derry .cube")) == "Omega Derry",
+                      "a .cube file named with a space before .cube makes a filter without it");
+                Check(FilterStore.CubeName(" Warm  .cube") == "Warm" && FilterStore.CubeName("  .cube") == "",
+                      "spaces at either end of a .cube name are dropped; a name of spaces only is no filter");
             }
             finally
             {

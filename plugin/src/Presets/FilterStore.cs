@@ -203,7 +203,7 @@ namespace LightGreen.Presets
                 string cube = null;
                 if (!string.IsNullOrWhiteSpace(preset.lut))
                 {
-                    string file = Path.GetFileNameWithoutExtension(preset.lut.Trim());
+                    string file = CubeName(preset.lut);
                     if (!cubes.TryGetValue(file, out cube))
                         _log.LogWarning($"Photo filter \"{name}\": there's no {file}.cube in {FolderPath}; using the filter without it.");
                 }
@@ -267,9 +267,28 @@ namespace LightGreen.Presets
                 _log.LogWarning($"Couldn't list {FolderPath}: {e.Message}");
                 return cubes;
             }
-            foreach (string path in files) cubes[Path.GetFileNameWithoutExtension(path)] = path;
+            Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+            foreach (string path in files)
+            {
+                string name = CubeName(path);
+                if (name.Length == 0) continue;
+                if (cubes.TryGetValue(name, out string first))
+                {
+                    _log.LogWarning($"Photo filters: {Path.GetFileName(path)} and {Path.GetFileName(first)} both make a filter " +
+                                    $"called \"{name}\"; {Path.GetFileName(first)} is used.");
+                    continue;
+                }
+                cubes[name] = path;
+            }
             return cubes;
         }
+
+        /// <summary>
+        /// A .cube file's filter name: its file name without .cube, and without spaces at either end. Names are looked up
+        /// trimmed (Filters.Filter, F11), so "Omega Derry .cube" kept its space and couldn't be picked.
+        /// </summary>
+        internal static string CubeName(string path) =>
+            string.IsNullOrWhiteSpace(path) ? "" : Path.GetFileNameWithoutExtension(path.Trim()).Trim();
 
         /// <summary>
         /// Whether the last look at the folder (on a worker thread, every 2 s) found it changed; starts the next look.
