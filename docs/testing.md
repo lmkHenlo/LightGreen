@@ -1195,3 +1195,10 @@ and F11 trim names). This build:
 | C3 | Quit at once | F11 then quit within half a second | The new filter is kept after a restart |
 | C4 | Config edit | While playing, change `Effects.Stars` in the config file and save | `Config reloaded.`, the stars change, as before |
 | C5 | Space in a name | F11 to `Omega Derry` | It shows (no "isn't in … the folder"); the next F11 goes to the filter after it, not the first |
+
+**Results (2026-11-26, LogOutput.log, hosting; Driving Range, City at night, Coast, Forest; 44 F11 picks, two
+config edits):** C1 passes: no part over 2 ms while stepping (the most 1.9 ms in a frame), against Keys and config
+1.9-5.1 ms on each pick before. C4 passes: both edits logged `Config reloaded.` and took effect. C2, C3 and C5 not shown
+by this log (the session started on `669`, saved by the build before; no pick of `Omega Derry`). 12 and 8 garbage
+collections in the two 10 s after the stepping, around the config edits, with LightGreen under 2 ms in every frame;
+2-5 while stepping before. Snow 5.2 ms the first time weather started (as rain's 6.3 ms the time before), once.
