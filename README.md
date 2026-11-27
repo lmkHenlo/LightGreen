@@ -3,7 +3,7 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 
-Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
+Lighting, atmosphere, weather and photo filters for Super Battle Golf that keep its cel-shaded look.
 
 LightGreen adds a time of day you can change (F9), colour grading and distance haze for each biome, lens effects, shadows that lean toward the biome's hue, sharper and longer sun shadows, ambient occlusion on every course, light from explosions, muzzle flashes, rocket trails and lightning, glowing balls at night, lit City streets at night, a moon and brighter stars at night, longer-lasting footprints in snow, optional rain, cartoon rain or cartoon snow you step through with F10, photo filters you step through with F11, your own .cube LUTs included, and a size for each part of the HUD, from 0 (hidden) to 100 %. Every effect is made with the game's own shaders, URP's built-in effects and the game's own systems, so it keeps the game's bright look and ships nothing but one plugin DLL. **F8** steps between LightGreen on, HUD only (the game's own look with your HUD sizes) and off, to compare with the game's own look. It only changes your own screen: nothing is sent over the network, and the host and other players don't need the mod.
 

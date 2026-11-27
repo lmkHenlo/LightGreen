@@ -2,7 +2,7 @@
 
 ![license](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
 
-Lighting, atmosphere and weather for Super Battle Golf that keep its cel-shaded look. Client-side: only you need it.
+Lighting, atmosphere, weather and photo filters for Super Battle Golf that keep its cel-shaded look.
 
 Version 0.3.1, tested on Super Battle Golf 1.4.0-798 with BepInEx 5.4.23.5.
 
