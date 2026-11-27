@@ -1,7 +1,7 @@
 {
   "name": "LightGreen",
   "author": "lmkHenlo",
-  "version_number": "0.3.1",
+  "version_number": "0.4.0",
   "website_url": "https://github.com/lmkHenlo/LightGreen",
   "description": "Lighting, atmosphere, weather and photo filters for Super Battle Golf that keep its cel-shaded look.",
   "dependencies": [

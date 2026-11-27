@@ -1208,4 +1208,4 @@ collections in the two 10 s after the stepping, around the config edits, with Li
 **Results (2026-11-26):** the user reports every open check passes: Q1-Q8 (code quality fixes), K1-K8 (night sky; K5:
 the weather thickens the sky's clouds, so `_Cutoff` goes the right way), R1-R2 (documentation fixes), T4 (timing log
 off), P2 and P6 (performance fixes), C2, C3 and C5 (config saves, `.cube` names). With the results above, every check
-since 0.3.1 passes.
+since 0.3.1 passes. Released as 0.4.0.

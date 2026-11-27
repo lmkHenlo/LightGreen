@@ -31,7 +31,7 @@ namespace LightGreen
     {
         public const string Guid = "com.lightgreen";
         public const string Name = "LightGreen";
-        public const string Version = "0.3.1";
+        public const string Version = "0.4.0";
 
         /// <summary>
         /// The Unity version of the game build LightGreen is made for (Super Battle Golf 1.4.1-823). A different

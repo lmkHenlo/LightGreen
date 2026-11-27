@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-26
+
 ### Added
 
 - A moon at night. The sky draws its moon with its sun disc (as the game's own night skies do), but LightGreen left the disc pointing at the sun below the horizon, so LightGreen's nights had moonlight and no moon. After sunset the disc now goes where the moonlight comes from, drawn as the game's own night sky draws its moon (its size, phase and faint glow), growing in over the first degrees below the horizon. The presets' `moonPhase` is no longer used.
@@ -137,7 +139,8 @@ The first release.
 - **F8** switches LightGreen off and on to compare with the game's own look (`Keys.ToggleKey`), and `General.Enabled` turns it off entirely.
 - The settings file is reloaded within a second of being saved.
 
-[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.3.1...HEAD
+[unreleased]: https://github.com/lmkHenlo/LightGreen/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/lmkHenlo/LightGreen/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/lmkHenlo/LightGreen/compare/v0.1.1...v0.2.0

@@ -6,7 +6,7 @@
     <RootNamespace>LightGreen</RootNamespace>
     <LangVersion>9.0</LangVersion>
     <Nullable>disable</Nullable>
-    <Version>0.3.1</Version>
+    <Version>0.4.0</Version>
     <Authors>lmkHenlo</Authors>
     <Company>lmkHenlo</Company>
     <Copyright>Copyright (c) 2026 lmkHenlo</Copyright>
