@@ -1202,3 +1202,10 @@ config edits):** C1 passes: no part over 2 ms while stepping (the most 1.9 ms in
 by this log (the session started on `669`, saved by the build before; no pick of `Omega Derry`). 12 and 8 garbage
 collections in the two 10 s after the stepping, around the config edits, with LightGreen under 2 ms in every frame;
 2-5 while stepping before. Snow 5.2 ms the first time weather started (as rain's 6.3 ms the time before), once.
+
+## Before 0.4.0
+
+**Results (2026-11-26):** the user reports every open check passes: Q1-Q8 (code quality fixes), K1-K8 (night sky; K5:
+the weather thickens the sky's clouds, so `_Cutoff` goes the right way), R1-R2 (documentation fixes), T4 (timing log
+off), P2 and P6 (performance fixes), C2, C3 and C5 (config saves, `.cube` names). With the results above, every check
+since 0.3.1 passes.
