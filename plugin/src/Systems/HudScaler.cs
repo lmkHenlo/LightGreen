@@ -13,7 +13,9 @@ namespace LightGreen.Systems
     /// The [HUD] section: each HUD group drawn at its own size, 0–100 %, 0 hiding it. Only you see it.
     /// <para>
     /// Screen elements are found from the game's HUD components in one pass over the HUD's own canvases, a few times
-    /// after each scene or hole loads (never on a timer: a search of the whole scene once a second made the game hitch),
+    /// after each scene or hole loads (never on a timer: a search of the whole scene once a second made the game hitch).
+    /// The first look after a load is always made; the later ones only when the HUD has changed since (a canvas gone, or a
+    /// different count of objects under one: <see cref="Transform.hierarchyCount"/>), as a pass measured 2.7-13 ms,
     /// and just before the HUD is drawn each frame (<see cref="Canvas.willRenderCanvases"/>, after the game has moved and animated it) each is scaled toward
     /// the side of the screen it's anchored to (<see cref="HudMath.Edge"/>): the item bar keeps its bottom-right
     /// corner, the progress bar its top-left. Elements that follow something on screen (crosshairs, lock-on markers)
@@ -75,6 +77,12 @@ namespace LightGreen.Systems
         private bool _wasActive;
         private bool _hooked;
         private bool _broken;
+        /// <summary>The next look goes through the HUD whatever happened (a load, or a piece destroyed).</summary>
+        private bool _fullNext = true;
+        /// <summary>The HUD's canvases at the last full look, and the count of objects under each then.</summary>
+        private readonly List<Transform> _canvases = new List<Transform>();
+        private readonly List<int> _canvasCounts = new List<int>();
+        private static readonly List<MonoBehaviour> Behaviours = new List<MonoBehaviour>();
 
         internal void Hook()
         {
@@ -96,6 +104,7 @@ namespace LightGreen.Systems
         {
             _scansLeft = ScanDelays.Length;
             _nextScan = Time.unscaledTime + ScanDelays[0];
+            _fullNext = true;
         }
 
         private static readonly int Timing = WorkTiming.Part("HUD sizes");
@@ -135,7 +144,11 @@ namespace LightGreen.Systems
                         Apply(new Target { Piece = holder.GetChild(c), Part = container.Key, AboutPivot = true });
                 }
                 // Something was destroyed: look again, at most every two seconds.
-                if (gone && _scansLeft == 0 && Time.unscaledTime >= _lastScan + 2f) _nextScan = 0f;
+                if (gone && _scansLeft == 0 && Time.unscaledTime >= _lastScan + 2f)
+                {
+                    _nextScan = 0f;
+                    _fullNext = true;
+                }
             }
             catch (Exception e)
             {
@@ -177,8 +190,14 @@ namespace LightGreen.Systems
                 ? Time.unscaledTime + ScanDelays[ScanDelays.Length - _scansLeft] - ScanDelays[ScanDelays.Length - _scansLeft - 1]
                 : float.PositiveInfinity;
 
+            // A later look after a load: nothing to find if the HUD is as it was at the last full one.
+            if (!_fullNext && Unchanged()) return;
+            _fullNext = false;
+
             _containers.Clear();
-            List<Root> roots = FindRoots(_containers);
+            List<Root> roots = FindRoots(_containers, _canvases);
+            _canvasCounts.Clear();
+            foreach (Transform canvas in _canvases) _canvasCounts.Add(canvas.hierarchyCount);
             roots = Expand(Deduplicate(roots));
 
             var targets = new List<Target>();
@@ -220,8 +239,21 @@ namespace LightGreen.Systems
         /// screen-space UI; on the Driving Range, its own copy). The containers of the pieces that come and go are added
         /// to <paramref name="containers"/>.
         /// </summary>
-        private static List<Root> FindRoots(List<KeyValuePair<HudPart, Transform>> containers)
+        /// <summary>The HUD's canvases are the ones of the last full look, each with as many objects under it.</summary>
+        private bool Unchanged()
         {
+            if (_canvases.Count == 0) return false;
+            for (int i = 0; i < _canvases.Count; i++)
+            {
+                Transform canvas = _canvases[i];
+                if (canvas == null || !canvas.gameObject.activeInHierarchy || canvas.hierarchyCount != _canvasCounts[i]) return false;
+            }
+            return true;
+        }
+
+        private static List<Root> FindRoots(List<KeyValuePair<HudPart, Transform>> containers, List<Transform> canvases)
+        {
+            canvases.Clear();
             var roots = new List<Root>();
             void Add(HudPart part, Transform transform, bool aboutPivot = false, bool own = false, bool whole = false)
             {
@@ -235,7 +267,10 @@ namespace LightGreen.Systems
             var winds = new List<WindInfoUi>();
             var bars = new List<Transform>();
             foreach (Transform canvas in HudCanvases())
-                foreach (MonoBehaviour behaviour in canvas.GetComponentsInChildren<MonoBehaviour>(true))
+            {
+                canvases.Add(canvas);
+                canvas.GetComponentsInChildren(true, Behaviours);
+                foreach (MonoBehaviour behaviour in Behaviours)
                 {
                     switch (behaviour)
                     {
@@ -298,6 +333,8 @@ namespace LightGreen.Systems
                             break;
                     }
                 }
+            }
+            Behaviours.Clear();
 
             // Two wind readouts: the top-left one, inside the progress bar and sized with it, and the one beside the power
             // meter.

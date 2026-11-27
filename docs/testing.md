@@ -1131,3 +1131,32 @@ was on throughout).
 - Also: Ball glow 2.2-3.8 ms once a second on night City holes; HUD sizes 6.4-13.1 ms at each map load and 2.7-3.4 ms
   in the scans after; City night under 2 ms this time (15,025 objects in 13 frames). The long frames (200-420 ms at map
   changes, 12-43 ms in play) had 0.0-0.1 ms of LightGreen's work: they're the game's own.
+
+## Performance fixes (from the timing log)
+
+**From the audit and the timing log (2026-11-26):** Ball glow 2.2-3.8 ms once a second at night, HUD sizes 2.7-13 ms
+in the looks after each load, a photo filter 6.7-7.6 ms in its pick's frame, and 16-18 garbage collections per 10 s
+while stepping through `.cube` filters. This build, with the look unchanged:
+
+- Ball glow: a postfix on `GolfBall.Awake` lists each ball as the game makes it (`Hook: Balls made`); destroyed ones
+  are dropped once a second and at map changes; balls made before the hook are found once. Without the hook, the
+  search once a second, as before.
+- HUD: the first look after a load or a destroyed piece goes through the HUD; the later ones (1, 3, 6 s) only if a
+  canvas is gone or inactive or the count of objects under it (`Transform.hierarchyCount`) changed. The component list
+  is reused.
+- Photo filter: the colour table (`LutBuilder.Fill` and the byte conversion, `PhotoFilter.Work`) on a worker thread,
+  one at a time; `SetPixels32` and `Apply` on the game's thread. The filter before, with its lens extras, stays until
+  the new table is ready. A table that fails is logged and shows no filter.
+- `.cube` reader: lines are spans into a reused 64 KB buffer (`CubeLut.LineReader`), ending at \n, \r or \r\n as
+  `ReadLine` did; only header and keyword lines become strings. 24.1 MB to 3.3 MB allocated for a 65-point cube (.NET 8
+  measurement, same code). 8 new offline checks (94): \r\n and \r endings, 7 characters per read, line numbers
+  with blank lines, a line longer than the buffer.
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| P1 | Ball glow | `TimingLog` on; a night City hole (F9 to Night), a minute | Log has `[ok] Hook: Balls made`; no `Ball glow` part over 2 ms; your ball and others glow as before, your own the brightest |
+| P2 | New balls | Same hole: a ball from a ball dispenser, or another player joining | It glows from the start |
+| P3 | HUD looks | Change map three times | One `HUD sizes` spike per load at most (at the load), not several in the 10 s after; HUD sizes at 50 still right (Q8) |
+| P4 | Filters | F11 through 20 or so filters, built-in and `.cube`, then hold Shift+F11 | No `Photo filter` part over 2 ms; each filter looks as before; F11 held skips ahead and lands on the last one |
+| P5 | Collections | Same as P4 | Fewer garbage collections per 10 s than 16-18 |
+| P6 | F8 | F8 through on, HUD only, off with a filter and night on | As before |

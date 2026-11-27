@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using LightGreen.Core;
 using LightGreen.Presets;
 using UnityEngine;
@@ -12,6 +13,10 @@ namespace LightGreen.Systems
     /// Lookup, which applies last, after tonemapping, so a filter sits on top of LightGreen's look like a photo
     /// editor's. Its lens extras (vignette, distortion, fringes, bloom) are mixed into LightGreen's own by
     /// <see cref="VolumeLayer"/>. The HUD is never filtered. No film grain.
+    /// <para>The table is worked out on a worker thread (<see cref="LutBuilder.Fill"/> is plain arithmetic), and only
+    /// copied into its texture on the game's thread: done in the frame of the pick it measured 6.7-7.6 ms. Until it's
+    /// ready, a frame or two later, the filter before stays on screen, its lens extras with it. One table is worked
+    /// out at a time; stepping past filters quickly skips the ones passed.</para>
     /// </summary>
     internal sealed class PhotoFilter : IFeature
     {
@@ -30,6 +35,20 @@ namespace LightGreen.Systems
         private int _builtRevision = -1;
         private Rgb[] _strip;
         private Color32[] _pixels;
+
+        /// <summary>A table being worked out: for which filter, file revision and size. Its buffers are
+        /// <see cref="_strip"/> and <see cref="_pixels"/>, which nothing else touches until it's done.</summary>
+        private sealed class Job
+        {
+            internal string Name;
+            internal int Revision;
+            internal int Size;
+            internal Task Task;
+        }
+
+        private Job _job;
+        private string _failedName;
+        private int _failedRevision = -1;
 
         public void Apply()
         {
@@ -53,10 +72,40 @@ namespace LightGreen.Systems
                 Active = entry.Preset;
                 return;
             }
+            if (entry.Name == _failedName && FilterStore.Revision == _failedRevision)
+            {
+                Active = null;
+                return;
+            }
+
+            // A table still being worked out: the filter shown before (or none) stays until it's done.
+            if (_job != null)
+            {
+                if (!_job.Task.IsCompleted) return;
+                Job done = _job;
+                _job = null;
+                bool wantedNow = done.Name == entry.Name && done.Revision == FilterStore.Revision && done.Size == size;
+                if (done.Task.IsFaulted)
+                {
+                    Plugin.Log.LogError($"Photo filter \"{done.Name}\": its colour table couldn't be worked out " +
+                                        $"({done.Task.Exception?.GetBaseException()}); showing none.");
+                    _failedName = done.Name;
+                    _failedRevision = done.Revision;
+                    if (wantedNow) Active = null;
+                    return;
+                }
+                if (wantedNow)
+                {
+                    Upload(done);
+                    Active = entry.Preset;
+                    return;
+                }
+                // Done for a filter stepped past: start the one wanted now.
+            }
+
             // A .cube still being read: the filter shown before (or none) stays until it's ready, a frame or so later.
             if (!entry.TryGetSpec(out FilterSpec spec)) return;
-            Active = entry.Preset;
-            Build(entry, spec, size);
+            Start(entry, spec, size);
         }
 
         /// <summary>Nothing to put back: the volume layer hands the picture back to the game.</summary>
@@ -75,7 +124,8 @@ namespace LightGreen.Systems
             return names[next];
         }
 
-        private void Build(FilterEntry entry, FilterSpec spec, int size)
+        /// <summary>Starts working out a filter's table on a worker thread (only when no other one is running).</summary>
+        private void Start(FilterEntry entry, FilterSpec spec, int size)
         {
             if (_lut == null || _lutSize != size)
             {
@@ -94,18 +144,36 @@ namespace LightGreen.Systems
                 _pixels = new Color32[_strip.Length];
             }
 
-            LutBuilder.Fill(spec, size, _strip);
-            for (int i = 0; i < _strip.Length; i++)
+            Rgb[] strip = _strip;
+            Color32[] pixels = _pixels;
+            _job = new Job
             {
-                Rgb c = _strip[i];
-                _pixels[i] = new Color32(TextureArt.ToByte(c.R), TextureArt.ToByte(c.G), TextureArt.ToByte(c.B), 255);
+                Name = entry.Name,
+                Revision = FilterStore.Revision,
+                Size = size,
+                Task = Task.Run(() => Work(spec, size, strip, pixels)),
+            };
+        }
+
+        /// <summary>The table's colours as pixels: arithmetic only, on a worker thread.</summary>
+        internal static void Work(FilterSpec spec, int size, Rgb[] strip, Color32[] pixels)
+        {
+            LutBuilder.Fill(spec, size, strip);
+            for (int i = 0; i < strip.Length; i++)
+            {
+                Rgb c = strip[i];
+                pixels[i] = new Color32(TextureArt.ToByte(c.R), TextureArt.ToByte(c.G), TextureArt.ToByte(c.B), 255);
             }
+        }
+
+        /// <summary>A finished table into the texture URP's Color Lookup reads, on the game's thread.</summary>
+        private void Upload(Job job)
+        {
             _lut.SetPixels32(_pixels);
             _lut.Apply(false, false);
-
-            _builtName = entry.Name;
-            _builtRevision = FilterStore.Revision;
-            Plugin.LogChange("filter", $"Photo filter: {entry.Name} ({size}³ colour table).");
+            _builtName = job.Name;
+            _builtRevision = job.Revision;
+            Plugin.LogChange("filter", $"Photo filter: {job.Name} ({job.Size}³ colour table).");
         }
 
 

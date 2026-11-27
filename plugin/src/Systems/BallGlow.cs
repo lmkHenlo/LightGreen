@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
+using HarmonyLib;
 using LightGreen.Core;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace LightGreen.Systems
 {
@@ -15,6 +18,10 @@ namespace LightGreen.Systems
     /// it changes), and each ball's renderer gets its emission colour and texture (the ball's base colour and texture)
     /// through a property block of its own, so the own ball and others can glow differently. Balls drawn by another
     /// shader don't glow.</para>
+    ///
+    /// <para>The balls come from a list the game's own <c>GolfBall.Awake</c> adds to (<see cref="AwakePatch"/>), so a new
+    /// ball glows from its first frame. Looking for them in the scene once a second instead measured 2.2-3.8 ms a time on
+    /// City maps; that search is still the way if the hook doesn't fit the game.</para>
     /// </summary>
     internal sealed class BallGlow : IFeature, IMapAware
     {
@@ -45,6 +52,70 @@ namespace LightGreen.Systems
         private GolfBall[] _balls = System.Array.Empty<GolfBall>();
         private float _nextScan;
 
+        /// <summary>Set by the plugin when the GolfBall.Awake hook is in: balls are listed as the game makes them.</summary>
+        internal static bool Hooked;
+
+        /// <summary>Every ball the game has made since the hook went in (destroyed ones dropped once a second).</summary>
+        private static readonly List<GolfBall> Made = new List<GolfBall>();
+        private static readonly HashSet<GolfBall> MadeSet = new HashSet<GolfBall>();
+        private static readonly Predicate<GolfBall> Destroyed = b => b == null;
+        private static bool _seeded;
+
+        private static bool Listing => Hooked && !AwakePatch.Guard.Broken;
+
+        private static void Remember(GolfBall ball)
+        {
+            if (ball != null && MadeSet.Add(ball)) Made.Add(ball);
+        }
+
+        /// <summary>Lists each ball as the game makes it.</summary>
+        [HarmonyPatch(typeof(GolfBall), "Awake")]
+        internal static class AwakePatch
+        {
+            internal static readonly PatchGuard Guard = new PatchGuard("Ball list hook");
+
+            private static void Postfix(GolfBall __instance)
+            {
+                if (Guard.Broken) return;
+                try
+                {
+                    Remember(__instance);
+                }
+                catch (Exception e)
+                {
+                    Guard.Fail(e);
+                }
+            }
+        }
+
+        /// <summary>The balls to look at this frame: the hook's list, or (without it) a search once a second.</summary>
+        private IReadOnlyList<GolfBall> Balls()
+        {
+            if (!Listing)
+            {
+                // Balls come and go with players; look for them about once a second.
+                if (Time.unscaledTime >= _nextScan)
+                {
+                    _nextScan = Time.unscaledTime + 1f;
+                    _balls = Object.FindObjectsByType<GolfBall>(FindObjectsSortMode.None);
+                }
+                return _balls;
+            }
+            if (!_seeded)
+            {
+                // Once: any ball made before the hook went in.
+                _seeded = true;
+                foreach (GolfBall ball in Object.FindObjectsByType<GolfBall>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    Remember(ball);
+            }
+            if (Time.unscaledTime >= _nextScan)
+            {
+                _nextScan = Time.unscaledTime + 1f;
+                if (Made.RemoveAll(Destroyed) > 0) MadeSet.RemoveWhere(Destroyed);
+            }
+            return Made;
+        }
+
         public void Apply()
         {
             float strength = Settings.BallGlow.Value;
@@ -55,17 +126,12 @@ namespace LightGreen.Systems
                 return;
             }
 
-            // Balls come and go with players; look for them about once a second.
-            if (Time.unscaledTime >= _nextScan)
-            {
-                _nextScan = Time.unscaledTime + 1f;
-                _balls = Object.FindObjectsByType<GolfBall>(FindObjectsSortMode.None);
-            }
-
+            IReadOnlyList<GolfBall> balls = Balls();
             bool ownOnly = Settings.BallGlowOwnOnly.Value;
             _thisFrame.Clear();
-            foreach (GolfBall ball in _balls)
+            for (int i = 0; i < balls.Count; i++)
             {
+                GolfBall ball = balls[i];
                 if (ball == null || !ball.isActiveAndEnabled || ball.IsHidden) continue;
                 bool own = ball.Owner != null && ball.Owner.isLocalPlayer;
                 if (ownOnly && !own) continue;
@@ -141,7 +207,11 @@ namespace LightGreen.Systems
         }
 
         /// <summary>A new map: let go of every ball and material of the old one.</summary>
-        public void OnBiomeChanged() => Restore();
+        public void OnBiomeChanged()
+        {
+            Restore();
+            if (Made.RemoveAll(Destroyed) > 0) MadeSet.RemoveWhere(Destroyed);
+        }
 
         public void OnHoleChanged()
         {

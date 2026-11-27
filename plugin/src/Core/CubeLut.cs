@@ -37,22 +37,26 @@ namespace LightGreen.Core
         {
             var lut = new CubeLut();
             int size3 = 0, size1 = 0, count = 0, lineNumber = 0;
+            var lines = new LineReader(reader);
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                while (lines.Next(out ReadOnlySpan<char> text))
                 {
                     lineNumber++;
-                    line = line.Trim();
-                    if (line.Length == 0 || line[0] == '#') continue;
+                    text = Trim(text);
+                    if (text.Length == 0 || text[0] == '#') continue;
 
-                    // Colour lines, nearly all of the file, are read in place: no split, no strings per number.
-                    if (IsNumberStart(line[0]))
+                    // Colour lines, nearly all of the file, are read in place from the read buffer: no string for the
+                    // line, none per number (a string a line was 15-30 MB of garbage for a 65-point cube).
+                    if (IsNumberStart(text[0]))
                     {
                         if (lut._data == null) throw Bad(lineNumber, "colour values before LUT_3D_SIZE or LUT_1D_SIZE");
                         if (count >= lut._data.Length) throw Bad(lineNumber, $"more than the {lut._data.Length} entries the size gives");
-                        lut._data[count++] = ParseRgb(line, lineNumber);
+                        lut._data[count++] = ParseRgb(text, lineNumber);
                         continue;
                     }
+
+                    // The few other lines (the header, keywords) as strings.
+                    string line = text.ToString();
 
                     string[] parts = line.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
                     string key = parts[0].ToUpperInvariant();
@@ -142,8 +146,88 @@ namespace LightGreen.Core
 
         private static bool IsNumberStart(char c) => (c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.';
 
+        /// <summary>
+        /// Lines out of a <see cref="TextReader"/> without a string each: a reused buffer, and each line a span into it
+        /// (valid until the next line). Ends lines as <see cref="TextReader.ReadLine"/> does, at \n, \r or \r\n.
+        /// </summary>
+        private sealed class LineReader
+        {
+            private readonly TextReader _reader;
+            private char[] _buffer = new char[64 * 1024];
+            private int _start, _end;   // unread characters: _buffer[_start.._end)
+            private bool _eof;
+
+            internal LineReader(TextReader reader) => _reader = reader;
+
+            internal bool Next(out ReadOnlySpan<char> line)
+            {
+                int i = _start;
+                while (true)
+                {
+                    while (i < _end && _buffer[i] != '\n' && _buffer[i] != '\r') i++;
+                    if (i < _end)
+                    {
+                        // A \r at the end of what's read may be half of a \r\n: read on to see (Fill moves the line to
+                        // the front of the buffer, so the place is kept as an offset).
+                        if (_buffer[i] == '\r' && i + 1 == _end && !_eof)
+                        {
+                            int offset = i - _start;
+                            bool more = Fill();
+                            i = _start + offset;   // moved even when nothing more came
+                            if (more) continue;
+                        }
+                        bool crlf = _buffer[i] == '\r' && i + 1 < _end && _buffer[i + 1] == '\n';
+                        line = new ReadOnlySpan<char>(_buffer, _start, i - _start);
+                        _start = crlf ? i + 2 : i + 1;
+                        return true;
+                    }
+                    int read = i - _start;
+                    bool filled = !_eof && Fill();
+                    i = _start + read;
+                    if (filled) continue;
+                    if (_start >= _end)
+                    {
+                        line = default;
+                        return false;
+                    }
+                    line = new ReadOnlySpan<char>(_buffer, _start, _end - _start);
+                    _start = _end;
+                    return true;
+                }
+            }
+
+            /// <summary>Reads more after the unread characters (moved to the front, the buffer grown for a long line).</summary>
+            private bool Fill()
+            {
+                int kept = _end - _start;
+                if (_start > 0)
+                {
+                    Array.Copy(_buffer, _start, _buffer, 0, kept);
+                    _start = 0;
+                    _end = kept;
+                }
+                if (_end == _buffer.Length) Array.Resize(ref _buffer, _buffer.Length * 2);
+                int read = _reader.Read(_buffer, _end, _buffer.Length - _end);
+                if (read <= 0)
+                {
+                    _eof = true;
+                    return false;
+                }
+                _end += read;
+                return true;
+            }
+        }
+
+        private static ReadOnlySpan<char> Trim(ReadOnlySpan<char> text)
+        {
+            int a = 0, b = text.Length;
+            while (a < b && char.IsWhiteSpace(text[a])) a++;
+            while (b > a && char.IsWhiteSpace(text[b - 1])) b--;
+            return text.Slice(a, b - a);
+        }
+
         /// <summary>The first three numbers of a colour line, read where they stand in it.</summary>
-        private static Rgb ParseRgb(string text, int line)
+        private static Rgb ParseRgb(ReadOnlySpan<char> text, int line)
         {
             float r = 0f, g = 0f, b = 0f;
             int at = 0;
@@ -153,10 +237,10 @@ namespace LightGreen.Core
                 int start = at;
                 while (at < text.Length && text[at] != ' ' && text[at] != '\t') at++;
                 if (at == start ||
-                    !float.TryParse(text.AsSpan(start, at - start), NumberStyles.Float, CultureInfo.InvariantCulture, out float v))
+                    !float.TryParse(text.Slice(start, at - start), NumberStyles.Float, CultureInfo.InvariantCulture, out float v))
                     throw Bad(line, "a missing or unreadable number");
                 if (float.IsNaN(v) || float.IsInfinity(v))
-                    throw Bad(line, $"\"{text.Substring(start, at - start)}\" isn't a usable number");
+                    throw Bad(line, $"\"{text.Slice(start, at - start).ToString()}\" isn't a usable number");
                 if (n == 0) r = v;
                 else if (n == 1) g = v;
                 else b = v;

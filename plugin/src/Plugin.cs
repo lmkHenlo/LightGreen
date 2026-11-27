@@ -120,6 +120,7 @@ namespace LightGreen
             new PatchModule(typeof(HudPatches.MarkerPatch), "Hook: HUD markers").TryApply(_harmony, Log);
             new PatchModule(typeof(HudPatches.NameTagPatch), "Hook: HUD name tags").TryApply(_harmony, Log);
             new PatchModule(typeof(HudPatches.PopupPatch), "Hook: HUD pop-up words").TryApply(_harmony, Log);
+            BallGlow.Hooked = new PatchModule(typeof(BallGlow.AwakePatch), "Hook: Balls made").TryApply(_harmony, Log);
             _hud.Hook();
 
             // A new map or hole: each feature that holds the old one's things lets go of them (IMapAware).

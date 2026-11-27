@@ -233,6 +233,58 @@ namespace LightGreen.Tests
             Refused("too many entries", "LUT_1D_SIZE 2\n0 0 0\n1 1 1\n1 1 1\n", "line 4", "more than the 2");
             using (var reader = new StringReader("LUT_1D_SIZE 2\n0 0 0\n1 1 1\n"))
                 Check(CubeLut.Parse(reader).Size == 2, "a .cube read from a reader, as from a file");
+
+            // The reader's own line splitting: every line ending, across the read buffer's edges, and a last line
+            // with no ending.
+            var body = new System.Text.StringBuilder("TITLE \"big\"\nLUT_3D_SIZE 33\n");
+            for (int b = 0; b < 33; b++)
+            for (int g = 0; g < 33; g++)
+            for (int r = 0; r < 33; r++)
+                body.Append($"{r / 32f + 0.001f:0.000000} {g / 32f:0.000000} {b / 32f:0.000000}\n");
+            string unix = body.ToString().TrimEnd('\n');
+            var probe = new Rgb(0.3f, 0.6f, 0.9f);
+            Rgb expected = CubeLut.Parse(unix).Sample(probe);
+            Check(Near(expected.R, 0.301f) && Near(expected.G, 0.6f), "a 33-point cube (more than one read buffer) samples through " + expected);
+            foreach (string ending in new[] { "\r\n", "\r" })
+            {
+                string text = unix.Replace("\n", ending) + ending;
+                Rgb got = CubeLut.Parse(text).Sample(probe);
+                Check(Near(got.R, expected.R) && Near(got.G, expected.G) && Near(got.B, expected.B),
+                      $"the same cube with {(ending == "\r" ? "\\r" : "\\r\\n")} line endings");
+                using (var chunks = new ChunkReader(text, 7))
+                {
+                    Rgb small = CubeLut.Parse(chunks).Sample(probe);
+                    Check(Near(small.R, expected.R) && Near(small.B, expected.B),
+                          $"read 7 characters at a time, {(ending == "\r" ? "\\r" : "\\r\\n")} endings split across reads");
+                }
+            }
+            Refused("line numbers with \\r\\n endings", "LUT_1D_SIZE 2\r\n0 0 0\r\nNaN 1 1\r\n", "line 3");
+            Refused("line numbers with blank \\r\\n lines", "LUT_1D_SIZE 2\r\n\r\n0 0 0\r\n\r\nNaN 1 1", "line 5");
+            string longTitle = new string('t', 200000);
+            Check(CubeLut.Parse("TITLE \"" + longTitle + "\"\nLUT_1D_SIZE 2\n0 0 0\n1 1 1").Title.Length == longTitle.Length,
+                  "a line longer than the read buffer");
+        }
+
+        /// <summary>Hands out a text a few characters per read, as a slow stream might.</summary>
+        private sealed class ChunkReader : TextReader
+        {
+            private readonly string _text;
+            private readonly int _chunk;
+            private int _at;
+
+            internal ChunkReader(string text, int chunk)
+            {
+                _text = text;
+                _chunk = chunk;
+            }
+
+            public override int Read(char[] buffer, int index, int count)
+            {
+                int n = Math.Min(Math.Min(count, _chunk), _text.Length - _at);
+                _text.CopyTo(_at, buffer, index, n);
+                _at += n;
+                return n;
+            }
         }
 
         private static void JsonLimits()
