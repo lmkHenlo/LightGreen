@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A moon at night. The sky draws its moon with its sun disc (as the game's own night skies do), but LightGreen left the disc pointing at the sun below the horizon, so LightGreen's nights had moonlight and no moon. After sunset the disc now goes where the moonlight comes from, at the moon's size and with the time of day's moon phase, growing in over the first degrees below the horizon, with a soft halo.
+- `Effects.Stars` (default 2): brighter stars at night, up to 4; higher also brings out fainter ones. They come out late at dusk, and rain, snow and cartoon rain's cloud hides them. Holes the game sets at night get theirs scaled the same way.
+- Thicker cloud in rain and snow (half as much under cartoon rain's mist), from the sky's own clouds.
+- City holes at night: a faint warm glow on the horizon from the streets, with `Effects.CityNight`.
 - `.cube` filters are read on a worker thread: picking a big one (F11) no longer stops the game while it's read (a 65-point cube took about a tenth of a second or more). The filter before stays on screen until the new one is ready, a frame or two later. `.cube` files over 96 MB, and presets or filters files over 4 MB, are refused with their size in the log.
 - `build.ps1 -Test` runs offline checks (`tests/Tests.cs`) for the parts that work without the game: the `.cube` reader, the filter maths, the presets and filters files and the 27 built-in filters, the HUD maths, the weather art, LightGreen's random numbers and the material copy lookup. The build stops if one fails.
 

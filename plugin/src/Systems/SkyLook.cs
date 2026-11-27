@@ -1,3 +1,4 @@
+using LightGreen.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -26,6 +27,16 @@ namespace LightGreen.Systems
         private static readonly Color MistSkyGlow = new Color(0.85f, 0.92f, 0.95f);
         private const float MistSkyBlend = 0.6f;
 
+        /// <summary>The moon's disc: the size the game's own night sky gives it (the shader draws the moon with its sun disc).</summary>
+        private const float MoonSize = 0.092f;
+        /// <summary>Degrees below the horizon over which the moon's disc grows in as the sun sets (and the sun's goes).</summary>
+        private const float MoonRise = 6f;
+        /// <summary>The sky's cloud cutoff under a full overcast (the game's skies use 0.81: less cloud). See the test notes.</summary>
+        private const float OvercastCloudCutoff = 0.45f;
+        /// <summary>City nights: the horizon's warm glow from the streets, and how far the horizon goes to it.</summary>
+        private static readonly Color CityGlow = new Color(0.45f, 0.26f, 0.13f);
+        private const float CityGlowBlend = 0.25f;
+
         private readonly LightGreen.Core.MaterialEdits _sky = new LightGreen.Core.MaterialEdits();
         private Material _material;
         private Color _fogColor = Color.grey;
@@ -34,6 +45,7 @@ namespace LightGreen.Systems
         private Vector4 _lastSkyKey;
         private float _nextAmbientRefresh;
         private float _skyBrightnessDelta, _horizonBrightnessDelta;
+        private bool _moonUp;   // this frame, the sky's disc is the moon
 
         /// <summary>The sky's horizon colour as shown this frame (the hole's fog colour when there's no sky).</summary>
         internal Color HorizonColor { get; private set; } = Color.grey;
@@ -96,12 +108,42 @@ namespace LightGreen.Systems
                 }
             }
 
-            // Night: the sky's own stars and moon, and less of the sun's glow around the moon.
+            // Weather: thicker cloud in the sky's own clouds; rain and snow most, cartoon rain's mist half as much.
+            float cover = overcast * (1f - 0.5f * Mathf.Clamp01(env.Misty));
+            BlendFloat(sky, "_Cutoff", OvercastCloudCutoff, cover);
+
+            // City nights: the streets light the horizon a little, warm, with City night's strength.
+            if (GameEvents.CurrentBiome == Biome.City)
+            {
+                float glow = CityGlowBlend * Mathf.Clamp01(env.Darkness) * Mathf.Clamp01(Settings.CityNight.Value);
+                if (glow > 0.001f) Tint(sky, "_HorizonColor", CityGlow, glow);
+            }
+
+            // Night: the sky's own stars, brighter with Effects.Stars, coming out late at dusk (eased) and hidden by the
+            // weather's cloud. 1 is the sky's own night level; the game's own night skies keep theirs, scaled the same.
             float night = Mathf.Clamp01(env.Current.night);
-            BlendFloat(sky, "_StarsExposure", 1f, night);
+            float starsOut = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.4f, 1f, night));
+            float clear = 1f - 0.9f * overcast;
+            if (sky.HasProperty("_StarsExposure"))
+            {
+                float stock = _sky.StockFloat(sky, "_StarsExposure");
+                float stars = Mathf.Lerp(stock, 1f, starsOut) * Mathf.Max(0f, Settings.Stars.Value) * clear;
+                _sky.SetFloat(sky, "_StarsExposure", stock > 0f || starsOut > 0f ? stars : stock);
+            }
             BlendFloat(sky, "_MoonCycle", env.Current.moonPhase, night);
+
+            // The moon: the shader draws it with the sun's disc, shaded by _MoonCycle, as the game's own night skies do. With
+            // the sun below the horizon (the scene's light is then the moon), the disc goes where the moonlight comes from,
+            // at the moon's size, growing in over the first degrees after sunset, so the swap is never seen.
+            // Only under LightGreen's own time of day: the game's own night holes keep their own moon.
+            _moonUp = env.SunMoved && env.Sun != null && env.Current.sunWeight > 0f && env.SunElevation < 0f;
+            float moon = _moonUp ? Mathf.SmoothStep(0f, 1f, -env.SunElevation / MoonRise) : 0f;
+            if (sky.HasProperty("_SunSize"))
+                _sky.SetFloat(sky, "_SunSize", _moonUp ? MoonSize * moon : _sky.StockFloat(sky, "_SunSize"));
+            // Less of the sun's wide glow at night; a little more kept round a moon that's up, for a soft halo.
             if (sky.HasProperty("_SunScatterIntensity"))
-                _sky.SetFloat(sky, "_SunScatterIntensity", _sky.StockFloat(sky, "_SunScatterIntensity") * Mathf.Lerp(1f, 0.2f, night));
+                _sky.SetFloat(sky, "_SunScatterIntensity",
+                    _sky.StockFloat(sky, "_SunScatterIntensity") * Mathf.Lerp(Mathf.Lerp(1f, 0.2f, night), 0.35f, moon) * clear);
 
             // The sky's own change in brightness, for the fill light, before Brightness.Day and Night scale it.
             _skyBrightnessDelta = BrightnessDelta(sky, "_SkyColor");
@@ -116,7 +158,8 @@ namespace LightGreen.Systems
             if (sky.HasProperty("_SunDirection") && env.Sun != null)
             {
                 Vector4 stock = _sky.StockVector(sky, "_SunDirection");
-                Vector3 toSun = env.SunDirection;
+                // By day the sun; after sunset the moon (where the moonlight comes from).
+                Vector3 toSun = _moonUp ? -env.Sun.transform.forward : env.SunDirection;
                 _sky.SetVector(sky, "_SunDirection", env.SunMoved ? new Vector4(toSun.x, toSun.y, toSun.z, stock.w) : stock);
             }
 

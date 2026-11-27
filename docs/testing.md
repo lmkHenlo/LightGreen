@@ -1038,3 +1038,30 @@ ones and 5 notes (the audit report). This build fixes or settles each:
 | Q7 | Looks | Each time of day with and without weather | Sky, ambient light and brightness as before |
 | Q8 | HUD | `[HUD]` sizes at 50 | Markers, name tags and pop-ups at half size as before |
 
+## Night sky
+
+**Found (2026-11-26, sky diagnostic build, `LogOutput.log` and six screenshots):** every biome's sky is `Unlit/Skybox`,
+26 properties. The game's own night sky (`Unlit_Skybox City Night`) draws its moon with the sun disc: `_SunDirection`
+high (y 0.96), `_SunSize` 0.092, `_MoonCycle` 0.38, `_StarsExposure` 0.52. Under LightGreen's Night the moonlight came
+from 40° up (`(0.38, 0.64, -0.66)`) but `_SunDirection` stayed on the sun 30° below the horizon (`(-0.43, -0.5, 0.75)`), so
+no moon showed (City night screenshot: stars and clouds, no moon). The sky also has its own clouds (`_Cutoff` 0.81,
+`_EdgeScale`, `_EdgeBlend`, `_WindSpeed`). Cloud drift with the wind was left out: the shader most likely moves the
+clouds by time × `_WindSpeed`, so changing the speed would jump them across the sky.
+
+Changed (`SkyLook`): after sunset under LightGreen's time of day the disc points at the moonlight, `_SunSize` grows to
+0.092 over the first 6° below the horizon, `_SunScatterIntensity` keeps 0.35 round the moon; `_StarsExposure` = the sky's
+night level (1, or the hole's own) × `Effects.Stars` (default 2) × (1 − 0.9 × overcast), eased in from `night` 0.4;
+`_Cutoff` toward 0.45 with the weather's overcast (half under cartoon rain); City at night, `_HorizonColor` 25 % toward a
+dim warm orange × darkness × `Effects.CityNight` (up to 1).
+
+| # | Check | Steps | Expected |
+|---|---|---|---|
+| K1 | Moon | F9 to Night on a clear hole; look toward where the shadows point away from | A moon disc, with the phase of the time of day, where the light comes from; shadows fall away from it |
+| K2 | Sunset | F9 from Sunset to Blue hour to Night, watching the sky | The sun sets; the moon grows in a little after, never pops; stars come out late |
+| K3 | Stars | Night: `Effects.Stars` 1, 2, 4 | 1 as before; 2 clearly more and brighter; 4 a full sky, brightest stars glowing, not washed out |
+| K4 | Weather at night | Night, then F10 rain, snow, cartoon rain | Stars fade as the cloud comes in; few or none under full rain or snow; more under the mist |
+| K5 | Cloud cover | Noon, F10 to rain at strength 1, wait 10 s | **More** cloud in the sky's own clouds. If it's less, say so: `_Cutoff` works the other way and the target flips |
+| K6 | Game's own night hole | A City hole the game sets at night (HoleDefault) | Its own moon as before; its stars twice as bright at `Effects.Stars` 2 |
+| K7 | City glow | City at Night, `Effects.CityNight` 0 then 1 | A faint warm horizon at 1, none at 0 |
+| K8 | F8 | F8 off at Night | The game's own sky: no LightGreen moon, stars as the game has them |
+

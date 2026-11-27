@@ -57,6 +57,7 @@ namespace LightGreen
         internal static ConfigEntry<bool> BallGlowOwnOnly;
         internal static ConfigEntry<float> Lightning;
         internal static ConfigEntry<float> CityNight;
+        internal static ConfigEntry<float> Stars;
         internal static ConfigEntry<float> Rain;
         internal static ConfigEntry<float> Snow;
         internal static ConfigEntry<float> CartoonRain;
@@ -190,6 +191,9 @@ namespace LightGreen
                 "The Thunderstorm item's lightning lights where it lands (with a shadow) and the ground for a long way round, " +
                 "flickering two or three times. With the game's Explosion flashes option off, and in VR, it is one gentle pulse instead. " +
                 "Needs the game's Dynamic Lighting setting on.");
+            Stars = Effect(config, "Stars", 2f, 4f,
+                "How bright the stars are at night: higher also brings out fainter ones, and the brightest pick up a soft glow. They " +
+                "come out late at dusk and hide behind rain, snow and cartoon rain's cloud. Also on holes the game sets at night.");
             CityNight = Effect(config, "CityNight", 1f, 4f,
                 "City holes at night, as the game's own night City holes look: building windows and vehicle lights glow, " +
                 "lampposts light the street (the nearest with shadows), and bright light blooms. Follows how dark it is; " +
