@@ -9,11 +9,11 @@ using UnityEngine;
 namespace LightGreen.Tests
 {
     /// <summary>
-    /// Offline checks for the parts of LightGreen that run without the game: .cube files, the filter maths, the
-    /// JSON files and the built-in presets and filters, the HUD maths, the weather art, LightGreen's random numbers
-    /// and the material copy lookup. Compiled with those source files and run by <c>build.ps1 -Test</c>; what needs
-    /// the game (rendering, the HUD, lights) is checked by hand (docs/testing.md). Also LightGreen's own file handling
-    /// (size limits, writes that replace a file whole) and the preset lookup the systems use every frame.
+    /// Offline checks for the parts of LightGreen that run without the game: the .cube reader, the filter maths, the
+    /// presets and filters files and the 27 built-in filters, the preset lookup the systems use every frame,
+    /// LightGreen's file handling (size limits, writes that replace a file whole), the HUD maths, the weather art and
+    /// pixels, LightGreen's random numbers and the material copy lookup. Compiled with those source files and run by
+    /// <c>build.ps1 -Test</c>; what needs the game (rendering, the HUD, lights) is checked by hand (docs/testing.md).
     /// </summary>
     public static class Tests
     {

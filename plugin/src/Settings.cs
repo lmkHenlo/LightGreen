@@ -192,8 +192,9 @@ namespace LightGreen
                 "flickering two or three times. With the game's Explosion flashes option off, and in VR, it is one gentle pulse instead. " +
                 "Needs the game's Dynamic Lighting setting on.");
             Stars = Effect(config, "Stars", 2f, 4f,
-                "How bright the stars are at night: higher also brings out fainter ones, and the brightest pick up a soft glow. They " +
-                "come out late at dusk and hide behind rain, snow and cartoon rain's cloud. Also on holes the game sets at night.");
+                "How bright the stars are at night: higher also brings out fainter ones. They come out late at dusk and hide " +
+                "behind rain, snow and cartoon rain's cloud. Also on holes the game sets at night.",
+                " 0 = no stars, 1 = the sky's own, 2 = double (the default), up to 4.");
             CityNight = Effect(config, "CityNight", 1f, 4f,
                 "City holes at night, as the game's own night City holes look: building windows and vehicle lights glow, " +
                 "lampposts light the street (the nearest with shadows), and bright light blooms. Follows how dark it is; " +
@@ -284,9 +285,12 @@ namespace LightGreen
         /// An effect's strength: 0 = off, 1 = tuned. Each has its own most: where turning it up stops making a
         /// difference, or where it starts to look broken, flash too hard or cost too much.
         /// </summary>
-        private static ConfigEntry<float> Effect(ConfigFile config, string key, float value, float most, string description) =>
+        /// <summary>An effect's strength, 0 to <paramref name="most"/>. <paramref name="scale"/> replaces the usual
+        /// "0 = off, 1 = tuned, 2 = double" for an effect whose 1 means something else (Stars: the sky's own).</summary>
+        private static ConfigEntry<float> Effect(ConfigFile config, string key, float value, float most, string description,
+                                                 string scale = null) =>
             config.Bind("Effects", key, value, new ConfigDescription(
-                description + (most > 2f ? $" 0 = off, 1 = tuned, 2 = double, up to {most:0}." : " 0 = off, 1 = tuned, 2 = double (the most)."),
+                description + (scale ?? (most > 2f ? $" 0 = off, 1 = tuned, 2 = double, up to {most:0}." : " 0 = off, 1 = tuned, 2 = double (the most).")),
                 new AcceptableValueRange<float>(0f, most)));
     }
 }

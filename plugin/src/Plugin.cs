@@ -13,7 +13,7 @@ namespace LightGreen
 {
     /// <summary>
     /// LightGreen's entry point: settings (reloaded when the config file is saved), the ToggleKey comparison with
-    /// the game's own look, the TimeKey, and the feature host, which runs each feature and switches off any that
+    /// the game's own look, the TimeKey, RainKey and FilterKey and the notices they post, and the feature host, which runs each feature and switches off any that
     /// fails, putting the game back as it was. LightGreen uses no shaders of its own: everything is done with the
     /// game's shaders, URP's built-in effects and the game's own systems.
     ///
@@ -22,8 +22,9 @@ namespace LightGreen
     /// Phase 2 (light): ambient occlusion (the game's HTrace AO, grass left out), grass toggle, effect lights, ball
     /// glow, lightning, City night.
     /// Phase 3 (weather): footprints in snow, and rain without the wet look.
-    /// Then: photo filters (colour lookup tables built at runtime, and your own .cube files), and the [HUD] sizes,
-    /// which ToggleKey can keep with the game's own look (HUD only).
+    /// Then: snow and cartoon rain (one weather at a time, each with its sky), photo filters (colour lookup tables
+    /// built at runtime, and your own .cube files), the [HUD] sizes, which ToggleKey can keep with the game's own look
+    /// (HUD only), and the night sky (the moon, brighter stars, cloud under the weather, the City's glow).
     /// </summary>
     [BepInPlugin(Guid, Name, Version)]
     public class Plugin : BaseUnityPlugin
@@ -33,7 +34,7 @@ namespace LightGreen
         public const string Version = "0.3.1";
 
         /// <summary>
-        /// The Unity version of the game build LightGreen is made for (Super Battle Golf 1.4.0-798). A different
+        /// The Unity version of the game build LightGreen is made for (Super Battle Golf 1.4.1-823). A different
         /// one means the game has updated, which is when hooks and material names are most likely to change.
         /// </summary>
         internal const string ExpectedUnity = "6000.3.27f2";
@@ -143,7 +144,7 @@ namespace LightGreen
 
             if (Application.unityVersion != ExpectedUnity)
                 Log.LogWarning($"The game runs Unity {Application.unityVersion}; this LightGreen was made for {ExpectedUnity} " +
-                               "(Super Battle Golf 1.4.0). The game may have updated: some effects may not work until LightGreen does too.");
+                               "(Super Battle Golf 1.4.1). The game may have updated: some effects may not work until LightGreen does too.");
 
             Settings.Enabled.SettingChanged += (_, __) =>
                 Log.LogInfo(Settings.Enabled.Value ? "Enabled." : "Disabled (General.Enabled = false): the game's own look.");
